@@ -21,6 +21,7 @@ ORDERS_UPLOAD = DATA_DIR / "ordens.xlsx"
 DETAIL_UPLOAD = DATA_DIR / "geral_ct_log.xlsx"
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 SESSION_COOKIE = "dashboard_log_session"
+FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
 
 
 def app_user() -> str:
@@ -53,15 +54,16 @@ LOGIN_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
   <title>Login - Dashboard Log</title>
   <style>
     :root {
-      --bg: #17113f;
+      --bg: #34104f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #00a884;
+      --teal: #64248c;
       --error-bg: #fff1ed;
       --error: #9a3412;
       --shadow: 0 24px 60px rgba(0, 0, 0, .22);
@@ -76,9 +78,9 @@ LOGIN_HTML = """<!doctype html>
       overflow: hidden;
       background:
         linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 48px),
-        radial-gradient(720px circle at var(--mx, 76%) var(--my, 24%), rgba(20, 153, 160, .30), transparent 58%),
-        radial-gradient(520px circle at 18% 78%, rgba(60, 140, 79, .20), transparent 62%),
-        linear-gradient(135deg, #17113f, #26306f 52%, #0f2f35),
+        radial-gradient(720px circle at var(--mx, 76%) var(--my, 24%), rgba(43, 132, 203, .28), transparent 58%),
+        radial-gradient(520px circle at 18% 78%, rgba(226, 38, 60, .18), transparent 62%),
+        linear-gradient(135deg, #34104f, #4c176d 52%, #1b255f),
         var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
@@ -120,8 +122,8 @@ LOGIN_HTML = """<!doctype html>
       place-items: center;
       color: #fff;
       font-weight: 900;
-      background: linear-gradient(135deg, #00a884, #f6c343);
-      box-shadow: 0 16px 34px rgba(0, 168, 132, .28);
+      background: linear-gradient(135deg, #2b84cb, #e2263c);
+      box-shadow: 0 16px 34px rgba(100, 36, 140, .28);
     }
     .welcome h1 {
       max-width: 430px;
@@ -208,8 +210,8 @@ LOGIN_HTML = """<!doctype html>
       top: -9%;
       height: 11%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #00a884, #f6c343);
-      box-shadow: 0 0 22px rgba(0, 168, 132, .60);
+      background: linear-gradient(90deg, #2b84cb, #e2263c);
+      box-shadow: 0 0 22px rgba(43, 132, 203, .52);
     }
     .bot::after {
       content: "";
@@ -219,8 +221,8 @@ LOGIN_HTML = """<!doctype html>
       bottom: 13%;
       height: 12%;
       border-radius: 999px;
-      background: linear-gradient(180deg, rgba(0, 168, 132, .16), rgba(0, 168, 132, .06));
-      border: 1px solid rgba(0, 168, 132, .22);
+      background: linear-gradient(180deg, rgba(100, 36, 140, .16), rgba(43, 132, 203, .08));
+      border: 1px solid rgba(100, 36, 140, .22);
     }
     .face {
       position: absolute;
@@ -233,12 +235,12 @@ LOGIN_HTML = """<!doctype html>
       justify-content: center;
       gap: 14%;
       border-radius: 30px;
-      background: linear-gradient(180deg, #17113f, #0f2f35);
-      box-shadow: inset 0 0 22px rgba(0, 168, 132, .22);
+      background: linear-gradient(180deg, #34104f, #1b255f);
+      box-shadow: inset 0 0 22px rgba(43, 132, 203, .22);
     }
     .arm, .foot {
       position: absolute;
-      background: #00a884;
+      background: #2b84cb;
       box-shadow: 0 5px 12px rgba(0, 0, 0, .12);
     }
     .arm {
@@ -273,7 +275,7 @@ LOGIN_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: linear-gradient(135deg, #00a884, #f6c343);
+      background: linear-gradient(135deg, #2b84cb, #e2263c);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out, height .16s ease, border-radius .16s ease;
     }
@@ -288,7 +290,7 @@ LOGIN_HTML = """<!doctype html>
       right: 35%;
       bottom: 27%;
       height: 8%;
-      border-bottom: 3px solid #00a884;
+      border-bottom: 3px solid #64248c;
       border-radius: 0 0 999px 999px;
     }
     .shadow {
@@ -323,7 +325,7 @@ LOGIN_HTML = """<!doctype html>
       align-items: center;
       gap: 8px;
       margin-bottom: 16px;
-      color: #00a884;
+      color: #64248c;
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -333,8 +335,8 @@ LOGIN_HTML = """<!doctype html>
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: #00a884;
-      box-shadow: 0 0 0 6px rgba(0, 168, 132, .12);
+      background: #2b84cb;
+      box-shadow: 0 0 0 6px rgba(43, 132, 203, .12);
     }
     form { display: grid; gap: 15px; }
     label {
@@ -358,24 +360,24 @@ LOGIN_HTML = """<!doctype html>
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     input:focus {
-      outline: 3px solid rgba(0, 168, 132, .18);
+      outline: 3px solid rgba(100, 36, 140, .18);
       border-color: var(--teal);
     }
     button {
       min-height: 50px;
       border: 0;
       border-radius: 12px;
-      background: linear-gradient(135deg, #00a884, #f6c343);
+      background: linear-gradient(135deg, #64248c, #2b84cb);
       color: #fff;
       cursor: pointer;
       font: inherit;
       font-weight: 900;
-      box-shadow: 0 16px 32px rgba(0, 168, 132, .28);
+      box-shadow: 0 16px 32px rgba(100, 36, 140, .28);
       transition: transform .16s ease, box-shadow .16s ease;
     }
     button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 20px 40px rgba(0, 168, 132, .34);
+      box-shadow: 0 20px 40px rgba(100, 36, 140, .34);
     }
     .login-foot {
       margin-top: 18px;
@@ -396,7 +398,7 @@ LOGIN_HTML = """<!doctype html>
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #f6c343;
+      background: #e2263c;
     }
     .error {
       margin-bottom: 14px;
@@ -495,17 +497,18 @@ HOME_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
   <title>Home - Dashboard Log</title>
   <style>
     :root {
-      --bg: #17113f;
+      --bg: #34104f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #00a884;
-      --green: #65b32e;
-      --gold: #f6c343;
+      --teal: #64248c;
+      --green: #2b84cb;
+      --gold: #e2263c;
       --shadow: 0 18px 42px rgba(0, 0, 0, .18);
     }
     * { box-sizing: border-box; }
@@ -514,8 +517,8 @@ HOME_HTML = """<!doctype html>
       min-height: 100vh;
       overflow-x: hidden;
       background:
-        radial-gradient(620px circle at var(--mx, 80%) var(--my, 24%), rgba(20, 153, 160, .24), transparent 58%),
-        radial-gradient(520px circle at 18% 84%, rgba(159, 122, 28, .14), transparent 64%),
+        radial-gradient(620px circle at var(--mx, 80%) var(--my, 24%), rgba(43, 132, 203, .24), transparent 58%),
+        radial-gradient(520px circle at 18% 84%, rgba(226, 38, 60, .16), transparent 64%),
         var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
@@ -559,8 +562,8 @@ HOME_HTML = """<!doctype html>
       top: -9%;
       height: 11%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #00a884, #f6c343);
-      box-shadow: 0 0 30px rgba(0, 168, 132, .68);
+      background: linear-gradient(90deg, #2b84cb, #e2263c);
+      box-shadow: 0 0 30px rgba(43, 132, 203, .58);
     }
     .assistant .visor {
       position: absolute;
@@ -573,7 +576,7 @@ HOME_HTML = """<!doctype html>
       justify-content: center;
       gap: 14%;
       border-radius: 26px;
-      background: linear-gradient(180deg, #17113f, #0f2f35);
+      background: linear-gradient(180deg, #34104f, #1b255f);
     }
     .assistant .eye {
       width: 29%;
@@ -590,7 +593,7 @@ HOME_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: linear-gradient(135deg, #00a884, #f6c343);
+      background: linear-gradient(135deg, #2b84cb, #e2263c);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out;
     }
@@ -600,12 +603,12 @@ HOME_HTML = """<!doctype html>
       right: 35%;
       bottom: 27%;
       height: 8%;
-      border-bottom: 3px solid #00a884;
+      border-bottom: 3px solid #64248c;
       border-radius: 0 0 999px 999px;
     }
     .assistant .arm, .assistant .foot {
       position: absolute;
-      background: #00a884;
+      background: #2b84cb;
       box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
     }
     .assistant .arm {
@@ -784,15 +787,16 @@ EDIT_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
   <title>Base editavel - Dashboard Log</title>
   <style>
     :root {
-      --bg: #17113f;
+      --bg: #34104f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #00a884;
+      --teal: #64248c;
       --shadow: 0 18px 42px rgba(0, 0, 0, .18);
     }
     * { box-sizing: border-box; }
@@ -880,7 +884,7 @@ EDIT_HTML = """<!doctype html>
     .button {
       display: inline-flex;
       align-items: center;
-      background: #2b235f;
+      background: #1b255f;
     }
     .sheet-wrap {
       max-height: calc(100vh - 245px);
@@ -1271,7 +1275,7 @@ class Handler(BaseHTTPRequestHandler):
         )
 
     def send_login(self, message: str = "") -> None:
-        page = LOGIN_HTML.replace("{message}", message)
+        page = LOGIN_HTML.replace("{message}", message).replace("{favicon_url}", FAVICON_URL)
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def send_dashboard(self) -> None:
@@ -1294,9 +1298,10 @@ class Handler(BaseHTTPRequestHandler):
             message = '<div class="message">Dashboard atualizado com sucesso.</div>'
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
-        page = EDIT_HTML.replace("{message}", message).replace(
-            "__ROWS__",
-            json.dumps(editable_rows(), ensure_ascii=False),
+        page = (
+            EDIT_HTML.replace("{message}", message)
+            .replace("{favicon_url}", FAVICON_URL)
+            .replace("__ROWS__", json.dumps(editable_rows(), ensure_ascii=False))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -1320,7 +1325,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/home":
             if not self.require_login():
                 return
-            self.send_bytes(HOME_HTML.encode("utf-8"), "text/html; charset=utf-8")
+            page = HOME_HTML.replace("{favicon_url}", FAVICON_URL)
+            self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
             return
         if parsed.path == "/dashboard":
             if not self.require_login():

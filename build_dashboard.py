@@ -18,6 +18,7 @@ UPLOAD_ORDERS_PATH = DATA_DIR / "ordens.xlsx"
 UPLOAD_DETAIL_PATH = DATA_DIR / "geral_ct_log.xlsx"
 EDITABLE_DATA_PATH = DATA_DIR / "dashboard_base.json"
 OUTPUT_PATH = ROOT / "index.html"
+FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
 
 NS = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 TERMINAL_NAMES = {
@@ -435,62 +436,63 @@ HTML_TEMPLATE = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="__FAVICON__" type="image/svg+xml">
   <title>Dashboard Log</title>
   <style>
     :root {
       --bg: #eef2f5;
-      --top: #17113f;
-      --top-2: #26306f;
+      --top: #34104f;
+      --top-2: #4c176d;
       --panel: #ffffff;
       --panel-soft: #f8fafb;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #00a884;
-      --green: #65b32e;
-      --rust: #ef7d00;
-      --blue: #2f66d0;
-      --gold: #f6c343;
+      --teal: #64248c;
+      --green: #2b84cb;
+      --rust: #e2263c;
+      --blue: #1b255f;
+      --gold: #d72d51;
       --shadow: 0 18px 42px rgba(23, 32, 51, .10);
     }
     body[data-theme="forest"] {
       --bg: #f0f5ee;
-      --top: #1c4a2b;
-      --top-2: #65b32e;
-      --teal: #00a884;
-      --green: #65b32e;
-      --rust: #ef7d00;
-      --blue: #2f66d0;
-      --gold: #f6c343;
+      --top: #34104f;
+      --top-2: #2b84cb;
+      --teal: #64248c;
+      --green: #2b84cb;
+      --rust: #e2263c;
+      --blue: #1b255f;
+      --gold: #d72d51;
     }
     body[data-theme="graphite"] {
       --bg: #f0f0f6;
-      --top: #17113f;
-      --top-2: #2b235f;
-      --teal: #00a884;
-      --green: #65b32e;
-      --rust: #ef7d00;
-      --blue: #2f66d0;
-      --gold: #f6c343;
+      --top: #34104f;
+      --top-2: #1b255f;
+      --teal: #64248c;
+      --green: #2b84cb;
+      --rust: #e2263c;
+      --blue: #1b255f;
+      --gold: #d72d51;
     }
     body[data-theme="marine"] {
       --bg: #edf4f7;
-      --top: #0f2f35;
-      --top-2: #17113f;
-      --teal: #00a884;
-      --green: #65b32e;
-      --rust: #ef7d00;
-      --blue: #2f66d0;
-      --gold: #f6c343;
+      --top: #1b255f;
+      --top-2: #34104f;
+      --teal: #64248c;
+      --green: #2b84cb;
+      --rust: #e2263c;
+      --blue: #1b255f;
+      --gold: #d72d51;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(760px circle at 82% 4%, rgba(0, 168, 132, .20), transparent 56%),
-        radial-gradient(560px circle at 16% 90%, rgba(246, 195, 67, .16), transparent 60%),
-        linear-gradient(135deg, var(--top) 0%, var(--top-2) 58%, #0f2f35 100%);
+        radial-gradient(760px circle at 82% 4%, rgba(43, 132, 203, .24), transparent 56%),
+        radial-gradient(560px circle at 16% 90%, rgba(226, 38, 60, .18), transparent 60%),
+        linear-gradient(135deg, var(--top) 0%, var(--top-2) 58%, #1b255f 100%);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
@@ -509,7 +511,7 @@ HTML_TEMPLATE = """<!doctype html>
       align-items: center;
       gap: 8px;
       margin-bottom: 10px;
-      color: #f6c343;
+      color: #ffffff;
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -519,8 +521,8 @@ HTML_TEMPLATE = """<!doctype html>
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: var(--teal);
-      box-shadow: 0 0 0 6px rgba(0, 168, 132, .16);
+      background: #2b84cb;
+      box-shadow: 0 0 0 6px rgba(43, 132, 203, .16);
     }
     .nav {
       display: flex;
@@ -565,7 +567,7 @@ HTML_TEMPLATE = """<!doctype html>
       width: 100%;
     }
     select:focus, input:focus {
-      outline: 3px solid rgba(0, 168, 132, .18);
+      outline: 3px solid rgba(100, 36, 140, .18);
       border-color: var(--teal);
       background: #fff;
     }
@@ -638,7 +640,7 @@ HTML_TEMPLATE = """<!doctype html>
       min-height: 42px;
       padding: 7px 14px;
       border-radius: 8px;
-      background: #17113f;
+      background: #34104f;
       color: #fff;
       font-size: clamp(22px, 3vw, 34px);
       font-weight: 900;
@@ -750,7 +752,7 @@ HTML_TEMPLATE = """<!doctype html>
     .chart-value-volume { fill: #8d4c31; font-size: 11px; font-weight: 800; }
     .chart-line-trips { fill: none; stroke: var(--teal); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     .chart-line-volume { fill: none; stroke: var(--rust); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    .chart-area { fill: rgba(0, 168, 132, .10); }
+    .chart-area { fill: rgba(100, 36, 140, .10); }
     .chart-dot-trips { fill: #fff; stroke: var(--teal); stroke-width: 2.5; }
     .chart-dot-volume { fill: #fff; stroke: var(--rust); stroke-width: 2.5; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -935,7 +937,7 @@ HTML_TEMPLATE = """<!doctype html>
     const $ = (id) => document.getElementById(id);
     const fmt = new Intl.NumberFormat("pt-BR");
     const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
-    const palette = ["#00a884", "#65b32e", "#f6c343", "#ef7d00", "#2f66d0", "#6b3fb5", "#b84a7a", "#0f2f35"];
+    const palette = ["#64248c", "#2b84cb", "#e2263c", "#1b255f", "#d72d51", "#8b3fb5", "#4c176d", "#56616b"];
     let chartMode = "both";
 
     function unique(key) {
@@ -1200,7 +1202,10 @@ HTML_TEMPLATE = """<!doctype html>
 
 def main() -> None:
     data = build_data()
-    html = HTML_TEMPLATE.replace("__DATA__", json.dumps(data, ensure_ascii=False))
+    html = (
+        HTML_TEMPLATE.replace("__DATA__", json.dumps(data, ensure_ascii=False))
+        .replace("__FAVICON__", FAVICON_URL)
+    )
     OUTPUT_PATH.write_text(html, encoding="utf-8")
     meta = data["meta"]
     print(f"Dashboard criado: {OUTPUT_PATH}")
