@@ -3,8 +3,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import html
+import csv
+import io
 import json
 import os
+import re
+import unicodedata
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -713,6 +717,31 @@ EDIT_HTML = """<!doctype html>
       align-items: center;
       background: #1b255f;
     }
+    .import-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .import-bar form {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .import-bar input[type="file"] {
+      max-width: 320px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafb;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
     .sheet-wrap {
       max-height: calc(100vh - 245px);
       overflow: auto;
@@ -816,6 +845,14 @@ EDIT_HTML = """<!doctype html>
   <main>
     <section class="panel">
       {message}
+      <div class="import-bar">
+        <div class="meta">Importe uma base em CSV ou XLSX usando as mesmas colunas do modelo.</div>
+        <form method="post" action="/importar" enctype="multipart/form-data">
+          <a class="button" href="/template.csv">Baixar template</a>
+          <input type="file" name="base_file" accept=".csv,.xlsx" required>
+          <button type="submit">Importar base</button>
+        </form>
+      </div>
       <form id="sheetForm" method="post" action="/editar">
         <input type="hidden" name="rows_json" id="rowsJson">
         <div class="toolbar">
@@ -858,7 +895,14 @@ EDIT_HTML = """<!doctype html>
     let selectionEnd = null;
     let isSelecting = false;
 
-    function cleanRow(row) {
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function cleanRow(row = {}) {
       return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
     }
 
@@ -868,7 +912,7 @@ EDIT_HTML = """<!doctype html>
         const clean = cleanRow(row);
         return `<tr data-row="${idx}">
           <td><input type="checkbox" aria-label="Selecionar linha ${idx + 1}"><br>${idx + 1}</td>
-          ${columns.map(([key], colIdx) => `<td contenteditable="true" data-key="${key}" data-col="${colIdx}">${String(clean[key]).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</td>`).join("")}
+          ${columns.map(([key], colIdx) => `<td contenteditable="true" data-key="${key}" data-col="${colIdx}">${escapeHtml(clean[key])}</td>`).join("")}
         </tr>`;
       }).join("");
       rowCount.textContent = rows.length.toLocaleString("pt-BR");
@@ -921,10 +965,17 @@ EDIT_HTML = """<!doctype html>
       syncFromTable();
       rows.push(cleanRow({ terminal: "10", capacidade: "30000" }));
       render();
+      const lastRow = tbody.querySelector(`tr[data-row="${rows.length - 1}"] [data-key="data"]`);
+      lastRow?.focus();
     });
     document.querySelector("#deleteRows").addEventListener("click", () => {
       syncFromTable();
-      const selected = new Set([...tbody.querySelectorAll("tr")].filter((tr) => tr.querySelector("input").checked).map((tr) => Number(tr.dataset.row)));
+      const checkedRows = [...tbody.querySelectorAll("tr")]
+        .filter((tr) => tr.querySelector("input")?.checked)
+        .map((tr) => Number(tr.dataset.row));
+      const cellRows = selectedCells().map((cell) => cellPosition(cell).row);
+      const selected = new Set([...checkedRows, ...cellRows]);
+      if (!selected.size) return;
       rows = rows.filter((_, idx) => !selected.has(idx));
       render();
     });
@@ -991,7 +1042,7 @@ EDIT_HTML = """<!doctype html>
       syncFromTable();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
     });
-    if (rows.length) render();
+    render();
   </script>
 </body>
 </html>
@@ -1049,6 +1100,86 @@ def save_editable_rows(rows: list[dict[str, object]]) -> None:
     build_dashboard.save_editable_data(clean_rows)
 
 
+def normalize_header(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value).strip().lower())
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", "", text)
+
+
+HEADER_ALIASES = {
+    "data": "data",
+    "placa": "placa",
+    "terminal": "terminal",
+    "viagens": "viagens",
+    "capacidade": "capacidade",
+    "notafiscal": "notaFiscal",
+    "nf": "notaFiscal",
+    "produto": "produto",
+    "cliente": "cliente",
+    "quantidade": "quantidade",
+    "qtd": "quantidade",
+}
+
+
+def row_from_import(raw: dict[str, object]) -> dict[str, object]:
+    mapped = {key: "" for key in build_dashboard.EDITABLE_COLUMNS}
+    for header, value in raw.items():
+        key = HEADER_ALIASES.get(normalize_header(str(header)))
+        if key:
+            mapped[key] = "" if value is None else str(value).strip()
+    return mapped
+
+
+def parse_import_file(filename: str, content: bytes) -> list[dict[str, object]]:
+    suffix = Path(filename).suffix.lower()
+    if suffix == ".xlsx":
+        temp_path = DATA_DIR / "_import_base.xlsx"
+        temp_path.write_bytes(content)
+        try:
+            records, _ = build_dashboard.read_xlsx(temp_path)
+        finally:
+            temp_path.unlink(missing_ok=True)
+        return [row_from_import(row) for row in records]
+
+    text = content.decode("utf-8-sig", errors="ignore")
+    sample = text[:2048]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;\t") if sample.strip() else csv.excel
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+    return [row_from_import(row) for row in reader]
+
+
+def template_csv() -> bytes:
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(
+        [
+            "data",
+            "placa",
+            "terminal",
+            "viagens",
+            "capacidade",
+            "notaFiscal",
+            "produto",
+            "cliente",
+            "quantidade",
+        ]
+    )
+    writer.writerow(["16/03/2026", "ABC1D23", "10", "1", "30000", "123456", "DIESEL S10", "CLIENTE EXEMPLO", "5000"])
+    return output.getvalue().encode("utf-8-sig")
+
+
+def json_for_script(value: object) -> str:
+    return (
+        json.dumps(value, ensure_ascii=False)
+        .replace("</", "<\\/")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
+
 def html_escape(value: object) -> str:
     return html.escape(str(value if value is not None else ""), quote=False)
 
@@ -1091,6 +1222,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+    def send_download(self, content: bytes, filename: str, content_type: str) -> None:
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.end_headers()
         self.wfile.write(content)
 
@@ -1168,7 +1307,7 @@ class Handler(BaseHTTPRequestHandler):
             .replace("__THEAD__", thead)
             .replace("__TBODY__", tbody)
             .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
-            .replace("__ROWS__", json.dumps(rows, ensure_ascii=False))
+            .replace("__ROWS__", json_for_script(rows))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -1205,6 +1344,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_edit()
             return
+        if parsed.path == "/template.csv":
+            if not self.require_login():
+                return
+            self.send_download(template_csv(), "template_dashboard.csv", "text/csv; charset=utf-8")
+            return
         self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -1220,6 +1364,29 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             self.send_login('<div class="error">Usuario ou senha invalidos.</div>')
+            return
+
+        if parsed.path == "/importar":
+            if not self.require_login():
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > MAX_UPLOAD_BYTES:
+                    raise ValueError("Arquivo muito grande")
+                body = self.rfile.read(length)
+                files = parse_multipart(self.headers.get("Content-Type", ""), body)
+                filename, content = files.get("base_file", ("", b""))
+                if not filename or not content:
+                    raise ValueError("Selecione um arquivo CSV ou XLSX")
+                rows = parse_import_file(filename, content)
+                if not rows:
+                    raise ValueError("Nenhuma linha encontrada no arquivo")
+                save_editable_rows(rows)
+                rebuild_dashboard()
+            except Exception as exc:
+                self.redirect("/editar?erro=" + quote(str(exc)))
+                return
+            self.redirect("/editar?ok=1")
             return
 
         if parsed.path != "/editar":
