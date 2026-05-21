@@ -47,8 +47,23 @@ def postgres_driver_available() -> bool:
     try:
         import psycopg2  # noqa: F401
     except ModuleNotFoundError:
-        return False
+        try:
+            import psycopg  # noqa: F401
+        except ModuleNotFoundError:
+            return False
     return True
+
+
+def postgres_driver_name() -> str:
+    try:
+        import psycopg2  # noqa: F401
+    except ModuleNotFoundError:
+        try:
+            import psycopg  # noqa: F401
+        except ModuleNotFoundError:
+            return ""
+        return "psycopg"
+    return "psycopg2"
 
 
 def use_postgres() -> bool:
@@ -243,7 +258,12 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
 
 
 def postgres_connection():
-    import psycopg2
+    try:
+        import psycopg2
+    except ModuleNotFoundError:
+        import psycopg
+
+        return psycopg.connect(database_url())
 
     return psycopg2.connect(database_url())
 

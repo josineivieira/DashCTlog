@@ -1233,6 +1233,7 @@ def database_status() -> dict[str, object]:
     status: dict[str, object] = {
         "database_url_defined": bool(url),
         "postgres_driver": build_dashboard.postgres_driver_available(),
+        "postgres_driver_name": build_dashboard.postgres_driver_name(),
         "use_postgres": build_dashboard.use_postgres(),
         "host": parsed.hostname if parsed else "",
         "database": parsed.path.lstrip("/") if parsed else "",
