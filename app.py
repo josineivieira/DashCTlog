@@ -82,13 +82,12 @@ LOGIN_HTML = """<!doctype html>
     }
     .scene {
       position: fixed;
-      left: var(--bot-x, 78vw);
-      top: var(--bot-y, 68vh);
-      width: clamp(150px, 18vw, 230px);
+      right: clamp(34px, 10vw, 150px);
+      bottom: clamp(34px, 12vh, 108px);
+      width: clamp(190px, 22vw, 310px);
       aspect-ratio: 1;
       pointer-events: none;
       opacity: .98;
-      transform: translate(-50%, -50%);
       transition: filter .2s ease;
       z-index: 1;
     }
@@ -99,29 +98,28 @@ LOGIN_HTML = """<!doctype html>
       border-radius: 50%;
     }
     .orbit:nth-child(1) { transform: rotate(18deg) scaleX(1.16); }
-    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); animation: spin 8s linear infinite; }
+    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); }
     .bot {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 64%;
-      aspect-ratio: .82;
+      width: 62%;
+      aspect-ratio: .78;
       transform: translate(-50%, -50%);
-      border-radius: 36% 36% 26% 26%;
+      border-radius: 42% 42% 30% 30%;
       background:
-        radial-gradient(circle at 32% 22%, rgba(255,255,255,.95), transparent 25%),
-        linear-gradient(160deg, #ffffff 0%, #d7e5ea 58%, #b8cbd3 100%);
-      border: 1px solid rgba(255, 255, 255, .8);
-      box-shadow: 0 28px 70px rgba(0, 0, 0, .26);
-      animation: jog .46s ease-in-out infinite alternate;
+        radial-gradient(circle at 34% 18%, rgba(255,255,255,.98), transparent 25%),
+        linear-gradient(155deg, #ffffff 0%, #e6f0f3 48%, #bed0d7 100%);
+      border: 1px solid rgba(255, 255, 255, .9);
+      box-shadow: 0 30px 72px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     .bot::before {
       content: "";
       position: absolute;
-      left: 24%;
-      right: 24%;
-      top: -11%;
-      height: 12%;
+      left: 22%;
+      right: 22%;
+      top: -9%;
+      height: 11%;
       border-radius: 999px;
       background: linear-gradient(90deg, #0c7c83, #15a0a8);
       box-shadow: 0 0 32px rgba(12, 124, 131, .72);
@@ -129,26 +127,26 @@ LOGIN_HTML = """<!doctype html>
     .bot::after {
       content: "";
       position: absolute;
-      left: 30%;
-      right: 30%;
-      bottom: 12%;
-      height: 14%;
+      left: 28%;
+      right: 28%;
+      bottom: 13%;
+      height: 12%;
       border-radius: 999px;
-      background: rgba(12, 124, 131, .12);
-      border: 1px solid rgba(12, 124, 131, .18);
+      background: linear-gradient(180deg, rgba(12, 124, 131, .16), rgba(12, 124, 131, .06));
+      border: 1px solid rgba(12, 124, 131, .22);
     }
     .face {
       position: absolute;
-      left: 13%;
-      right: 13%;
-      top: 23%;
-      height: 38%;
+      left: 11%;
+      right: 11%;
+      top: 22%;
+      height: 39%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14%;
-      border-radius: 28px;
-      background: #10232b;
+      border-radius: 30px;
+      background: linear-gradient(180deg, #10232b, #0b1e25);
       box-shadow: inset 0 0 22px rgba(20, 153, 160, .22);
     }
     .arm, .foot {
@@ -157,29 +155,27 @@ LOGIN_HTML = """<!doctype html>
       box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
     }
     .arm {
-      top: 48%;
-      width: 12%;
-      height: 30%;
+      top: 49%;
+      width: 11%;
+      height: 27%;
       border-radius: 999px;
       transform-origin: top center;
-      animation: wave .46s ease-in-out infinite alternate;
     }
-    .arm.left { left: -7%; transform: rotate(18deg); }
-    .arm.right { right: -7%; transform: rotate(-18deg); animation-direction: alternate-reverse; }
+    .arm.left { left: -5%; transform: rotate(12deg); }
+    .arm.right { right: -5%; transform: rotate(-12deg); }
     .foot {
-      bottom: -8%;
-      width: 26%;
-      height: 10%;
+      bottom: -7%;
+      width: 24%;
+      height: 9%;
       border-radius: 999px;
-      animation: step .46s ease-in-out infinite alternate;
     }
-    .foot.left { left: 17%; }
-    .foot.right { right: 17%; animation-direction: alternate-reverse; }
+    .foot.left { left: 18%; }
+    .foot.right { right: 18%; }
     .eye {
-      width: 29%;
+      width: 30%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: #eaf8f7;
+      background: radial-gradient(circle at 35% 32%, #ffffff 0 20%, #eaf8f7 21% 100%);
       position: relative;
       overflow: hidden;
     }
@@ -190,7 +186,7 @@ LOGIN_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: #0c7c83;
+      background: linear-gradient(135deg, #0c7c83, #18a7ad);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out, height .16s ease, border-radius .16s ease;
     }
@@ -201,23 +197,22 @@ LOGIN_HTML = """<!doctype html>
     }
     .smile {
       position: absolute;
-      left: 36%;
-      right: 36%;
-      bottom: 24%;
-      height: 9%;
-      border-bottom: 4px solid #0c7c83;
+      left: 35%;
+      right: 35%;
+      bottom: 27%;
+      height: 8%;
+      border-bottom: 3px solid #0c7c83;
       border-radius: 0 0 999px 999px;
     }
     .shadow {
       position: absolute;
-      left: 27%;
-      right: 27%;
-      bottom: 4%;
+      left: 25%;
+      right: 25%;
+      bottom: 3%;
       height: 8%;
       border-radius: 50%;
       background: rgba(0, 0, 0, .22);
       filter: blur(8px);
-      animation: shadow .46s ease-in-out infinite alternate;
     }
     .login {
       width: min(100%, 430px);
@@ -280,25 +275,6 @@ LOGIN_HTML = """<!doctype html>
       body { place-items: start center; padding-top: 34px; overflow: auto; }
       .scene { display: none; }
     }
-    @keyframes jog {
-      from { transform: translate(-50%, -52%) rotate(-1deg); }
-      to { transform: translate(-50%, -48%) rotate(1deg); }
-    }
-    @keyframes wave {
-      from { translate: 0 0; }
-      to { translate: 0 8px; }
-    }
-    @keyframes step {
-      from { translate: -4px 0; }
-      to { translate: 4px -2px; }
-    }
-    @keyframes shadow {
-      from { scale: .88; opacity: .22; }
-      to { scale: 1.08; opacity: .16; }
-    }
-    @keyframes spin {
-      to { rotate: 360deg; }
-    }
   </style>
 </head>
 <body>
@@ -333,18 +309,11 @@ LOGIN_HTML = """<!doctype html>
     </form>
   </main>
   <script>
-    const scene = document.querySelector(".scene");
     const bot = document.querySelector(".bot");
     const pupils = document.querySelectorAll(".pupil");
-    let targetX = window.innerWidth * .78;
-    let targetY = window.innerHeight * .68;
-    let botX = targetX;
-    let botY = targetY;
     document.addEventListener("pointermove", (event) => {
       document.body.style.setProperty("--mx", `${event.clientX}px`);
       document.body.style.setProperty("--my", `${event.clientY}px`);
-      targetX = event.clientX + 96;
-      targetY = event.clientY + 76;
       pupils.forEach((pupil) => {
         const box = pupil.parentElement.getBoundingClientRect();
         const dx = event.clientX - (box.left + box.width / 2);
@@ -355,17 +324,6 @@ LOGIN_HTML = """<!doctype html>
         pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
       });
     });
-    function chase() {
-      botX += (targetX - botX) * .075;
-      botY += (targetY - botY) * .075;
-      const margin = 90;
-      botX = Math.max(margin, Math.min(window.innerWidth - margin, botX));
-      botY = Math.max(margin, Math.min(window.innerHeight - margin, botY));
-      scene.style.setProperty("--bot-x", `${botX}px`);
-      scene.style.setProperty("--bot-y", `${botY}px`);
-      requestAnimationFrame(chase);
-    }
-    chase();
     document.querySelector('input[type="password"]').addEventListener("focus", () => bot.classList.add("shy"));
     document.querySelector('input[type="password"]').addEventListener("blur", () => bot.classList.remove("shy"));
   </script>
@@ -406,13 +364,12 @@ HOME_HTML = """<!doctype html>
     }
     .assistant {
       position: fixed;
-      left: var(--bot-x, 78vw);
-      top: var(--bot-y, 72vh);
-      width: clamp(145px, 16vw, 220px);
+      right: clamp(34px, 7vw, 110px);
+      bottom: clamp(34px, 8vh, 84px);
+      width: clamp(180px, 19vw, 280px);
       aspect-ratio: 1;
       pointer-events: none;
       opacity: .96;
-      transform: translate(-50%, -50%);
       z-index: 0;
     }
     .assistant .ring {
@@ -421,52 +378,50 @@ HOME_HTML = """<!doctype html>
       border: 1px solid rgba(255, 255, 255, .15);
       border-radius: 50%;
       transform: rotate(-18deg) scaleX(1.18);
-      animation: spin 8s linear infinite;
     }
     .assistant .head {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 64%;
-      aspect-ratio: .9;
+      width: 62%;
+      aspect-ratio: .78;
       transform: translate(-50%, -50%);
-      border-radius: 34% 34% 28% 28%;
+      border-radius: 42% 42% 30% 30%;
       background:
         radial-gradient(circle at 34% 20%, rgba(255,255,255,.95), transparent 24%),
         linear-gradient(160deg, #ffffff, #d7e5ea 58%, #b8cbd3);
       border: 1px solid rgba(255, 255, 255, .76);
       box-shadow: 0 26px 66px rgba(0, 0, 0, .22);
-      animation: jog .46s ease-in-out infinite alternate;
     }
     .assistant .head::before {
       content: "";
       position: absolute;
-      left: 24%;
-      right: 24%;
-      top: -11%;
-      height: 12%;
+      left: 22%;
+      right: 22%;
+      top: -9%;
+      height: 11%;
       border-radius: 999px;
       background: linear-gradient(90deg, #0c7c83, #15a0a8);
       box-shadow: 0 0 30px rgba(12, 124, 131, .68);
     }
     .assistant .visor {
       position: absolute;
-      left: 13%;
-      right: 13%;
-      top: 24%;
-      height: 37%;
+      left: 11%;
+      right: 11%;
+      top: 22%;
+      height: 39%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14%;
       border-radius: 26px;
-      background: #10232b;
+      background: linear-gradient(180deg, #10232b, #0b1e25);
     }
     .assistant .eye {
       width: 29%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: #eefafa;
+      background: radial-gradient(circle at 35% 32%, #ffffff 0 20%, #eaf8f7 21% 100%);
       position: relative;
       overflow: hidden;
     }
@@ -477,17 +432,17 @@ HOME_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: #0c7c83;
+      background: linear-gradient(135deg, #0c7c83, #18a7ad);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out;
     }
     .assistant .mouth {
       position: absolute;
-      left: 37%;
-      right: 37%;
-      bottom: 24%;
-      height: 9%;
-      border-bottom: 4px solid #0c7c83;
+      left: 35%;
+      right: 35%;
+      bottom: 27%;
+      height: 8%;
+      border-bottom: 3px solid #0c7c83;
       border-radius: 0 0 999px 999px;
     }
     .assistant .arm, .assistant .foot {
@@ -498,21 +453,19 @@ HOME_HTML = """<!doctype html>
     .assistant .arm {
       top: 49%;
       width: 12%;
-      height: 30%;
+      height: 27%;
       border-radius: 999px;
-      animation: wave .46s ease-in-out infinite alternate;
     }
-    .assistant .arm.left { left: -7%; transform: rotate(18deg); }
-    .assistant .arm.right { right: -7%; transform: rotate(-18deg); animation-direction: alternate-reverse; }
+    .assistant .arm.left { left: -5%; transform: rotate(12deg); }
+    .assistant .arm.right { right: -5%; transform: rotate(-12deg); }
     .assistant .foot {
-      bottom: -8%;
-      width: 26%;
-      height: 10%;
+      bottom: -7%;
+      width: 24%;
+      height: 9%;
       border-radius: 999px;
-      animation: step .46s ease-in-out infinite alternate;
     }
-    .assistant .foot.left { left: 17%; }
-    .assistant .foot.right { right: 17%; animation-direction: alternate-reverse; }
+    .assistant .foot.left { left: 18%; }
+    .assistant .foot.right { right: 18%; }
     .assistant .shadow {
       position: absolute;
       left: 27%;
@@ -522,7 +475,6 @@ HOME_HTML = """<!doctype html>
       border-radius: 50%;
       background: rgba(0, 0, 0, .22);
       filter: blur(8px);
-      animation: shadow .46s ease-in-out infinite alternate;
     }
     header {
       position: relative;
@@ -607,25 +559,6 @@ HOME_HTML = """<!doctype html>
       .menu { grid-template-columns: 1fr; }
       .assistant { display: none; }
     }
-    @keyframes jog {
-      from { transform: translate(-50%, -52%) rotate(-1deg); }
-      to { transform: translate(-50%, -48%) rotate(1deg); }
-    }
-    @keyframes wave {
-      from { translate: 0 0; }
-      to { translate: 0 8px; }
-    }
-    @keyframes step {
-      from { translate: -4px 0; }
-      to { translate: 4px -2px; }
-    }
-    @keyframes shadow {
-      from { scale: .88; opacity: .22; }
-      to { scale: 1.08; opacity: .16; }
-    }
-    @keyframes spin {
-      to { rotate: 360deg; }
-    }
   </style>
 </head>
 <body>
@@ -668,17 +601,10 @@ HOME_HTML = """<!doctype html>
     </section>
   </main>
   <script>
-    const assistant = document.querySelector(".assistant");
     const pupils = document.querySelectorAll(".pupil");
-    let targetX = window.innerWidth * .78;
-    let targetY = window.innerHeight * .72;
-    let botX = targetX;
-    let botY = targetY;
     document.addEventListener("pointermove", (event) => {
       document.body.style.setProperty("--mx", `${event.clientX}px`);
       document.body.style.setProperty("--my", `${event.clientY}px`);
-      targetX = event.clientX + 92;
-      targetY = event.clientY + 78;
       pupils.forEach((pupil) => {
         const box = pupil.parentElement.getBoundingClientRect();
         const dx = event.clientX - (box.left + box.width / 2);
@@ -689,17 +615,6 @@ HOME_HTML = """<!doctype html>
         pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
       });
     });
-    function chase() {
-      botX += (targetX - botX) * .075;
-      botY += (targetY - botY) * .075;
-      const margin = 88;
-      botX = Math.max(margin, Math.min(window.innerWidth - margin, botX));
-      botY = Math.max(margin, Math.min(window.innerHeight - margin, botY));
-      assistant.style.setProperty("--bot-x", `${botX}px`);
-      assistant.style.setProperty("--bot-y", `${botY}px`);
-      requestAnimationFrame(chase);
-    }
-    chase();
   </script>
 </body>
 </html>
