@@ -4,6 +4,7 @@ import json
 import math
 import os
 import re
+import sys
 import zipfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
@@ -44,14 +45,7 @@ def database_url() -> str:
 
 
 def postgres_driver_available() -> bool:
-    try:
-        import psycopg2  # noqa: F401
-    except ModuleNotFoundError:
-        try:
-            import psycopg  # noqa: F401
-        except ModuleNotFoundError:
-            return False
-    return True
+    return bool(postgres_driver_name())
 
 
 def postgres_driver_name() -> str:
@@ -64,6 +58,25 @@ def postgres_driver_name() -> str:
             return ""
         return "psycopg"
     return "psycopg2"
+
+
+def postgres_driver_error() -> str:
+    errors = []
+    try:
+        import psycopg2  # noqa: F401
+        return ""
+    except Exception as exc:
+        errors.append(f"psycopg2: {type(exc).__name__}: {exc}")
+    try:
+        import psycopg  # noqa: F401
+        return ""
+    except Exception as exc:
+        errors.append(f"psycopg: {type(exc).__name__}: {exc}")
+    return " | ".join(errors)
+
+
+def python_executable() -> str:
+    return sys.executable
 
 
 def use_postgres() -> bool:
