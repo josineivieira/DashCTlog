@@ -905,7 +905,6 @@ EDIT_HTML = """<!doctype html>
           <div class="actions">
             <button type="button" id="addRow">Adicionar linha</button>
             <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
-            <a class="button" href="/editar?recarregar=1">Recarregar base</a>
             <button type="submit">Salvar e atualizar dashboard</button>
             <a class="button" href="/dashboard">Ver dashboard</a>
           </div>
@@ -1129,6 +1128,7 @@ def parse_multipart(content_type: str, body: bytes) -> dict[str, tuple[str, byte
 
 
 def rebuild_dashboard() -> None:
+    os.environ.pop("BUILDING_DASHBOARD", None)
     build_dashboard.main()
 
 
@@ -1137,8 +1137,6 @@ def editable_rows() -> list[dict[str, object]]:
 
 
 def save_editable_rows(rows: list[dict[str, object]]) -> None:
-    if not rows:
-        rows = build_dashboard.editable_rows_from_sources()
     clean_rows = []
     for row in rows:
         clean_rows.append({key: row.get(key, "") for key in build_dashboard.EDITABLE_COLUMNS})
@@ -1227,6 +1225,64 @@ def json_for_script(value: object) -> str:
 
 def html_escape(value: object) -> str:
     return html.escape(str(value if value is not None else ""), quote=False)
+
+
+def database_status() -> dict[str, object]:
+    url = build_dashboard.database_url()
+    parsed = urlparse(url) if url else None
+    status: dict[str, object] = {
+        "database_url_defined": bool(url),
+        "postgres_driver": build_dashboard.postgres_driver_available(),
+        "use_postgres": build_dashboard.use_postgres(),
+        "host": parsed.hostname if parsed else "",
+        "database": parsed.path.lstrip("/") if parsed else "",
+        "table_exists": False,
+        "row_count": None,
+        "invalid_terminal_count": None,
+        "empty_key_count": None,
+        "latest_created_at": None,
+        "error": "",
+    }
+    if not status["use_postgres"]:
+        return status
+
+    try:
+        build_dashboard.ensure_postgres_table()
+        with build_dashboard.postgres_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT current_database(), current_user")
+                current_database, current_user = cur.fetchone()
+                status["current_database"] = current_database
+                status["current_user"] = current_user
+                cur.execute(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                          AND table_name = 'dashboard_base'
+                    )
+                    """
+                )
+                status["table_exists"] = bool(cur.fetchone()[0])
+                cur.execute("SELECT COUNT(*) FROM dashboard_base")
+                status["row_count"] = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM dashboard_base WHERE terminal NOT IN ('10', '19')")
+                status["invalid_terminal_count"] = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM dashboard_base
+                    WHERE btrim(data) = '' OR btrim(placa) = '' OR btrim(terminal) = ''
+                    """
+                )
+                status["empty_key_count"] = cur.fetchone()[0]
+                cur.execute("SELECT MAX(created_at) FROM dashboard_base")
+                latest = cur.fetchone()[0]
+                status["latest_created_at"] = str(latest) if latest else ""
+    except Exception as exc:
+        status["error"] = f"{type(exc).__name__}: {exc}"
+    return status
 
 
 def render_sheet_parts(rows: list[dict[str, object]]) -> tuple[str, str]:
@@ -1335,10 +1391,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_edit(self) -> None:
         params = parse_qs(urlparse(self.path).query)
-        if "recarregar" in params:
-            save_editable_rows(build_dashboard.editable_rows_from_sources())
-            self.redirect("/editar")
-            return
         message = ""
         if "ok" in params:
             message = '<div class="message">Dashboard atualizado com sucesso.</div>'
@@ -1354,6 +1406,47 @@ class Handler(BaseHTTPRequestHandler):
             .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
             .replace("__ROWS__", json_for_script(rows))
         )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_db_status(self) -> None:
+        status = database_status()
+        ok = (
+            status.get("database_url_defined")
+            and status.get("postgres_driver")
+            and status.get("use_postgres")
+            and status.get("table_exists")
+            and not status.get("error")
+        )
+        rows = "".join(
+            f"<tr><th>{html.escape(str(key))}</th><td>{html.escape(str(value))}</td></tr>"
+            for key, value in status.items()
+        )
+        page = f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status do Banco - Dashboard</title>
+  <style>
+    body {{ margin: 0; padding: 28px; background: #34104f; color: #16212d; font-family: Inter, Segoe UI, Roboto, Arial, sans-serif; }}
+    main {{ max-width: 980px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 18px 42px rgba(0,0,0,.18); }}
+    h1 {{ margin: 0 0 8px; }}
+    .badge {{ display: inline-flex; margin: 8px 0 18px; padding: 7px 10px; border-radius: 8px; color: #fff; font-weight: 900; background: {"#15803d" if ok else "#b91c1c"}; }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ padding: 10px 12px; border-bottom: 1px solid #d7e0e8; text-align: left; vertical-align: top; }}
+    th {{ width: 240px; background: #f3f6f8; }}
+    a {{ color: #64248c; font-weight: 900; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Status do Banco</h1>
+    <div class="badge">{"OK" if ok else "VERIFICAR"}</div>
+    <table>{rows}</table>
+    <p><a href="/editar">Voltar para Base editavel</a></p>
+  </main>
+</body>
+</html>"""
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def do_GET(self) -> None:
@@ -1388,6 +1481,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             self.send_edit()
+            return
+        if parsed.path == "/db-status":
+            if not self.require_login():
+                return
+            self.send_db_status()
             return
         if parsed.path == "/template.csv":
             if not self.require_login():
@@ -1454,6 +1552,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    os.environ.pop("BUILDING_DASHBOARD", None)
     DATA_DIR.mkdir(exist_ok=True)
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()

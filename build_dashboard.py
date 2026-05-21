@@ -272,22 +272,10 @@ def ensure_postgres_table() -> None:
             )
 
 
-def json_seed_rows() -> list[dict[str, object]]:
-    if EDITABLE_DATA_PATH.exists():
-        rows = json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
-        if isinstance(rows, list) and rows:
-            return rows
-    return editable_rows_from_sources()
-
-
 def postgres_rows() -> list[dict[str, object]]:
     ensure_postgres_table()
     with postgres_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM dashboard_base")
-            count = cur.fetchone()[0]
-            if count == 0:
-                save_postgres_rows(json_seed_rows())
             cur.execute(
                 """
                 SELECT data, placa, terminal, viagens, capacidade,
@@ -344,11 +332,11 @@ def save_postgres_rows(rows: list[dict[str, object]]) -> None:
 
 
 def save_editable_data(rows: list[dict[str, object]]) -> None:
-    if not rows:
-        rows = editable_rows_from_sources()
     if use_postgres():
         save_postgres_rows(rows)
         return
+    if not rows:
+        rows = editable_rows_from_sources()
     DATA_DIR.mkdir(exist_ok=True)
     EDITABLE_DATA_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
