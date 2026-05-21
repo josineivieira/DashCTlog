@@ -1321,7 +1321,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def send_dashboard(self) -> None:
-        if not INDEX_PATH.exists():
+        if build_dashboard.use_postgres() or not INDEX_PATH.exists():
             rebuild_dashboard()
         page = INDEX_PATH.read_text(encoding="utf-8")
         nav = """
@@ -1455,7 +1455,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
-    if not INDEX_PATH.exists():
+    if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()
     port = int(os.environ.get("PORT", "8000"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
