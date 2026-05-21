@@ -1049,12 +1049,12 @@ EDIT_HTML = """<!doctype html>
       const cell = event.target.closest("[data-key]");
       if (!cell) return;
       const text = event.clipboardData.getData("text");
-      if (!text.includes("\t") && !text.includes("\n")) return;
+      if (!text.includes("\\t") && !text.includes("\\n")) return;
       event.preventDefault();
       syncFromTable();
       const start = cellPosition(cell);
-      text.trimEnd().split(/\r?\n/).forEach((line, rowOffset) => {
-        line.split("\t").forEach((value, colOffset) => {
+      text.trimEnd().split(/\\r?\\n/).forEach((line, rowOffset) => {
+        line.split("\\t").forEach((value, colOffset) => {
           const row = rows[start.row + rowOffset];
           const column = columns[start.col + colOffset];
           if (row && column) row[column[0]] = value;
