@@ -838,7 +838,7 @@ HTML_TEMPLATE = """<!doctype html>
     .product-name { font-weight: 800; color: #253545; }
     .product-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
     .product-value { color: var(--ink); text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .line-chart { min-height: 320px; }
+    .line-chart { min-height: clamp(320px, 24vw, 430px); }
     .chart-toolbar {
       display: flex;
       justify-content: space-between;
@@ -875,7 +875,7 @@ HTML_TEMPLATE = """<!doctype html>
       font-weight: 800;
       text-transform: uppercase;
     }
-    .line-chart svg { width: 100%; height: 300px; display: block; }
+    .line-chart svg { width: 100%; height: clamp(300px, 22vw, 400px); display: block; }
     .chart-grid { stroke: #dde6ed; stroke-width: 1; }
     .chart-axis { stroke: #b8c5d0; stroke-width: 1.2; }
     .chart-label { fill: var(--muted); font-size: 11px; }
@@ -1204,9 +1204,10 @@ HTML_TEMPLATE = """<!doctype html>
       const totalTrips = days.reduce((sum, item) => sum + item.viagens, 0);
       const totalQty = days.reduce((sum, item) => sum + item.quantidade, 0);
       $("chartTotal").textContent = `${fmt.format(totalTrips)} viagens | ${volume(totalQty)} carregados no período`;
-      const width = 1120;
-      const height = 300;
-      const pad = { left: 48, right: 28, top: 34, bottom: 42 };
+      const boxWidth = $("lineChart").clientWidth || 1120;
+      const width = Math.max(720, Math.round(boxWidth));
+      const height = Math.max(300, Math.min(400, Math.round(width * .22)));
+      const pad = { left: 48, right: 36, top: 34, bottom: 42 };
       const chartW = width - pad.left - pad.right;
       const chartH = height - pad.top - pad.bottom;
       const maxTrips = Math.max(1, ...days.map((item) => item.viagens));
