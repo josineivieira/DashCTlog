@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import html
+import json
 import os
 from http import HTTPStatus
 from http.cookies import SimpleCookie
@@ -783,7 +784,7 @@ EDIT_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Editar dados - Dashboard Log</title>
+  <title>Base editavel - Dashboard Log</title>
   <style>
     :root {
       --bg: #10232b;
@@ -833,15 +834,15 @@ EDIT_HTML = """<!doctype html>
     }
     main { padding: 0 clamp(16px, 4vw, 44px) 42px; }
     .panel {
-      max-width: 980px;
+      width: 100%;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
-      padding: 22px;
+      overflow: hidden;
     }
     .message {
-      margin-bottom: 16px;
+      margin: 16px;
       padding: 12px 14px;
       border-radius: 8px;
       background: #e7f4f2;
@@ -849,34 +850,14 @@ EDIT_HTML = """<!doctype html>
       font-weight: 800;
     }
     .error { background: #fff1ed; color: #9a3412; }
-    form { display: grid; gap: 18px; }
-    .upload-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    label {
-      display: grid;
-      gap: 9px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-    input[type="file"] {
-      width: 100%;
-      min-height: 110px;
-      border: 1px dashed #9fb2c1;
-      border-radius: 8px;
-      padding: 18px;
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
       background: #f8fafb;
-      color: var(--ink);
-    }
-    .hint {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-      margin: 0;
     }
     .actions {
       display: flex;
@@ -884,6 +865,7 @@ EDIT_HTML = """<!doctype html>
       flex-wrap: wrap;
       align-items: center;
     }
+    .meta { color: var(--muted); font-size: 13px; font-weight: 800; }
     button, .button {
       border: 0;
       border-radius: 8px;
@@ -900,28 +882,80 @@ EDIT_HTML = """<!doctype html>
       align-items: center;
       background: #263645;
     }
-    .status {
-      margin-top: 18px;
-      border-top: 1px solid var(--line);
-      padding-top: 16px;
-      display: grid;
-      gap: 8px;
-      color: var(--muted);
+    .sheet-wrap {
+      max-height: calc(100vh - 245px);
+      overflow: auto;
+      background: #fff;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 13px;
     }
-    .status strong { color: var(--ink); }
+    th, td {
+      min-width: 138px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 0;
+      text-align: left;
+      vertical-align: top;
+    }
+    th:first-child, td:first-child {
+      min-width: 54px;
+      width: 54px;
+      text-align: center;
+      color: var(--muted);
+      background: #f3f6f8;
+      font-weight: 900;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      padding: 10px;
+      background: #eef3f6;
+      color: #506071;
+      font-size: 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    th:first-child { z-index: 4; }
+    td[contenteditable="true"] {
+      padding: 9px 10px;
+      outline: 0;
+      background: #fff;
+      color: var(--ink);
+      min-height: 36px;
+    }
+    td[contenteditable="true"]:focus {
+      background: #e7f4f2;
+      box-shadow: inset 0 0 0 2px var(--teal);
+    }
+    tr:nth-child(even) td[contenteditable="true"] { background: #fbfcfd; }
+    tr:nth-child(even) td[contenteditable="true"]:focus { background: #e7f4f2; }
+    .hint {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
     @media (max-width: 760px) {
       header { flex-direction: column; }
       .nav { justify-content: flex-start; }
-      .upload-grid { grid-template-columns: 1fr; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>Editar dados</h1>
-      <p class="subtitle">Envie as planilhas novas para recriar o dashboard.</p>
+      <h1>Base editavel</h1>
+      <p class="subtitle">Edite a base unica que alimenta o dashboard.</p>
     </div>
     <nav class="nav">
       <a class="top-link" href="/home">Home</a>
@@ -932,27 +966,85 @@ EDIT_HTML = """<!doctype html>
   <main>
     <section class="panel">
       {message}
-      <form method="post" action="/editar" enctype="multipart/form-data">
-        <div class="upload-grid">
-          <label>Planilha de ordens
-            <input type="file" name="orders_file" accept=".xlsx">
-          </label>
-          <label>Planilha geral CT LOG
-            <input type="file" name="detail_file" accept=".xlsx">
-          </label>
+      <form id="sheetForm" method="post" action="/editar">
+        <input type="hidden" name="rows_json" id="rowsJson">
+        <div class="toolbar">
+          <div class="meta"><span id="rowCount">0</span> linhas na base</div>
+          <div class="actions">
+            <button type="button" id="addRow">Adicionar linha</button>
+            <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
+            <button type="submit">Salvar e atualizar dashboard</button>
+            <a class="button" href="/dashboard">Ver dashboard</a>
+          </div>
         </div>
-        <p class="hint">Voce pode enviar uma ou as duas planilhas. A base de ordens usa a coluna <strong>Ident.Veiculo</strong>; a base geral usa <strong>Placa 1 Veiculo</strong>.</p>
-        <div class="actions">
-          <button type="submit">Atualizar dashboard</button>
-          <a class="button" href="/dashboard">Ver dashboard</a>
+        <div class="sheet-wrap">
+          <table id="sheet">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
         </div>
+        <div class="hint">Colunas usadas pelo dashboard: data, placa, terminal, viagens, capacidade, nota fiscal, produto, cliente e quantidade. Terminal deve ser 10 para Equador ou 19 para Ipiranga.</div>
       </form>
-      <div class="status">
-        <div><strong>Ordens atual:</strong> {orders_name}</div>
-        <div><strong>Geral atual:</strong> {detail_name}</div>
-      </div>
     </section>
   </main>
+  <script>
+    const columns = [
+      ["data", "Data"],
+      ["placa", "Placa"],
+      ["terminal", "Terminal"],
+      ["viagens", "Viagens"],
+      ["capacidade", "Capacidade"],
+      ["notaFiscal", "Nota fiscal"],
+      ["produto", "Produto"],
+      ["cliente", "Cliente"],
+      ["quantidade", "Quantidade"]
+    ];
+    let rows = __ROWS__;
+    const thead = document.querySelector("#sheet thead");
+    const tbody = document.querySelector("#sheet tbody");
+    const rowCount = document.querySelector("#rowCount");
+
+    function cleanRow(row) {
+      return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
+    }
+
+    function render() {
+      thead.innerHTML = `<tr><th></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
+      tbody.innerHTML = rows.map((row, idx) => {
+        const clean = cleanRow(row);
+        return `<tr data-row="${idx}">
+          <td><input type="checkbox" aria-label="Selecionar linha ${idx + 1}"><br>${idx + 1}</td>
+          ${columns.map(([key]) => `<td contenteditable="true" data-key="${key}">${String(clean[key]).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</td>`).join("")}
+        </tr>`;
+      }).join("");
+      rowCount.textContent = rows.length.toLocaleString("pt-BR");
+    }
+
+    function syncFromTable() {
+      rows = [...tbody.querySelectorAll("tr")].map((tr) => {
+        const row = {};
+        tr.querySelectorAll("[data-key]").forEach((cell) => row[cell.dataset.key] = cell.textContent.trim());
+        return cleanRow(row);
+      });
+    }
+
+    document.querySelector("#addRow").addEventListener("click", () => {
+      syncFromTable();
+      rows.push(cleanRow({ terminal: "10", capacidade: "30000" }));
+      render();
+    });
+    document.querySelector("#deleteRows").addEventListener("click", () => {
+      syncFromTable();
+      const selected = new Set([...tbody.querySelectorAll("tr")].filter((tr) => tr.querySelector("input").checked).map((tr) => Number(tr.dataset.row)));
+      rows = rows.filter((_, idx) => !selected.has(idx));
+      render();
+    });
+    document.querySelector("#sheetForm").addEventListener("submit", () => {
+      syncFromTable();
+      document.querySelector("#rowsJson").value = JSON.stringify(rows);
+    });
+    render();
+  </script>
 </body>
 </html>
 """
@@ -994,6 +1086,21 @@ def parse_multipart(content_type: str, body: bytes) -> dict[str, tuple[str, byte
 
 def rebuild_dashboard() -> None:
     build_dashboard.main()
+
+
+def editable_rows() -> list[dict[str, object]]:
+    return build_dashboard.ensure_editable_data()
+
+
+def save_editable_rows(rows: list[dict[str, object]]) -> None:
+    DATA_DIR.mkdir(exist_ok=True)
+    clean_rows = []
+    for row in rows:
+        clean_rows.append({key: row.get(key, "") for key in build_dashboard.EDITABLE_COLUMNS})
+    build_dashboard.EDITABLE_DATA_PATH.write_text(
+        json.dumps(clean_rows, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1069,16 +1176,9 @@ class Handler(BaseHTTPRequestHandler):
             message = '<div class="message">Dashboard atualizado com sucesso.</div>'
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
-        page = (
-            EDIT_HTML.replace("{message}", message)
-            .replace(
-                "{orders_name}",
-                html.escape(current_file_label(ORDERS_UPLOAD, "planilha original do projeto")),
-            )
-            .replace(
-                "{detail_name}",
-                html.escape(current_file_label(DETAIL_UPLOAD, "planilha original do projeto")),
-            )
+        page = EDIT_HTML.replace("{message}", message).replace(
+            "__ROWS__",
+            json.dumps(editable_rows(), ensure_ascii=False),
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -1137,34 +1237,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self.require_login():
             return
 
-        length = int(self.headers.get("Content-Length", "0"))
-        if length <= 0 or length > MAX_UPLOAD_BYTES:
-            self.redirect("/editar?erro=Arquivo+muito+grande+ou+vazio")
-            return
-
-        body = self.rfile.read(length)
-        files = parse_multipart(self.headers.get("Content-Type", ""), body)
-        if not files:
-            self.redirect("/editar?erro=Nenhuma+planilha+foi+enviada")
-            return
-
-        DATA_DIR.mkdir(exist_ok=True)
-        saved = 0
-        for field, (filename, content) in files.items():
-            if not filename.lower().endswith(".xlsx"):
-                continue
-            if field == "orders_file":
-                ORDERS_UPLOAD.write_bytes(content)
-                saved += 1
-            elif field == "detail_file":
-                DETAIL_UPLOAD.write_bytes(content)
-                saved += 1
-
-        if not saved:
-            self.redirect("/editar?erro=Envie+arquivos+.xlsx+validos")
-            return
-
         try:
+            params = self.body_params()
+            rows = json.loads(params.get("rows_json", ["[]"])[0])
+            if not isinstance(rows, list):
+                raise ValueError("Base invalida")
+            save_editable_rows(rows)
             rebuild_dashboard()
         except Exception as exc:
             self.redirect("/editar?erro=" + quote(str(exc)))

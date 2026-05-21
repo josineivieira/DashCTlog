@@ -16,6 +16,7 @@ ORIGINAL_ORDERS_PATH = ROOT / "20260520T162822.501-ordens 1.xlsx"
 ORIGINAL_DETAIL_PATH = ROOT / "20260520T202750.243-geral ct log.xlsx"
 UPLOAD_ORDERS_PATH = DATA_DIR / "ordens.xlsx"
 UPLOAD_DETAIL_PATH = DATA_DIR / "geral_ct_log.xlsx"
+EDITABLE_DATA_PATH = DATA_DIR / "dashboard_base.json"
 OUTPUT_PATH = ROOT / "index.html"
 
 NS = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
@@ -23,6 +24,17 @@ TERMINAL_NAMES = {
     "10": "Equador",
     "19": "Ipiranga",
 }
+EDITABLE_COLUMNS = [
+    "data",
+    "placa",
+    "terminal",
+    "viagens",
+    "capacidade",
+    "notaFiscal",
+    "produto",
+    "cliente",
+    "quantidade",
+]
 
 
 def current_orders_path() -> Path:
@@ -43,8 +55,14 @@ def col_to_idx(cell_ref: str) -> int:
 
 
 def excel_datetime(value: str) -> datetime | None:
+    text = str(value).strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
     try:
-        return datetime(1899, 12, 30) + timedelta(days=float(value))
+        return datetime(1899, 12, 30) + timedelta(days=float(text))
     except (TypeError, ValueError):
         return None
 
@@ -121,7 +139,187 @@ def infer_capacities(
     return capacities
 
 
+def editable_rows_from_sources() -> list[dict[str, object]]:
+    orders_path = current_orders_path()
+    detail_path = current_detail_path()
+    order_rows, order_headers = read_xlsx(orders_path)
+    detail_rows, detail_headers = read_xlsx(detail_path)
+
+    oh = {
+        "date": order_headers[1],
+        "plate": order_headers[4],
+        "terminal": order_headers[3],
+    }
+    dh = {
+        "date": detail_headers[1],
+        "nf": detail_headers[2],
+        "product": detail_headers[6],
+        "client": detail_headers[8],
+        "plate": detail_headers[11],
+        "qty": detail_headers[12],
+        "terminal": detail_headers[13],
+    }
+
+    orders_by_key: Counter[tuple[str, str, str]] = Counter()
+    for row in order_rows:
+        terminal = row[oh["terminal"]].strip()
+        plate = row[oh["plate"]].strip().upper()
+        date = day(row[oh["date"]])
+        if terminal in TERMINAL_NAMES and plate and date:
+            orders_by_key[(date, plate, terminal)] += 1
+
+    load_by_key: dict[tuple[str, str, str], float] = defaultdict(float)
+    for row in detail_rows:
+        terminal = row[dh["terminal"]].strip()
+        plate = row[dh["plate"]].strip().upper()
+        date = day(row[dh["date"]])
+        quantity = num(row[dh["qty"]])
+        if terminal in TERMINAL_NAMES and plate and date and 0 < quantity <= 50000:
+            load_by_key[(date, plate, terminal)] += quantity
+
+    capacities = infer_capacities(orders_by_key, load_by_key)
+    editable_rows: list[dict[str, object]] = []
+    keys_with_detail: set[tuple[str, str, str]] = set()
+    for row in detail_rows:
+        terminal = row[dh["terminal"]].strip()
+        plate = row[dh["plate"]].strip().upper()
+        date = day(row[dh["date"]])
+        quantity = num(row[dh["qty"]])
+        if terminal not in TERMINAL_NAMES or not plate or not date or quantity <= 0 or quantity > 50000:
+            continue
+        key = (date, plate, terminal)
+        keys_with_detail.add(key)
+        editable_rows.append(
+            {
+                "data": date,
+                "placa": plate,
+                "terminal": terminal,
+                "viagens": orders_by_key.get(key, 0),
+                "capacidade": capacities.get(plate) or 30000,
+                "notaFiscal": row[dh["nf"]].strip(),
+                "produto": clean_product(row[dh["product"]]),
+                "cliente": row[dh["client"]].strip(),
+                "quantidade": quantity,
+            }
+        )
+
+    for date, plate, terminal in sorted(set(orders_by_key) - keys_with_detail):
+        editable_rows.append(
+            {
+                "data": date,
+                "placa": plate,
+                "terminal": terminal,
+                "viagens": orders_by_key[(date, plate, terminal)],
+                "capacidade": capacities.get(plate) or 30000,
+                "notaFiscal": "",
+                "produto": "",
+                "cliente": "",
+                "quantidade": 0,
+            }
+        )
+    return editable_rows
+
+
+def ensure_editable_data() -> list[dict[str, object]]:
+    DATA_DIR.mkdir(exist_ok=True)
+    if EDITABLE_DATA_PATH.exists():
+        return json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
+    rows = editable_rows_from_sources()
+    EDITABLE_DATA_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    return rows
+
+
+def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]:
+    orders_by_key: Counter[tuple[str, str, str]] = Counter()
+    load_by_key: dict[tuple[str, str, str], float] = defaultdict(float)
+    products_by_key: dict[tuple[str, str, str], Counter[str]] = defaultdict(Counter)
+    notes_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    clients_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    capacities: dict[str, int] = {}
+    detail_line_count = 0
+
+    for row in rows:
+        terminal = str(row.get("terminal", "")).strip()
+        plate = str(row.get("placa", "")).strip().upper()
+        date = day(str(row.get("data", "")))
+        if terminal not in TERMINAL_NAMES or not plate or not date:
+            continue
+        key = (date, plate, terminal)
+        trips = int(num(str(row.get("viagens", 0))) or 0)
+        if trips > orders_by_key.get(key, 0):
+            orders_by_key[key] = trips
+        capacity = int(num(str(row.get("capacidade", 0))) or 0)
+        if capacity > 0:
+            capacities[plate] = capacity
+        quantity = num(str(row.get("quantidade", 0)))
+        if quantity > 0:
+            load_by_key[key] += quantity
+            product = clean_product(str(row.get("produto", ""))) or "SEM PRODUTO"
+            products_by_key[key][product] += quantity
+            detail_line_count += 1
+        note = str(row.get("notaFiscal", "")).strip()
+        client = str(row.get("cliente", "")).strip()
+        if note:
+            notes_by_key[key].add(note)
+        if client:
+            clients_by_key[key].add(client)
+
+    all_keys = sorted(
+        set(orders_by_key) | set(load_by_key),
+        key=lambda item: (
+            datetime.strptime(item[0], "%d/%m/%Y"),
+            item[1],
+            item[2],
+        ),
+    )
+    daily_plate_rows: list[dict[str, object]] = []
+    for date, plate, terminal in all_keys:
+        loaded = load_by_key.get((date, plate, terminal), 0.0)
+        capacity = capacities.get(plate) or 30000
+        trips_from_orders = orders_by_key.get((date, plate, terminal), 0)
+        trips_from_load = math.ceil(loaded / capacity) if loaded else 0
+        trips = max(trips_from_orders, trips_from_load)
+        products = [
+            {"produto": product, "quantidade": qty}
+            for product, qty in products_by_key.get((date, plate, terminal), Counter()).most_common()
+        ]
+        daily_plate_rows.append(
+            {
+                "data": date,
+                "placa": plate,
+                "terminal": terminal,
+                "terminalNome": TERMINAL_NAMES[terminal],
+                "viagens": trips,
+                "viagensOrdens": trips_from_orders,
+                "viagensCarga": trips_from_load,
+                "capacidade": capacity,
+                "quantidade": loaded,
+                "notas": len(notes_by_key.get((date, plate, terminal), set())),
+                "clientes": len(clients_by_key.get((date, plate, terminal), set())),
+                "produtos": products,
+                "mixProdutos": ", ".join(
+                    f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"
+                    for item in products[:3]
+                )
+                or "Sem produto detalhado",
+            }
+        )
+
+    return {
+        "dailyPlateRows": daily_plate_rows,
+        "meta": {
+            "ordersFile": "Base editável",
+            "detailFile": EDITABLE_DATA_PATH.name,
+            "orderRows": len(rows),
+            "detailRows": detail_line_count,
+        },
+    }
+
+
 def build_data() -> dict[str, object]:
+    if EDITABLE_DATA_PATH.exists():
+        return build_data_from_editable(ensure_editable_data())
+
     orders_path = current_orders_path()
     detail_path = current_detail_path()
     order_rows, order_headers = read_xlsx(orders_path)
