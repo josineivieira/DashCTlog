@@ -169,12 +169,12 @@ LOGIN_HTML = """<!doctype html>
     }
     .scene {
       position: absolute;
-      right: clamp(18px, 5vw, 54px);
-      bottom: 124px;
-      width: clamp(190px, 21vw, 280px);
+      right: 30px;
+      bottom: 30px;
+      width: clamp(118px, 12vw, 160px);
       aspect-ratio: 1;
       pointer-events: none;
-      opacity: .98;
+      opacity: .90;
       transition: filter .2s ease;
       z-index: 1;
     }
@@ -209,7 +209,7 @@ LOGIN_HTML = """<!doctype html>
       height: 11%;
       border-radius: 999px;
       background: linear-gradient(90deg, #0c7c83, #15a0a8);
-      box-shadow: 0 0 32px rgba(12, 124, 131, .72);
+      box-shadow: 0 0 22px rgba(12, 124, 131, .60);
     }
     .bot::after {
       content: "";
@@ -239,7 +239,7 @@ LOGIN_HTML = """<!doctype html>
     .arm, .foot {
       position: absolute;
       background: #0c7c83;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, .12);
     }
     .arm {
       top: 49%;
@@ -937,6 +937,25 @@ EDIT_HTML = """<!doctype html>
     }
     tr:nth-child(even) td[contenteditable="true"] { background: #fbfcfd; }
     tr:nth-child(even) td[contenteditable="true"]:focus { background: #e7f4f2; }
+    td.cell-selected,
+    tr:nth-child(even) td.cell-selected {
+      background: #dcecff;
+      box-shadow: inset 0 0 0 1px #6aa3e8;
+    }
+    td.cell-anchor,
+    tr:nth-child(even) td.cell-anchor {
+      background: #c8e0ff;
+      box-shadow: inset 0 0 0 2px #1f6feb;
+    }
+    td.cell-fill,
+    tr:nth-child(even) td.cell-fill {
+      background: #eaf3ff;
+      box-shadow: inset 0 0 0 1px #9ac1f2;
+    }
+    body.selecting-cells {
+      cursor: cell;
+      user-select: none;
+    }
     .hint {
       padding: 12px 14px;
       border-top: 1px solid var(--line);
@@ -1003,6 +1022,9 @@ EDIT_HTML = """<!doctype html>
     const thead = document.querySelector("#sheet thead");
     const tbody = document.querySelector("#sheet tbody");
     const rowCount = document.querySelector("#rowCount");
+    let selectionStart = null;
+    let selectionEnd = null;
+    let isSelecting = false;
 
     function cleanRow(row) {
       return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
@@ -1014,10 +1036,45 @@ EDIT_HTML = """<!doctype html>
         const clean = cleanRow(row);
         return `<tr data-row="${idx}">
           <td><input type="checkbox" aria-label="Selecionar linha ${idx + 1}"><br>${idx + 1}</td>
-          ${columns.map(([key]) => `<td contenteditable="true" data-key="${key}">${String(clean[key]).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</td>`).join("")}
+          ${columns.map(([key], colIdx) => `<td contenteditable="true" data-key="${key}" data-col="${colIdx}">${String(clean[key]).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</td>`).join("")}
         </tr>`;
       }).join("");
       rowCount.textContent = rows.length.toLocaleString("pt-BR");
+    }
+
+    function cellPosition(cell) {
+      return {
+        row: Number(cell.closest("tr").dataset.row),
+        col: Number(cell.dataset.col)
+      };
+    }
+
+    function clearSelection() {
+      tbody.querySelectorAll(".cell-selected, .cell-anchor, .cell-fill").forEach((cell) => {
+        cell.classList.remove("cell-selected", "cell-anchor", "cell-fill");
+      });
+    }
+
+    function paintSelection() {
+      clearSelection();
+      if (!selectionStart || !selectionEnd) return;
+      const rowMin = Math.min(selectionStart.row, selectionEnd.row);
+      const rowMax = Math.max(selectionStart.row, selectionEnd.row);
+      const colMin = Math.min(selectionStart.col, selectionEnd.col);
+      const colMax = Math.max(selectionStart.col, selectionEnd.col);
+      tbody.querySelectorAll("[data-key]").forEach((cell) => {
+        const pos = cellPosition(cell);
+        if (pos.row >= rowMin && pos.row <= rowMax && pos.col >= colMin && pos.col <= colMax) {
+          cell.classList.add("cell-selected");
+          if (pos.row === selectionStart.row && pos.col === selectionStart.col) {
+            cell.classList.add("cell-anchor");
+          }
+        }
+      });
+    }
+
+    function selectedCells() {
+      return [...tbody.querySelectorAll(".cell-selected")];
     }
 
     function syncFromTable() {
@@ -1038,6 +1095,65 @@ EDIT_HTML = """<!doctype html>
       const selected = new Set([...tbody.querySelectorAll("tr")].filter((tr) => tr.querySelector("input").checked).map((tr) => Number(tr.dataset.row)));
       rows = rows.filter((_, idx) => !selected.has(idx));
       render();
+    });
+    tbody.addEventListener("pointerdown", (event) => {
+      const cell = event.target.closest("[data-key]");
+      if (!cell) return;
+      selectionStart = cellPosition(cell);
+      selectionEnd = selectionStart;
+      isSelecting = true;
+      document.body.classList.add("selecting-cells");
+      paintSelection();
+      cell.focus();
+    });
+    tbody.addEventListener("pointerover", (event) => {
+      if (!isSelecting) return;
+      const cell = event.target.closest("[data-key]");
+      if (!cell) return;
+      selectionEnd = cellPosition(cell);
+      paintSelection();
+    });
+    document.addEventListener("pointerup", () => {
+      isSelecting = false;
+      document.body.classList.remove("selecting-cells");
+    });
+    tbody.addEventListener("paste", (event) => {
+      const cell = event.target.closest("[data-key]");
+      if (!cell) return;
+      const text = event.clipboardData.getData("text");
+      if (!text.includes("\t") && !text.includes("\n")) return;
+      event.preventDefault();
+      syncFromTable();
+      const start = cellPosition(cell);
+      text.trimEnd().split(/\r?\n/).forEach((line, rowOffset) => {
+        line.split("\t").forEach((value, colOffset) => {
+          const row = rows[start.row + rowOffset];
+          const column = columns[start.col + colOffset];
+          if (row && column) row[column[0]] = value;
+        });
+      });
+      render();
+    });
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+        const cells = selectedCells();
+        if (!cells.length) return;
+        const positions = cells.map(cellPosition);
+        const rowMin = Math.min(...positions.map((pos) => pos.row));
+        const rowMax = Math.max(...positions.map((pos) => pos.row));
+        const colMin = Math.min(...positions.map((pos) => pos.col));
+        const colMax = Math.max(...positions.map((pos) => pos.col));
+        const matrix = [];
+        for (let row = rowMin; row <= rowMax; row++) {
+          const values = [];
+          for (let col = colMin; col <= colMax; col++) {
+            const cell = tbody.querySelector(`tr[data-row="${row}"] [data-col="${col}"]`);
+            values.push(cell ? cell.textContent.trim() : "");
+          }
+          matrix.push(values.join("\t"));
+        }
+        navigator.clipboard?.writeText(matrix.join("\n"));
+      }
     });
     document.querySelector("#sheetForm").addEventListener("submit", () => {
       syncFromTable();
