@@ -571,7 +571,7 @@ HTML_TEMPLATE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="__FAVICON__" type="image/svg+xml">
-  <title>Dashboard Log</title>
+  <title>Dashboard</title>
   <style>
     :root {
       --bg: #eef2f5;
@@ -643,16 +643,16 @@ HTML_TEMPLATE = """<!doctype html>
     .brand-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       margin-bottom: 10px;
       color: #ffffff;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 900;
       text-transform: uppercase;
     }
     .brand-pill img {
-      width: 28px;
-      height: 28px;
+      width: 92px;
+      height: auto;
       object-fit: contain;
       filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .24));
     }
@@ -675,7 +675,6 @@ HTML_TEMPLATE = """<!doctype html>
       font-weight: 800;
       background: rgba(255, 255, 255, .08);
     }
-    .top-link:hover { background: rgba(255, 255, 255, .15); }
     main { padding: 0 clamp(16px, 4vw, 44px) 42px; }
     .filters {
       display: grid;
@@ -890,7 +889,6 @@ HTML_TEMPLATE = """<!doctype html>
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
     tbody tr:nth-child(even) { background: #fafcfd; }
-    tbody tr:hover { background: #eef7f7; }
     th { color: #506071; background: #f3f6f8; position: sticky; top: 0; z-index: 1; font-size: 12px; text-transform: uppercase; }
     .table-wrap { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
     .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
@@ -951,7 +949,7 @@ HTML_TEMPLATE = """<!doctype html>
   <header>
     <div>
       <div class="brand-pill"><img src="__FAVICON__" alt="">Grupo Dislub Equador</div>
-      <h1>Dashboard Log</h1>
+      <h1>Dashboard</h1>
       <p class="subtitle">Viagens por placa, produtos carregados e terminais Equador/Ipiranga.</p>
     </div>
     <a class="top-link" href="/editar">Atualizar dados</a>

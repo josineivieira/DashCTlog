@@ -55,7 +55,7 @@ LOGIN_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Login - Dashboard Log</title>
+  <title>Login - Dashboard</title>
   <style>
     :root {
       --bg: #34104f;
@@ -76,12 +76,7 @@ LOGIN_HTML = """<!doctype html>
       place-items: center;
       padding: 32px;
       overflow: hidden;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 48px),
-        radial-gradient(720px circle at var(--mx, 76%) var(--my, 24%), rgba(43, 132, 203, .28), transparent 58%),
-        radial-gradient(520px circle at 18% 78%, rgba(226, 38, 60, .18), transparent 62%),
-        linear-gradient(135deg, #34104f, #4c176d 52%, #1b255f),
-        var(--bg);
+      background: var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
@@ -459,7 +454,7 @@ LOGIN_HTML = """<!doctype html>
     </section>
     <section class="login">
       <div class="eyebrow">Acesso ao sistema</div>
-      <h2>Dashboard Log</h2>
+      <h2>Dashboard</h2>
       <p>Informe suas credenciais para entrar no painel.</p>
       {message}
       <form method="post" action="/login">
@@ -479,20 +474,6 @@ LOGIN_HTML = """<!doctype html>
   </main>
   <script>
     const bot = document.querySelector(".bot");
-    const pupils = document.querySelectorAll(".pupil");
-    document.addEventListener("pointermove", (event) => {
-      document.body.style.setProperty("--mx", `${event.clientX}px`);
-      document.body.style.setProperty("--my", `${event.clientY}px`);
-      pupils.forEach((pupil) => {
-        const box = pupil.parentElement.getBoundingClientRect();
-        const dx = event.clientX - (box.left + box.width / 2);
-        const dy = event.clientY - (box.top + box.height / 2);
-        const angle = Math.atan2(dy, dx);
-        const distance = Math.min(box.width * .18, Math.hypot(dx, dy) / 18);
-        pupil.style.setProperty("--look-x", `${Math.cos(angle) * distance}px`);
-        pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
-      });
-    });
     document.querySelector('input[type="password"]').addEventListener("focus", () => bot.classList.add("shy"));
     document.querySelector('input[type="password"]').addEventListener("blur", () => bot.classList.remove("shy"));
   </script>
@@ -507,7 +488,7 @@ HOME_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Home - Dashboard Log</title>
+  <title>Home - Dashboard</title>
   <style>
     :root {
       --bg: #34104f;
@@ -525,10 +506,7 @@ HOME_HTML = """<!doctype html>
       margin: 0;
       min-height: 100vh;
       overflow-x: hidden;
-      background:
-        radial-gradient(620px circle at var(--mx, 80%) var(--my, 24%), rgba(43, 132, 203, .24), transparent 58%),
-        radial-gradient(520px circle at 18% 84%, rgba(226, 38, 60, .16), transparent 64%),
-        var(--bg);
+      background: var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
@@ -639,7 +617,7 @@ HOME_HTML = """<!doctype html>
     }
     header {
       position: relative;
-      z-index: 2;
+      z-index: 3;
       padding: 30px clamp(16px, 4vw, 44px) 22px;
       color: #fff;
       display: flex;
@@ -655,8 +633,8 @@ HOME_HTML = """<!doctype html>
       gap: 18px;
     }
     .brand-title img {
-      width: 76px;
-      height: 76px;
+      width: 116px;
+      height: auto;
       object-fit: contain;
       filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .26));
     }
@@ -674,9 +652,22 @@ HOME_HTML = """<!doctype html>
       background: rgba(255, 255, 255, .08);
     }
     main { padding: 0 clamp(16px, 4vw, 44px) 44px; }
+    .home-logo-bg {
+      position: fixed;
+      left: 50%;
+      top: 54%;
+      width: min(58vw, 760px);
+      min-width: 380px;
+      height: auto;
+      transform: translate(-50%, -50%);
+      opacity: .38;
+      filter: drop-shadow(0 26px 58px rgba(0, 0, 0, .28));
+      pointer-events: none;
+      z-index: 1;
+    }
     .menu {
       position: relative;
-      z-index: 2;
+      z-index: 3;
       display: grid;
       grid-template-columns: repeat(2, minmax(220px, 1fr));
       gap: 18px;
@@ -692,11 +683,6 @@ HOME_HTML = """<!doctype html>
       border-top: 5px solid var(--teal);
       border-radius: 8px;
       box-shadow: 0 22px 60px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .86);
-      transition: transform .18s ease, box-shadow .18s ease;
-    }
-    .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 28px 76px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     .card:nth-child(2) { border-top-color: var(--green); }
     .card span {
@@ -730,13 +716,15 @@ HOME_HTML = """<!doctype html>
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
       .assistant { display: none; }
+      .home-logo-bg { width: 82vw; min-width: 0; opacity: .28; }
     }
   </style>
 </head>
 <body>
+  <img class="home-logo-bg" src="{favicon_url}" alt="" aria-hidden="true">
   <header>
     <div>
-      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Dashboard Log</h1></div>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Dashboard</h1></div>
       <p class="subtitle">Escolha uma area para continuar.</p>
     </div>
     <a class="logout" href="/logout">Sair</a>
@@ -757,22 +745,6 @@ HOME_HTML = """<!doctype html>
       </a>
     </section>
   </main>
-  <script>
-    const pupils = document.querySelectorAll(".pupil");
-    document.addEventListener("pointermove", (event) => {
-      document.body.style.setProperty("--mx", `${event.clientX}px`);
-      document.body.style.setProperty("--my", `${event.clientY}px`);
-      pupils.forEach((pupil) => {
-        const box = pupil.parentElement.getBoundingClientRect();
-        const dx = event.clientX - (box.left + box.width / 2);
-        const dy = event.clientY - (box.top + box.height / 2);
-        const angle = Math.atan2(dy, dx);
-        const distance = Math.min(box.width * .18, Math.hypot(dx, dy) / 18);
-        pupil.style.setProperty("--look-x", `${Math.cos(angle) * distance}px`);
-        pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
-      });
-    });
-  </script>
 </body>
 </html>
 """
@@ -784,7 +756,7 @@ EDIT_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Base editavel - Dashboard Log</title>
+  <title>Base editavel - Dashboard</title>
   <style>
     :root {
       --bg: #34104f;
