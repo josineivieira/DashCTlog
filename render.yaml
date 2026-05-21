@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: dashboard-ct-log
+    env: python
+    buildCommand: python build_dashboard.py
+    startCommand: python app.py
+    disk:
+      name: dashboard-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
