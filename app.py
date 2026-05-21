@@ -13,7 +13,7 @@ from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import build_dashboard
 
@@ -42,13 +42,14 @@ def app_secret() -> str:
 
 def signed_session(user: str) -> str:
     signature = hmac.new(app_secret().encode(), user.encode(), hashlib.sha256).hexdigest()
-    return f"{user}:{signature}"
+    return f"{quote(user, safe='')}:{signature}"
 
 
 def valid_session(value: str) -> bool:
-    user, separator, signature = value.partition(":")
+    cookie_user, separator, signature = value.partition(":")
     if not separator:
         return False
+    user = unquote(cookie_user)
     expected = signed_session(user).split(":", 1)[1]
     return hmac.compare_digest(signature, expected)
 
