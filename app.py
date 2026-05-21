@@ -1078,9 +1078,9 @@ EDIT_HTML = """<!doctype html>
             const cell = tbody.querySelector(`tr[data-row="${row}"] [data-col="${col}"]`);
             values.push(cell ? cell.textContent.trim() : "");
           }
-          matrix.push(values.join("\t"));
+          matrix.push(values.join("\\t"));
         }
-        navigator.clipboard?.writeText(matrix.join("\n"));
+        navigator.clipboard?.writeText(matrix.join("\\n"));
       }
     });
     document.querySelector("#sheetForm").addEventListener("submit", () => {
