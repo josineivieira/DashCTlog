@@ -1378,10 +1378,10 @@ class Handler(BaseHTTPRequestHandler):
                 filename, content = files.get("base_file", ("", b""))
                 if not filename or not content:
                     raise ValueError("Selecione um arquivo CSV ou XLSX")
-                rows = parse_import_file(filename, content)
-                if not rows:
+                imported_rows = parse_import_file(filename, content)
+                if not imported_rows:
                     raise ValueError("Nenhuma linha encontrada no arquivo")
-                save_editable_rows(rows)
+                save_editable_rows(editable_rows() + imported_rows)
                 rebuild_dashboard()
             except Exception as exc:
                 self.redirect("/editar?erro=" + quote(str(exc)))
