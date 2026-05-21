@@ -992,18 +992,19 @@ EDIT_HTML = """<!doctype html>
       <form id="sheetForm" method="post" action="/editar">
         <input type="hidden" name="rows_json" id="rowsJson">
         <div class="toolbar">
-          <div class="meta"><span id="rowCount">0</span> linhas na base</div>
+          <div class="meta"><span id="rowCount">__ROW_COUNT__</span> linhas na base</div>
           <div class="actions">
             <button type="button" id="addRow">Adicionar linha</button>
             <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
+            <a class="button" href="/editar?recarregar=1">Recarregar base</a>
             <button type="submit">Salvar e atualizar dashboard</button>
             <a class="button" href="/dashboard">Ver dashboard</a>
           </div>
         </div>
         <div class="sheet-wrap">
           <table id="sheet">
-            <thead></thead>
-            <tbody></tbody>
+            <thead>__THEAD__</thead>
+            <tbody>__TBODY__</tbody>
           </table>
         </div>
         <div class="hint">Colunas usadas pelo dashboard: data, placa, terminal, viagens, capacidade, nota fiscal, produto, cliente e quantidade. Terminal deve ser 10 para Equador ou 19 para Ipiranga.</div>
@@ -1163,7 +1164,7 @@ EDIT_HTML = """<!doctype html>
       syncFromTable();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
     });
-    render();
+    if (rows.length) render();
   </script>
 </body>
 </html>
@@ -1223,6 +1224,40 @@ def save_editable_rows(rows: list[dict[str, object]]) -> None:
         json.dumps(clean_rows, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def html_escape(value: object) -> str:
+    return html.escape(str(value if value is not None else ""), quote=False)
+
+
+def render_sheet_parts(rows: list[dict[str, object]]) -> tuple[str, str]:
+    columns = [
+        ("data", "Data"),
+        ("placa", "Placa"),
+        ("terminal", "Terminal"),
+        ("viagens", "Viagens"),
+        ("capacidade", "Capacidade"),
+        ("notaFiscal", "Nota fiscal"),
+        ("produto", "Produto"),
+        ("cliente", "Cliente"),
+        ("quantidade", "Quantidade"),
+    ]
+    thead = "<tr><th></th>" + "".join(f"<th>{label}</th>" for _, label in columns) + "</tr>"
+    body_rows = []
+    for idx, row in enumerate(rows):
+        cells = []
+        for col_idx, (key, _) in enumerate(columns):
+            cells.append(
+                f'<td contenteditable="true" data-key="{key}" data-col="{col_idx}">'
+                f"{html_escape(row.get(key, ''))}</td>"
+            )
+        body_rows.append(
+            f'<tr data-row="{idx}">'
+            f'<td><input type="checkbox" aria-label="Selecionar linha {idx + 1}"><br>{idx + 1}</td>'
+            + "".join(cells)
+            + "</tr>"
+        )
+    return thead, "".join(body_rows)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1293,15 +1328,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_edit(self) -> None:
         params = parse_qs(urlparse(self.path).query)
+        if "recarregar" in params:
+            save_editable_rows(build_dashboard.editable_rows_from_sources())
+            self.redirect("/editar")
+            return
         message = ""
         if "ok" in params:
             message = '<div class="message">Dashboard atualizado com sucesso.</div>'
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        rows = editable_rows()
+        thead, tbody = render_sheet_parts(rows)
         page = (
             EDIT_HTML.replace("{message}", message)
             .replace("{favicon_url}", FAVICON_URL)
-            .replace("__ROWS__", json.dumps(editable_rows(), ensure_ascii=False))
+            .replace("__THEAD__", thead)
+            .replace("__TBODY__", tbody)
+            .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
+            .replace("__ROWS__", json.dumps(rows, ensure_ascii=False))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
