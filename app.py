@@ -29,11 +29,11 @@ FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/17774956
 
 
 def app_user() -> str:
-    return os.environ.get("DASH_USER", "admin")
+    return os.environ.get("DASH_USER", "admin").strip()
 
 
 def app_password() -> str:
-    return os.environ.get("DASH_PASSWORD", "admin")
+    return os.environ.get("DASH_PASSWORD", "admin").strip()
 
 
 def app_secret() -> str:
@@ -238,6 +238,36 @@ LOGIN_HTML = """<!doctype html>
       outline: 3px solid rgba(100, 36, 140, .18);
       border-color: var(--teal);
     }
+    .password-field {
+      position: relative;
+    }
+    .password-field input {
+      padding-right: 70px;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #64248c;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: none;
+      transform: translateY(-50%);
+      transition: background .16s ease, color .16s ease;
+    }
+    .password-toggle:hover {
+      background: rgba(100, 36, 140, .10);
+      color: #34104f;
+      box-shadow: none;
+      transform: translateY(-50%);
+    }
     button {
       min-height: 50px;
       border: 0;
@@ -319,7 +349,10 @@ LOGIN_HTML = """<!doctype html>
           <input name="user" autocomplete="username" required>
         </label>
         <label>Senha
-          <input name="password" type="password" autocomplete="current-password" required>
+          <span class="password-field">
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+            <button id="passwordToggle" class="password-toggle" type="button" aria-label="Mostrar senha">Ver</button>
+          </span>
         </label>
         <button type="submit">Entrar no dashboard</button>
       </form>
@@ -329,6 +362,17 @@ LOGIN_HTML = """<!doctype html>
       </div>
     </section>
   </main>
+  <script>
+    const passwordInput = document.querySelector("#passwordInput");
+    const passwordToggle = document.querySelector("#passwordToggle");
+    passwordToggle.addEventListener("click", () => {
+      const showing = passwordInput.type === "text";
+      passwordInput.type = showing ? "password" : "text";
+      passwordToggle.textContent = showing ? "Ver" : "Ocultar";
+      passwordToggle.setAttribute("aria-label", showing ? "Mostrar senha" : "Ocultar senha");
+      passwordInput.focus();
+    });
+  </script>
 </body>
 </html>
 """
@@ -1355,8 +1399,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/login":
             params = self.body_params()
-            user = params.get("user", [""])[0]
-            password = params.get("password", [""])[0]
+            user = params.get("user", [""])[0].strip()
+            password = params.get("password", [""])[0].strip()
             if user == app_user() and password == app_password():
                 self.send_response(HTTPStatus.SEE_OTHER)
                 self.send_header("Location", "/home")
