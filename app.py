@@ -82,44 +82,60 @@ LOGIN_HTML = """<!doctype html>
     }
     .scene {
       position: fixed;
-      right: clamp(18px, 9vw, 130px);
-      bottom: clamp(22px, 10vh, 92px);
-      width: min(33vw, 360px);
-      min-width: 210px;
+      left: var(--bot-x, 78vw);
+      top: var(--bot-y, 68vh);
+      width: clamp(150px, 18vw, 230px);
       aspect-ratio: 1;
       pointer-events: none;
       opacity: .98;
+      transform: translate(-50%, -50%);
+      transition: filter .2s ease;
+      z-index: 1;
     }
     .orbit {
       position: absolute;
-      inset: 7%;
+      inset: 1%;
       border: 1px solid rgba(255, 255, 255, .16);
       border-radius: 50%;
     }
-    .orbit:nth-child(1) { transform: rotate(18deg) scaleX(1.2); }
-    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); }
+    .orbit:nth-child(1) { transform: rotate(18deg) scaleX(1.16); }
+    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); animation: spin 8s linear infinite; }
     .bot {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 58%;
-      aspect-ratio: .86;
+      width: 64%;
+      aspect-ratio: .82;
       transform: translate(-50%, -50%);
-      border-radius: 34% 34% 28% 28%;
-      background: linear-gradient(160deg, #f9fbfc, #c7d5dc);
+      border-radius: 36% 36% 26% 26%;
+      background:
+        radial-gradient(circle at 32% 22%, rgba(255,255,255,.95), transparent 25%),
+        linear-gradient(160deg, #ffffff 0%, #d7e5ea 58%, #b8cbd3 100%);
       border: 1px solid rgba(255, 255, 255, .8);
       box-shadow: 0 28px 70px rgba(0, 0, 0, .26);
+      animation: jog .46s ease-in-out infinite alternate;
     }
     .bot::before {
       content: "";
       position: absolute;
-      left: 18%;
-      right: 18%;
-      top: -10%;
-      height: 13%;
+      left: 24%;
+      right: 24%;
+      top: -11%;
+      height: 12%;
       border-radius: 999px;
-      background: #0c7c83;
+      background: linear-gradient(90deg, #0c7c83, #15a0a8);
       box-shadow: 0 0 32px rgba(12, 124, 131, .72);
+    }
+    .bot::after {
+      content: "";
+      position: absolute;
+      left: 30%;
+      right: 30%;
+      bottom: 12%;
+      height: 14%;
+      border-radius: 999px;
+      background: rgba(12, 124, 131, .12);
+      border: 1px solid rgba(12, 124, 131, .18);
     }
     .face {
       position: absolute;
@@ -135,6 +151,30 @@ LOGIN_HTML = """<!doctype html>
       background: #10232b;
       box-shadow: inset 0 0 22px rgba(20, 153, 160, .22);
     }
+    .arm, .foot {
+      position: absolute;
+      background: #0c7c83;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
+    }
+    .arm {
+      top: 48%;
+      width: 12%;
+      height: 30%;
+      border-radius: 999px;
+      transform-origin: top center;
+      animation: wave .46s ease-in-out infinite alternate;
+    }
+    .arm.left { left: -7%; transform: rotate(18deg); }
+    .arm.right { right: -7%; transform: rotate(-18deg); animation-direction: alternate-reverse; }
+    .foot {
+      bottom: -8%;
+      width: 26%;
+      height: 10%;
+      border-radius: 999px;
+      animation: step .46s ease-in-out infinite alternate;
+    }
+    .foot.left { left: 17%; }
+    .foot.right { right: 17%; animation-direction: alternate-reverse; }
     .eye {
       width: 29%;
       aspect-ratio: 1;
@@ -168,15 +208,28 @@ LOGIN_HTML = """<!doctype html>
       border-bottom: 4px solid #0c7c83;
       border-radius: 0 0 999px 999px;
     }
+    .shadow {
+      position: absolute;
+      left: 27%;
+      right: 27%;
+      bottom: 4%;
+      height: 8%;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .22);
+      filter: blur(8px);
+      animation: shadow .46s ease-in-out infinite alternate;
+    }
     .login {
-      width: min(100%, 420px);
+      width: min(100%, 430px);
       position: relative;
-      z-index: 2;
-      background: var(--panel);
-      border: 1px solid rgba(255, 255, 255, .36);
+      z-index: 3;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(246, 250, 251, .98));
+      border: 1px solid rgba(255, 255, 255, .72);
       border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 28px;
+      box-shadow: 0 26px 80px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .9);
+      padding: 30px;
+      backdrop-filter: blur(10px);
     }
     h1 { margin: 0; font-size: 34px; letter-spacing: 0; }
     p { margin: 9px 0 24px; color: var(--muted); line-height: 1.5; }
@@ -197,6 +250,8 @@ LOGIN_HTML = """<!doctype html>
       padding: 10px 12px;
       color: var(--ink);
       font: inherit;
+      background: #f7fafc;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     input:focus {
       outline: 3px solid rgba(12, 124, 131, .18);
@@ -206,11 +261,12 @@ LOGIN_HTML = """<!doctype html>
       min-height: 44px;
       border: 0;
       border-radius: 8px;
-      background: var(--teal);
+      background: linear-gradient(135deg, #0c7c83, #0f9694);
       color: #fff;
       cursor: pointer;
       font: inherit;
       font-weight: 900;
+      box-shadow: 0 10px 22px rgba(12, 124, 131, .24);
     }
     .error {
       margin-bottom: 14px;
@@ -222,7 +278,26 @@ LOGIN_HTML = """<!doctype html>
     }
     @media (max-width: 860px) {
       body { place-items: start center; padding-top: 34px; overflow: auto; }
-      .scene { position: relative; right: auto; bottom: auto; width: min(68vw, 300px); margin-top: 22px; order: 2; }
+      .scene { display: none; }
+    }
+    @keyframes jog {
+      from { transform: translate(-50%, -52%) rotate(-1deg); }
+      to { transform: translate(-50%, -48%) rotate(1deg); }
+    }
+    @keyframes wave {
+      from { translate: 0 0; }
+      to { translate: 0 8px; }
+    }
+    @keyframes step {
+      from { translate: -4px 0; }
+      to { translate: 4px -2px; }
+    }
+    @keyframes shadow {
+      from { scale: .88; opacity: .22; }
+      to { scale: 1.08; opacity: .16; }
+    }
+    @keyframes spin {
+      to { rotate: 360deg; }
     }
   </style>
 </head>
@@ -230,12 +305,17 @@ LOGIN_HTML = """<!doctype html>
   <div class="scene" aria-hidden="true">
     <div class="orbit"></div>
     <div class="orbit"></div>
+    <div class="shadow"></div>
     <div class="bot">
+      <div class="arm left"></div>
+      <div class="arm right"></div>
       <div class="face">
         <div class="eye"><div class="pupil"></div></div>
         <div class="eye"><div class="pupil"></div></div>
       </div>
       <div class="smile"></div>
+      <div class="foot left"></div>
+      <div class="foot right"></div>
     </div>
   </div>
   <main class="login">
@@ -253,11 +333,18 @@ LOGIN_HTML = """<!doctype html>
     </form>
   </main>
   <script>
+    const scene = document.querySelector(".scene");
     const bot = document.querySelector(".bot");
     const pupils = document.querySelectorAll(".pupil");
+    let targetX = window.innerWidth * .78;
+    let targetY = window.innerHeight * .68;
+    let botX = targetX;
+    let botY = targetY;
     document.addEventListener("pointermove", (event) => {
       document.body.style.setProperty("--mx", `${event.clientX}px`);
       document.body.style.setProperty("--my", `${event.clientY}px`);
+      targetX = event.clientX + 96;
+      targetY = event.clientY + 76;
       pupils.forEach((pupil) => {
         const box = pupil.parentElement.getBoundingClientRect();
         const dx = event.clientX - (box.left + box.width / 2);
@@ -268,6 +355,17 @@ LOGIN_HTML = """<!doctype html>
         pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
       });
     });
+    function chase() {
+      botX += (targetX - botX) * .075;
+      botY += (targetY - botY) * .075;
+      const margin = 90;
+      botX = Math.max(margin, Math.min(window.innerWidth - margin, botX));
+      botY = Math.max(margin, Math.min(window.innerHeight - margin, botY));
+      scene.style.setProperty("--bot-x", `${botX}px`);
+      scene.style.setProperty("--bot-y", `${botY}px`);
+      requestAnimationFrame(chase);
+    }
+    chase();
     document.querySelector('input[type="password"]').addEventListener("focus", () => bot.classList.add("shy"));
     document.querySelector('input[type="password"]').addEventListener("blur", () => bot.classList.remove("shy"));
   </script>
@@ -308,32 +406,48 @@ HOME_HTML = """<!doctype html>
     }
     .assistant {
       position: fixed;
-      right: clamp(18px, 6vw, 88px);
-      bottom: clamp(18px, 6vh, 68px);
-      width: min(28vw, 310px);
-      min-width: 190px;
+      left: var(--bot-x, 78vw);
+      top: var(--bot-y, 72vh);
+      width: clamp(145px, 16vw, 220px);
       aspect-ratio: 1;
       pointer-events: none;
       opacity: .96;
+      transform: translate(-50%, -50%);
+      z-index: 0;
     }
     .assistant .ring {
       position: absolute;
-      inset: 8%;
+      inset: 1%;
       border: 1px solid rgba(255, 255, 255, .15);
       border-radius: 50%;
       transform: rotate(-18deg) scaleX(1.18);
+      animation: spin 8s linear infinite;
     }
     .assistant .head {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 55%;
+      width: 64%;
       aspect-ratio: .9;
       transform: translate(-50%, -50%);
       border-radius: 34% 34% 28% 28%;
-      background: linear-gradient(160deg, #f9fbfc, #c8d6dc);
+      background:
+        radial-gradient(circle at 34% 20%, rgba(255,255,255,.95), transparent 24%),
+        linear-gradient(160deg, #ffffff, #d7e5ea 58%, #b8cbd3);
       border: 1px solid rgba(255, 255, 255, .76);
       box-shadow: 0 26px 66px rgba(0, 0, 0, .22);
+      animation: jog .46s ease-in-out infinite alternate;
+    }
+    .assistant .head::before {
+      content: "";
+      position: absolute;
+      left: 24%;
+      right: 24%;
+      top: -11%;
+      height: 12%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0c7c83, #15a0a8);
+      box-shadow: 0 0 30px rgba(12, 124, 131, .68);
     }
     .assistant .visor {
       position: absolute;
@@ -376,7 +490,43 @@ HOME_HTML = """<!doctype html>
       border-bottom: 4px solid #0c7c83;
       border-radius: 0 0 999px 999px;
     }
+    .assistant .arm, .assistant .foot {
+      position: absolute;
+      background: #0c7c83;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
+    }
+    .assistant .arm {
+      top: 49%;
+      width: 12%;
+      height: 30%;
+      border-radius: 999px;
+      animation: wave .46s ease-in-out infinite alternate;
+    }
+    .assistant .arm.left { left: -7%; transform: rotate(18deg); }
+    .assistant .arm.right { right: -7%; transform: rotate(-18deg); animation-direction: alternate-reverse; }
+    .assistant .foot {
+      bottom: -8%;
+      width: 26%;
+      height: 10%;
+      border-radius: 999px;
+      animation: step .46s ease-in-out infinite alternate;
+    }
+    .assistant .foot.left { left: 17%; }
+    .assistant .foot.right { right: 17%; animation-direction: alternate-reverse; }
+    .assistant .shadow {
+      position: absolute;
+      left: 27%;
+      right: 27%;
+      bottom: 4%;
+      height: 8%;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .22);
+      filter: blur(8px);
+      animation: shadow .46s ease-in-out infinite alternate;
+    }
     header {
+      position: relative;
+      z-index: 2;
       padding: 30px clamp(16px, 4vw, 44px) 22px;
       color: #fff;
       display: flex;
@@ -401,6 +551,8 @@ HOME_HTML = """<!doctype html>
     }
     main { padding: 0 clamp(16px, 4vw, 44px) 44px; }
     .menu {
+      position: relative;
+      z-index: 2;
       display: grid;
       grid-template-columns: repeat(2, minmax(220px, 1fr));
       gap: 18px;
@@ -415,7 +567,12 @@ HOME_HTML = """<!doctype html>
       border: 1px solid var(--line);
       border-top: 5px solid var(--teal);
       border-radius: 8px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .86);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 28px 76px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     .card:nth-child(2) { border-top-color: var(--green); }
     .card span {
@@ -448,19 +605,43 @@ HOME_HTML = """<!doctype html>
     @media (max-width: 680px) {
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
-      .assistant { position: relative; right: auto; bottom: auto; margin: 18px auto 0; width: min(72vw, 290px); }
+      .assistant { display: none; }
+    }
+    @keyframes jog {
+      from { transform: translate(-50%, -52%) rotate(-1deg); }
+      to { transform: translate(-50%, -48%) rotate(1deg); }
+    }
+    @keyframes wave {
+      from { translate: 0 0; }
+      to { translate: 0 8px; }
+    }
+    @keyframes step {
+      from { translate: -4px 0; }
+      to { translate: 4px -2px; }
+    }
+    @keyframes shadow {
+      from { scale: .88; opacity: .22; }
+      to { scale: 1.08; opacity: .16; }
+    }
+    @keyframes spin {
+      to { rotate: 360deg; }
     }
   </style>
 </head>
 <body>
   <div class="assistant" aria-hidden="true">
     <div class="ring"></div>
+    <div class="shadow"></div>
     <div class="head">
+      <div class="arm left"></div>
+      <div class="arm right"></div>
       <div class="visor">
         <div class="eye"><div class="pupil"></div></div>
         <div class="eye"><div class="pupil"></div></div>
       </div>
       <div class="mouth"></div>
+      <div class="foot left"></div>
+      <div class="foot right"></div>
     </div>
   </div>
   <header>
@@ -487,10 +668,17 @@ HOME_HTML = """<!doctype html>
     </section>
   </main>
   <script>
+    const assistant = document.querySelector(".assistant");
     const pupils = document.querySelectorAll(".pupil");
+    let targetX = window.innerWidth * .78;
+    let targetY = window.innerHeight * .72;
+    let botX = targetX;
+    let botY = targetY;
     document.addEventListener("pointermove", (event) => {
       document.body.style.setProperty("--mx", `${event.clientX}px`);
       document.body.style.setProperty("--my", `${event.clientY}px`);
+      targetX = event.clientX + 92;
+      targetY = event.clientY + 78;
       pupils.forEach((pupil) => {
         const box = pupil.parentElement.getBoundingClientRect();
         const dx = event.clientX - (box.left + box.width / 2);
@@ -501,6 +689,17 @@ HOME_HTML = """<!doctype html>
         pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
       });
     });
+    function chase() {
+      botX += (targetX - botX) * .075;
+      botY += (targetY - botY) * .075;
+      const margin = 88;
+      botX = Math.max(margin, Math.min(window.innerWidth - margin, botX));
+      botY = Math.max(margin, Math.min(window.innerHeight - margin, botY));
+      assistant.style.setProperty("--bot-x", `${botX}px`);
+      assistant.style.setProperty("--bot-y", `${botY}px`);
+      requestAnimationFrame(chase);
+    }
+    chase();
   </script>
 </body>
 </html>
