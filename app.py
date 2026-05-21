@@ -532,16 +532,7 @@ HOME_HTML = """<!doctype html>
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .assistant {
-      position: fixed;
-      right: clamp(34px, 7vw, 110px);
-      bottom: clamp(34px, 8vh, 84px);
-      width: clamp(180px, 19vw, 280px);
-      aspect-ratio: 1;
-      pointer-events: none;
-      opacity: .96;
-      z-index: 0;
-    }
+    .assistant { display: none; }
     .assistant .ring {
       position: absolute;
       inset: 1%;
@@ -661,13 +652,13 @@ HOME_HTML = """<!doctype html>
     .brand-title {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
     }
     .brand-title img {
-      width: 44px;
-      height: 44px;
+      width: 76px;
+      height: 76px;
       object-fit: contain;
-      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .22));
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .26));
     }
     a { color: inherit; text-decoration: none; }
     .logout {
@@ -683,18 +674,6 @@ HOME_HTML = """<!doctype html>
       background: rgba(255, 255, 255, .08);
     }
     main { padding: 0 clamp(16px, 4vw, 44px) 44px; }
-    main::after {
-      content: "";
-      position: fixed;
-      right: 5vw;
-      bottom: 4vh;
-      width: min(34vw, 420px);
-      aspect-ratio: 1;
-      background: url("{favicon_url}") center / contain no-repeat;
-      opacity: .055;
-      pointer-events: none;
-      filter: grayscale(.1);
-    }
     .menu {
       position: relative;
       z-index: 2;
@@ -755,21 +734,6 @@ HOME_HTML = """<!doctype html>
   </style>
 </head>
 <body>
-  <div class="assistant" aria-hidden="true">
-    <div class="ring"></div>
-    <div class="shadow"></div>
-    <div class="head">
-      <div class="arm left"></div>
-      <div class="arm right"></div>
-      <div class="visor">
-        <div class="eye"><div class="pupil"></div></div>
-        <div class="eye"><div class="pupil"></div></div>
-      </div>
-      <div class="mouth"></div>
-      <div class="foot left"></div>
-      <div class="foot right"></div>
-    </div>
-  </div>
   <header>
     <div>
       <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Dashboard Log</h1></div>
