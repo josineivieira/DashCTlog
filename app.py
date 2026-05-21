@@ -71,20 +71,106 @@ LOGIN_HTML = """<!doctype html>
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 24px;
+      padding: 32px;
       overflow: hidden;
       background:
-        radial-gradient(560px circle at var(--mx, 72%) var(--my, 28%), rgba(20, 153, 160, .28), transparent 58%),
-        radial-gradient(420px circle at 18% 78%, rgba(60, 140, 79, .20), transparent 62%),
+        linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 48px),
+        radial-gradient(720px circle at var(--mx, 76%) var(--my, 24%), rgba(20, 153, 160, .30), transparent 58%),
+        radial-gradient(520px circle at 18% 78%, rgba(60, 140, 79, .20), transparent 62%),
+        linear-gradient(135deg, #0c1f27, #12363c 52%, #10232b),
         var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
+    .login-shell {
+      width: min(100%, 1040px);
+      min-height: 590px;
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .20);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .08);
+      box-shadow: 0 34px 120px rgba(0, 0, 0, .36);
+      backdrop-filter: blur(18px);
+    }
+    .welcome {
+      position: relative;
+      min-height: 590px;
+      padding: 44px;
+      color: #fff;
+      background:
+        radial-gradient(480px circle at 74% 64%, rgba(20, 153, 160, .26), transparent 62%),
+        linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+    }
+    .welcome::after {
+      content: "";
+      position: absolute;
+      inset: 28px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+    .brand-mark {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+      background: linear-gradient(135deg, #0c7c83, #18a7ad);
+      box-shadow: 0 16px 34px rgba(12, 124, 131, .28);
+    }
+    .welcome h1 {
+      max-width: 430px;
+      margin: 28px 0 12px;
+      font-size: clamp(38px, 5vw, 64px);
+      line-height: .96;
+      letter-spacing: 0;
+    }
+    .welcome p {
+      max-width: 390px;
+      margin: 0;
+      color: #c8d6dc;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+    .stats {
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      bottom: 40px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      z-index: 2;
+    }
+    .stat {
+      min-height: 76px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      background: rgba(255,255,255,.08);
+    }
+    .stat span {
+      display: block;
+      color: #b9cbd1;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      color: #fff;
+      font-size: 21px;
+    }
     .scene {
-      position: fixed;
-      right: clamp(34px, 10vw, 150px);
-      bottom: clamp(34px, 12vh, 108px);
-      width: clamp(190px, 22vw, 310px);
+      position: absolute;
+      right: clamp(18px, 5vw, 54px);
+      bottom: 124px;
+      width: clamp(190px, 21vw, 280px);
       aspect-ratio: 1;
       pointer-events: none;
       opacity: .98;
@@ -215,20 +301,41 @@ LOGIN_HTML = """<!doctype html>
       filter: blur(8px);
     }
     .login {
-      width: min(100%, 430px);
       position: relative;
       z-index: 3;
+      align-self: center;
+      width: min(100% - 52px, 430px);
+      justify-self: center;
       background:
+        radial-gradient(340px circle at 100% 0, rgba(12,124,131,.12), transparent 44%),
         linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(246, 250, 251, .98));
-      border: 1px solid rgba(255, 255, 255, .72);
-      border-radius: 8px;
-      box-shadow: 0 26px 80px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .9);
-      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, .86);
+      border-radius: 16px;
+      box-shadow: 0 26px 80px rgba(0, 0, 0, .30), inset 0 1px 0 rgba(255, 255, 255, .9);
+      padding: 34px;
       backdrop-filter: blur(10px);
     }
-    h1 { margin: 0; font-size: 34px; letter-spacing: 0; }
-    p { margin: 9px 0 24px; color: var(--muted); line-height: 1.5; }
-    form { display: grid; gap: 14px; }
+    .login h2 { margin: 0; font-size: 34px; letter-spacing: 0; color: var(--ink); }
+    .login p { margin: 9px 0 26px; color: var(--muted); line-height: 1.55; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: #0c7c83;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #0c7c83;
+      box-shadow: 0 0 0 6px rgba(12, 124, 131, .12);
+    }
+    form { display: grid; gap: 15px; }
     label {
       display: grid;
       gap: 8px;
@@ -239,12 +346,13 @@ LOGIN_HTML = """<!doctype html>
     }
     input {
       width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px 12px;
+      min-height: 48px;
+      border: 1px solid #ccd8e2;
+      border-radius: 12px;
+      padding: 11px 13px;
       color: var(--ink);
       font: inherit;
+      font-weight: 700;
       background: #f7fafc;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
     }
@@ -253,15 +361,41 @@ LOGIN_HTML = """<!doctype html>
       border-color: var(--teal);
     }
     button {
-      min-height: 44px;
+      min-height: 50px;
       border: 0;
-      border-radius: 8px;
+      border-radius: 12px;
       background: linear-gradient(135deg, #0c7c83, #0f9694);
       color: #fff;
       cursor: pointer;
       font: inherit;
       font-weight: 900;
-      box-shadow: 0 10px 22px rgba(12, 124, 131, .24);
+      box-shadow: 0 16px 32px rgba(12, 124, 131, .28);
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 20px 40px rgba(12, 124, 131, .34);
+    }
+    .login-foot {
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .login-foot span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .login-foot span::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #3c8c4f;
     }
     .error {
       margin-bottom: 14px;
@@ -272,41 +406,64 @@ LOGIN_HTML = """<!doctype html>
       font-weight: 800;
     }
     @media (max-width: 860px) {
-      body { place-items: start center; padding-top: 34px; overflow: auto; }
+      body { place-items: start center; padding: 20px; overflow: auto; }
+      .login-shell { min-height: auto; grid-template-columns: 1fr; }
+      .welcome { min-height: 220px; padding: 28px; }
+      .welcome h1 { font-size: 38px; }
+      .welcome p { max-width: 100%; }
+      .stats { position: static; margin-top: 22px; grid-template-columns: 1fr; }
       .scene { display: none; }
+      .login { width: calc(100% - 28px); margin: 14px 0 24px; padding: 26px; }
     }
   </style>
 </head>
 <body>
-  <div class="scene" aria-hidden="true">
-    <div class="orbit"></div>
-    <div class="orbit"></div>
-    <div class="shadow"></div>
-    <div class="bot">
-      <div class="arm left"></div>
-      <div class="arm right"></div>
-      <div class="face">
-        <div class="eye"><div class="pupil"></div></div>
-        <div class="eye"><div class="pupil"></div></div>
+  <main class="login-shell">
+    <section class="welcome">
+      <div class="brand-mark">DL</div>
+      <h1>Controle logistico em tempo real.</h1>
+      <p>Entre para acompanhar viagens, placas, produtos carregados e atualizar as planilhas do dashboard.</p>
+      <div class="scene" aria-hidden="true">
+        <div class="orbit"></div>
+        <div class="orbit"></div>
+        <div class="shadow"></div>
+        <div class="bot">
+          <div class="arm left"></div>
+          <div class="arm right"></div>
+          <div class="face">
+            <div class="eye"><div class="pupil"></div></div>
+            <div class="eye"><div class="pupil"></div></div>
+          </div>
+          <div class="smile"></div>
+          <div class="foot left"></div>
+          <div class="foot right"></div>
+        </div>
       </div>
-      <div class="smile"></div>
-      <div class="foot left"></div>
-      <div class="foot right"></div>
-    </div>
-  </div>
-  <main class="login">
-    <h1>Dashboard Log</h1>
-    <p>Acesse para visualizar o dashboard ou atualizar as planilhas.</p>
-    {message}
-    <form method="post" action="/login">
-      <label>Usuario
-        <input name="user" autocomplete="username" required>
-      </label>
-      <label>Senha
-        <input name="password" type="password" autocomplete="current-password" required>
-      </label>
-      <button type="submit">Entrar</button>
-    </form>
+      <div class="stats">
+        <div class="stat"><span>Area</span><strong>CT LOG</strong></div>
+        <div class="stat"><span>Acesso</span><strong>Seguro</strong></div>
+        <div class="stat"><span>Dados</span><strong>Online</strong></div>
+      </div>
+    </section>
+    <section class="login">
+      <div class="eyebrow">Acesso ao sistema</div>
+      <h2>Dashboard Log</h2>
+      <p>Informe suas credenciais para entrar no painel.</p>
+      {message}
+      <form method="post" action="/login">
+        <label>Usuario
+          <input name="user" autocomplete="username" required>
+        </label>
+        <label>Senha
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Entrar no dashboard</button>
+      </form>
+      <div class="login-foot">
+        <span>Sessao protegida</span>
+        <span>Dados privados</span>
+      </div>
+    </section>
   </main>
   <script>
     const bot = document.querySelector(".bot");
