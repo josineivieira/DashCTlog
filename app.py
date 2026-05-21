@@ -72,12 +72,106 @@ LOGIN_HTML = """<!doctype html>
       display: grid;
       place-items: center;
       padding: 24px;
-      background: var(--bg);
+      overflow: hidden;
+      background:
+        radial-gradient(560px circle at var(--mx, 72%) var(--my, 28%), rgba(20, 153, 160, .28), transparent 58%),
+        radial-gradient(420px circle at 18% 78%, rgba(60, 140, 79, .20), transparent 62%),
+        var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
+    .scene {
+      position: fixed;
+      right: clamp(18px, 9vw, 130px);
+      bottom: clamp(22px, 10vh, 92px);
+      width: min(33vw, 360px);
+      min-width: 210px;
+      aspect-ratio: 1;
+      pointer-events: none;
+      opacity: .98;
+    }
+    .orbit {
+      position: absolute;
+      inset: 7%;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 50%;
+    }
+    .orbit:nth-child(1) { transform: rotate(18deg) scaleX(1.2); }
+    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); }
+    .bot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 58%;
+      aspect-ratio: .86;
+      transform: translate(-50%, -50%);
+      border-radius: 34% 34% 28% 28%;
+      background: linear-gradient(160deg, #f9fbfc, #c7d5dc);
+      border: 1px solid rgba(255, 255, 255, .8);
+      box-shadow: 0 28px 70px rgba(0, 0, 0, .26);
+    }
+    .bot::before {
+      content: "";
+      position: absolute;
+      left: 18%;
+      right: 18%;
+      top: -10%;
+      height: 13%;
+      border-radius: 999px;
+      background: #0c7c83;
+      box-shadow: 0 0 32px rgba(12, 124, 131, .72);
+    }
+    .face {
+      position: absolute;
+      left: 13%;
+      right: 13%;
+      top: 23%;
+      height: 38%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14%;
+      border-radius: 28px;
+      background: #10232b;
+      box-shadow: inset 0 0 22px rgba(20, 153, 160, .22);
+    }
+    .eye {
+      width: 29%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #eaf8f7;
+      position: relative;
+      overflow: hidden;
+    }
+    .pupil {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #0c7c83;
+      transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
+      transition: transform .08s ease-out, height .16s ease, border-radius .16s ease;
+    }
+    .bot.shy .pupil {
+      height: 6px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+    }
+    .smile {
+      position: absolute;
+      left: 36%;
+      right: 36%;
+      bottom: 24%;
+      height: 9%;
+      border-bottom: 4px solid #0c7c83;
+      border-radius: 0 0 999px 999px;
+    }
     .login {
       width: min(100%, 420px);
+      position: relative;
+      z-index: 2;
       background: var(--panel);
       border: 1px solid rgba(255, 255, 255, .36);
       border-radius: 8px;
@@ -126,9 +220,24 @@ LOGIN_HTML = """<!doctype html>
       color: var(--error);
       font-weight: 800;
     }
+    @media (max-width: 860px) {
+      body { place-items: start center; padding-top: 34px; overflow: auto; }
+      .scene { position: relative; right: auto; bottom: auto; width: min(68vw, 300px); margin-top: 22px; order: 2; }
+    }
   </style>
 </head>
 <body>
+  <div class="scene" aria-hidden="true">
+    <div class="orbit"></div>
+    <div class="orbit"></div>
+    <div class="bot">
+      <div class="face">
+        <div class="eye"><div class="pupil"></div></div>
+        <div class="eye"><div class="pupil"></div></div>
+      </div>
+      <div class="smile"></div>
+    </div>
+  </div>
   <main class="login">
     <h1>Dashboard Log</h1>
     <p>Acesse para visualizar o dashboard ou atualizar as planilhas.</p>
@@ -143,6 +252,25 @@ LOGIN_HTML = """<!doctype html>
       <button type="submit">Entrar</button>
     </form>
   </main>
+  <script>
+    const bot = document.querySelector(".bot");
+    const pupils = document.querySelectorAll(".pupil");
+    document.addEventListener("pointermove", (event) => {
+      document.body.style.setProperty("--mx", `${event.clientX}px`);
+      document.body.style.setProperty("--my", `${event.clientY}px`);
+      pupils.forEach((pupil) => {
+        const box = pupil.parentElement.getBoundingClientRect();
+        const dx = event.clientX - (box.left + box.width / 2);
+        const dy = event.clientY - (box.top + box.height / 2);
+        const angle = Math.atan2(dy, dx);
+        const distance = Math.min(box.width * .18, Math.hypot(dx, dy) / 18);
+        pupil.style.setProperty("--look-x", `${Math.cos(angle) * distance}px`);
+        pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
+      });
+    });
+    document.querySelector('input[type="password"]').addEventListener("focus", () => bot.classList.add("shy"));
+    document.querySelector('input[type="password"]').addEventListener("blur", () => bot.classList.remove("shy"));
+  </script>
 </body>
 </html>
 """
@@ -170,9 +298,83 @@ HOME_HTML = """<!doctype html>
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
+      overflow-x: hidden;
+      background:
+        radial-gradient(620px circle at var(--mx, 80%) var(--my, 24%), rgba(20, 153, 160, .24), transparent 58%),
+        radial-gradient(520px circle at 18% 84%, rgba(159, 122, 28, .14), transparent 64%),
+        var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .assistant {
+      position: fixed;
+      right: clamp(18px, 6vw, 88px);
+      bottom: clamp(18px, 6vh, 68px);
+      width: min(28vw, 310px);
+      min-width: 190px;
+      aspect-ratio: 1;
+      pointer-events: none;
+      opacity: .96;
+    }
+    .assistant .ring {
+      position: absolute;
+      inset: 8%;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 50%;
+      transform: rotate(-18deg) scaleX(1.18);
+    }
+    .assistant .head {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 55%;
+      aspect-ratio: .9;
+      transform: translate(-50%, -50%);
+      border-radius: 34% 34% 28% 28%;
+      background: linear-gradient(160deg, #f9fbfc, #c8d6dc);
+      border: 1px solid rgba(255, 255, 255, .76);
+      box-shadow: 0 26px 66px rgba(0, 0, 0, .22);
+    }
+    .assistant .visor {
+      position: absolute;
+      left: 13%;
+      right: 13%;
+      top: 24%;
+      height: 37%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14%;
+      border-radius: 26px;
+      background: #10232b;
+    }
+    .assistant .eye {
+      width: 29%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #eefafa;
+      position: relative;
+      overflow: hidden;
+    }
+    .assistant .pupil {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #0c7c83;
+      transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
+      transition: transform .08s ease-out;
+    }
+    .assistant .mouth {
+      position: absolute;
+      left: 37%;
+      right: 37%;
+      bottom: 24%;
+      height: 9%;
+      border-bottom: 4px solid #0c7c83;
+      border-radius: 0 0 999px 999px;
     }
     header {
       padding: 30px clamp(16px, 4vw, 44px) 22px;
@@ -246,10 +448,21 @@ HOME_HTML = """<!doctype html>
     @media (max-width: 680px) {
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
+      .assistant { position: relative; right: auto; bottom: auto; margin: 18px auto 0; width: min(72vw, 290px); }
     }
   </style>
 </head>
 <body>
+  <div class="assistant" aria-hidden="true">
+    <div class="ring"></div>
+    <div class="head">
+      <div class="visor">
+        <div class="eye"><div class="pupil"></div></div>
+        <div class="eye"><div class="pupil"></div></div>
+      </div>
+      <div class="mouth"></div>
+    </div>
+  </div>
   <header>
     <div>
       <h1>Dashboard Log</h1>
@@ -273,6 +486,22 @@ HOME_HTML = """<!doctype html>
       </a>
     </section>
   </main>
+  <script>
+    const pupils = document.querySelectorAll(".pupil");
+    document.addEventListener("pointermove", (event) => {
+      document.body.style.setProperty("--mx", `${event.clientX}px`);
+      document.body.style.setProperty("--my", `${event.clientY}px`);
+      pupils.forEach((pupil) => {
+        const box = pupil.parentElement.getBoundingClientRect();
+        const dx = event.clientX - (box.left + box.width / 2);
+        const dy = event.clientY - (box.top + box.height / 2);
+        const angle = Math.atan2(dy, dx);
+        const distance = Math.min(box.width * .18, Math.hypot(dx, dy) / 18);
+        pupil.style.setProperty("--look-x", `${Math.cos(angle) * distance}px`);
+        pupil.style.setProperty("--look-y", `${Math.sin(angle) * distance}px`);
+      });
+    });
+  </script>
 </body>
 </html>
 """
