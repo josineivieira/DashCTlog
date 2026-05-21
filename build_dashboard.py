@@ -301,6 +301,12 @@ HTML_TEMPLATE = """<!doctype html>
     }
     h1 { margin: 0; font-size: clamp(28px, 3vw, 42px); letter-spacing: 0; font-weight: 800; }
     .subtitle { margin: 8px 0 0; color: #c8d6dc; }
+    .nav {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
     .top-link {
       display: inline-flex;
       align-items: center;
@@ -574,6 +580,8 @@ HTML_TEMPLATE = """<!doctype html>
       .wide { grid-column: 1 / -1; }
     }
     @media (max-width: 650px) {
+      header { flex-direction: column; }
+      .nav { justify-content: flex-start; }
       .filters, .kpis, .grid, .hero-board { grid-template-columns: 1fr; }
       .bar-row { grid-template-columns: 1fr; gap: 5px; }
       .focus-head { align-items: flex-start; flex-direction: column; }
