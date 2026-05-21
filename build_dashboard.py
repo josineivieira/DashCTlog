@@ -235,7 +235,7 @@ HTML_TEMPLATE = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard CT LOG</title>
+  <title>Dashboard Log</title>
   <style>
     :root {
       --bg: #eef2f5;
@@ -286,9 +286,8 @@ HTML_TEMPLATE = """<!doctype html>
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background:
-        linear-gradient(180deg, var(--top) 0, var(--top-2) 230px, var(--bg) 231px),
-        var(--bg);
+      min-height: 100vh;
+      background: var(--top);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
@@ -588,7 +587,7 @@ HTML_TEMPLATE = """<!doctype html>
 <body>
   <header>
     <div>
-      <h1>Dashboard CT LOG</h1>
+      <h1>Dashboard Log</h1>
       <p class="subtitle">Viagens por placa, produtos carregados e terminais Equador/Ipiranga.</p>
     </div>
     <a class="top-link" href="/editar">Atualizar dados</a>
