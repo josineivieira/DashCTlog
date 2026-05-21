@@ -43,8 +43,20 @@ def database_url() -> str:
     return os.environ.get("DATABASE_URL", "").strip()
 
 
+def postgres_driver_available() -> bool:
+    try:
+        import psycopg2  # noqa: F401
+    except ModuleNotFoundError:
+        return False
+    return True
+
+
 def use_postgres() -> bool:
-    return bool(database_url())
+    return (
+        bool(database_url())
+        and not os.environ.get("BUILDING_DASHBOARD")
+        and postgres_driver_available()
+    )
 
 
 def current_orders_path() -> Path:
@@ -1334,4 +1346,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    os.environ["BUILDING_DASHBOARD"] = "1"
     main()
