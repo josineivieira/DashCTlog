@@ -110,24 +110,25 @@ LOGIN_HTML = """<!doctype html>
       pointer-events: none;
     }
     .brand-mark {
-      width: 150px;
-      height: 58px;
+      width: 320px;
+      min-height: 94px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 18px;
       color: #fff;
       font-weight: 900;
       text-transform: uppercase;
     }
     .brand-mark img {
-      width: 46px;
-      height: 46px;
+      width: 86px;
+      height: 86px;
       object-fit: contain;
       filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .22));
     }
     .brand-mark span {
       line-height: 1.05;
       letter-spacing: .02em;
+      font-size: 21px;
     }
     .welcome h1 {
       max-width: 430px;
@@ -172,140 +173,6 @@ LOGIN_HTML = """<!doctype html>
       margin-top: 7px;
       color: #fff;
       font-size: 21px;
-    }
-    .scene {
-      position: absolute;
-      right: 30px;
-      bottom: 30px;
-      width: clamp(118px, 12vw, 160px);
-      aspect-ratio: 1;
-      pointer-events: none;
-      opacity: .90;
-      transition: filter .2s ease;
-      z-index: 1;
-    }
-    .orbit {
-      position: absolute;
-      inset: 1%;
-      border: 1px solid rgba(255, 255, 255, .16);
-      border-radius: 50%;
-    }
-    .orbit:nth-child(1) { transform: rotate(18deg) scaleX(1.16); }
-    .orbit:nth-child(2) { transform: rotate(-26deg) scaleY(.72); }
-    .bot {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 62%;
-      aspect-ratio: .78;
-      transform: translate(-50%, -50%);
-      border-radius: 42% 42% 30% 30%;
-      background:
-        radial-gradient(circle at 34% 18%, rgba(255,255,255,.98), transparent 25%),
-        linear-gradient(155deg, #ffffff 0%, #e6f0f3 48%, #bed0d7 100%);
-      border: 1px solid rgba(255, 255, 255, .9);
-      box-shadow: 0 30px 72px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .9);
-    }
-    .bot::before {
-      content: "";
-      position: absolute;
-      left: 22%;
-      right: 22%;
-      top: -9%;
-      height: 11%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #2b84cb, #e2263c);
-      box-shadow: 0 0 22px rgba(43, 132, 203, .52);
-    }
-    .bot::after {
-      content: "";
-      position: absolute;
-      left: 28%;
-      right: 28%;
-      bottom: 13%;
-      height: 12%;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(100, 36, 140, .16), rgba(43, 132, 203, .08));
-      border: 1px solid rgba(100, 36, 140, .22);
-    }
-    .face {
-      position: absolute;
-      left: 11%;
-      right: 11%;
-      top: 22%;
-      height: 39%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14%;
-      border-radius: 30px;
-      background: linear-gradient(180deg, #34104f, #1b255f);
-      box-shadow: inset 0 0 22px rgba(43, 132, 203, .22);
-    }
-    .arm, .foot {
-      position: absolute;
-      background: #2b84cb;
-      box-shadow: 0 5px 12px rgba(0, 0, 0, .12);
-    }
-    .arm {
-      top: 49%;
-      width: 11%;
-      height: 27%;
-      border-radius: 999px;
-      transform-origin: top center;
-    }
-    .arm.left { left: -5%; transform: rotate(12deg); }
-    .arm.right { right: -5%; transform: rotate(-12deg); }
-    .foot {
-      bottom: -7%;
-      width: 24%;
-      height: 9%;
-      border-radius: 999px;
-    }
-    .foot.left { left: 18%; }
-    .foot.right { right: 18%; }
-    .eye {
-      width: 30%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 32%, #ffffff 0 20%, #eaf8f7 21% 100%);
-      position: relative;
-      overflow: hidden;
-    }
-    .pupil {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 42%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2b84cb, #e2263c);
-      transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
-      transition: transform .08s ease-out, height .16s ease, border-radius .16s ease;
-    }
-    .bot.shy .pupil {
-      height: 6px;
-      border-radius: 999px;
-      transform: translate(-50%, -50%);
-    }
-    .smile {
-      position: absolute;
-      left: 35%;
-      right: 35%;
-      bottom: 27%;
-      height: 8%;
-      border-bottom: 3px solid #64248c;
-      border-radius: 0 0 999px 999px;
-    }
-    .shadow {
-      position: absolute;
-      left: 25%;
-      right: 25%;
-      bottom: 3%;
-      height: 8%;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, .22);
-      filter: blur(8px);
     }
     .login {
       position: relative;
@@ -419,7 +286,9 @@ LOGIN_HTML = """<!doctype html>
       .welcome h1 { font-size: 38px; }
       .welcome p { max-width: 100%; }
       .stats { position: static; margin-top: 22px; grid-template-columns: 1fr; }
-      .scene { display: none; }
+      .brand-mark { width: 100%; min-height: 72px; }
+      .brand-mark img { width: 64px; height: 64px; }
+      .brand-mark span { font-size: 18px; }
       .login { width: calc(100% - 28px); margin: 14px 0 24px; padding: 26px; }
     }
   </style>
@@ -430,22 +299,6 @@ LOGIN_HTML = """<!doctype html>
       <div class="brand-mark"><img src="{favicon_url}" alt=""><span>Dislub<br>Equador</span></div>
       <h1>Controle logistico em tempo real.</h1>
       <p>Entre para acompanhar viagens, placas, produtos carregados e atualizar as planilhas do dashboard.</p>
-      <div class="scene" aria-hidden="true">
-        <div class="orbit"></div>
-        <div class="orbit"></div>
-        <div class="shadow"></div>
-        <div class="bot">
-          <div class="arm left"></div>
-          <div class="arm right"></div>
-          <div class="face">
-            <div class="eye"><div class="pupil"></div></div>
-            <div class="eye"><div class="pupil"></div></div>
-          </div>
-          <div class="smile"></div>
-          <div class="foot left"></div>
-          <div class="foot right"></div>
-        </div>
-      </div>
       <div class="stats">
         <div class="stat"><span>Area</span><strong>CT LOG</strong></div>
         <div class="stat"><span>Acesso</span><strong>Seguro</strong></div>
@@ -472,11 +325,6 @@ LOGIN_HTML = """<!doctype html>
       </div>
     </section>
   </main>
-  <script>
-    const bot = document.querySelector(".bot");
-    document.querySelector('input[type="password"]').addEventListener("focus", () => bot.classList.add("shy"));
-    document.querySelector('input[type="password"]').addEventListener("blur", () => bot.classList.remove("shy"));
-  </script>
 </body>
 </html>
 """
