@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import zipfile
 import xml.etree.ElementTree as ET
@@ -36,6 +37,14 @@ EDITABLE_COLUMNS = [
     "cliente",
     "quantidade",
 ]
+
+
+def database_url() -> str:
+    return os.environ.get("DATABASE_URL", "").strip()
+
+
+def use_postgres() -> bool:
+    return bool(database_url())
 
 
 def current_orders_path() -> Path:
@@ -221,14 +230,127 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
     return editable_rows
 
 
+def postgres_connection():
+    import psycopg2
+
+    return psycopg2.connect(database_url())
+
+
+def ensure_postgres_table() -> None:
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dashboard_base (
+                    id SERIAL PRIMARY KEY,
+                    row_order INTEGER NOT NULL DEFAULT 0,
+                    data TEXT NOT NULL DEFAULT '',
+                    placa TEXT NOT NULL DEFAULT '',
+                    terminal TEXT NOT NULL DEFAULT '',
+                    viagens TEXT NOT NULL DEFAULT '',
+                    capacidade TEXT NOT NULL DEFAULT '',
+                    nota_fiscal TEXT NOT NULL DEFAULT '',
+                    produto TEXT NOT NULL DEFAULT '',
+                    cliente TEXT NOT NULL DEFAULT '',
+                    quantidade TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def json_seed_rows() -> list[dict[str, object]]:
+    if EDITABLE_DATA_PATH.exists():
+        rows = json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
+        if isinstance(rows, list) and rows:
+            return rows
+    return editable_rows_from_sources()
+
+
+def postgres_rows() -> list[dict[str, object]]:
+    ensure_postgres_table()
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM dashboard_base")
+            count = cur.fetchone()[0]
+            if count == 0:
+                save_postgres_rows(json_seed_rows())
+            cur.execute(
+                """
+                SELECT data, placa, terminal, viagens, capacidade,
+                       nota_fiscal, produto, cliente, quantidade
+                FROM dashboard_base
+                ORDER BY row_order, id
+                """
+            )
+            rows = []
+            for item in cur.fetchall():
+                rows.append(
+                    {
+                        "data": item[0],
+                        "placa": item[1],
+                        "terminal": item[2],
+                        "viagens": item[3],
+                        "capacidade": item[4],
+                        "notaFiscal": item[5],
+                        "produto": item[6],
+                        "cliente": item[7],
+                        "quantidade": item[8],
+                    }
+                )
+            return rows
+
+
+def save_postgres_rows(rows: list[dict[str, object]]) -> None:
+    ensure_postgres_table()
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE dashboard_base RESTART IDENTITY")
+            for idx, row in enumerate(rows):
+                cur.execute(
+                    """
+                    INSERT INTO dashboard_base (
+                        row_order, data, placa, terminal, viagens, capacidade,
+                        nota_fiscal, produto, cliente, quantidade
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        idx,
+                        str(row.get("data", "")),
+                        str(row.get("placa", "")),
+                        str(row.get("terminal", "")),
+                        str(row.get("viagens", "")),
+                        str(row.get("capacidade", "")),
+                        str(row.get("notaFiscal", "")),
+                        str(row.get("produto", "")),
+                        str(row.get("cliente", "")),
+                        str(row.get("quantidade", "")),
+                    ),
+                )
+
+
+def save_editable_data(rows: list[dict[str, object]]) -> None:
+    if not rows:
+        rows = editable_rows_from_sources()
+    if use_postgres():
+        save_postgres_rows(rows)
+        return
+    DATA_DIR.mkdir(exist_ok=True)
+    EDITABLE_DATA_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def ensure_editable_data() -> list[dict[str, object]]:
+    if use_postgres():
+        return postgres_rows()
     DATA_DIR.mkdir(exist_ok=True)
     if EDITABLE_DATA_PATH.exists():
         rows = json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
         if isinstance(rows, list) and rows:
             return rows
     rows = editable_rows_from_sources()
-    EDITABLE_DATA_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    save_editable_data(rows)
     return rows
 
 
@@ -320,7 +442,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
 
 
 def build_data() -> dict[str, object]:
-    if EDITABLE_DATA_PATH.exists():
+    if use_postgres() or EDITABLE_DATA_PATH.exists():
         return build_data_from_editable(ensure_editable_data())
 
     orders_path = current_orders_path()
@@ -516,13 +638,11 @@ HTML_TEMPLATE = """<!doctype html>
       font-weight: 900;
       text-transform: uppercase;
     }
-    .brand-pill::before {
-      content: "";
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #2b84cb;
-      box-shadow: 0 0 0 6px rgba(43, 132, 203, .16);
+    .brand-pill img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .24));
     }
     .nav {
       display: flex;
@@ -818,7 +938,7 @@ HTML_TEMPLATE = """<!doctype html>
 <body>
   <header>
     <div>
-      <div class="brand-pill">Grupo Dislub Equador</div>
+      <div class="brand-pill"><img src="__FAVICON__" alt="">Grupo Dislub Equador</div>
       <h1>Dashboard Log</h1>
       <p class="subtitle">Viagens por placa, produtos carregados e terminais Equador/Ipiranga.</p>
     </div>

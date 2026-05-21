@@ -115,15 +115,24 @@ LOGIN_HTML = """<!doctype html>
       pointer-events: none;
     }
     .brand-mark {
-      width: 50px;
-      height: 50px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
+      width: 150px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       color: #fff;
       font-weight: 900;
-      background: linear-gradient(135deg, #2b84cb, #e2263c);
-      box-shadow: 0 16px 34px rgba(100, 36, 140, .28);
+      text-transform: uppercase;
+    }
+    .brand-mark img {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .22));
+    }
+    .brand-mark span {
+      line-height: 1.05;
+      letter-spacing: .02em;
     }
     .welcome h1 {
       max-width: 430px;
@@ -423,7 +432,7 @@ LOGIN_HTML = """<!doctype html>
 <body>
   <main class="login-shell">
     <section class="welcome">
-      <div class="brand-mark">DL</div>
+      <div class="brand-mark"><img src="{favicon_url}" alt=""><span>Dislub<br>Equador</span></div>
       <h1>Controle logistico em tempo real.</h1>
       <p>Entre para acompanhar viagens, placas, produtos carregados e atualizar as planilhas do dashboard.</p>
       <div class="scene" aria-hidden="true">
@@ -649,6 +658,17 @@ HOME_HTML = """<!doctype html>
     }
     h1 { margin: 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: 0; }
     .subtitle { margin: 8px 0 0; color: #c8d6dc; }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-title img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .22));
+    }
     a { color: inherit; text-decoration: none; }
     .logout {
       display: inline-flex;
@@ -663,6 +683,18 @@ HOME_HTML = """<!doctype html>
       background: rgba(255, 255, 255, .08);
     }
     main { padding: 0 clamp(16px, 4vw, 44px) 44px; }
+    main::after {
+      content: "";
+      position: fixed;
+      right: 5vw;
+      bottom: 4vh;
+      width: min(34vw, 420px);
+      aspect-ratio: 1;
+      background: url("{favicon_url}") center / contain no-repeat;
+      opacity: .055;
+      pointer-events: none;
+      filter: grayscale(.1);
+    }
     .menu {
       position: relative;
       z-index: 2;
@@ -740,7 +772,7 @@ HOME_HTML = """<!doctype html>
   </div>
   <header>
     <div>
-      <h1>Dashboard Log</h1>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Dashboard Log</h1></div>
       <p class="subtitle">Escolha uma area para continuar.</p>
     </div>
     <a class="logout" href="/logout">Sair</a>
@@ -817,6 +849,17 @@ EDIT_HTML = """<!doctype html>
     }
     h1 { margin: 0; font-size: clamp(28px, 3vw, 42px); letter-spacing: 0; }
     .subtitle { margin: 8px 0 0; color: #c8d6dc; }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-title img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .22));
+    }
     a { color: inherit; text-decoration: none; }
     .nav {
       display: flex;
@@ -977,7 +1020,7 @@ EDIT_HTML = """<!doctype html>
 <body>
   <header>
     <div>
-      <h1>Base editavel</h1>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Base editavel</h1></div>
       <p class="subtitle">Edite a base unica que alimenta o dashboard.</p>
     </div>
     <nav class="nav">
@@ -1216,14 +1259,10 @@ def editable_rows() -> list[dict[str, object]]:
 def save_editable_rows(rows: list[dict[str, object]]) -> None:
     if not rows:
         rows = build_dashboard.editable_rows_from_sources()
-    DATA_DIR.mkdir(exist_ok=True)
     clean_rows = []
     for row in rows:
         clean_rows.append({key: row.get(key, "") for key in build_dashboard.EDITABLE_COLUMNS})
-    build_dashboard.EDITABLE_DATA_PATH.write_text(
-        json.dumps(clean_rows, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    build_dashboard.save_editable_data(clean_rows)
 
 
 def html_escape(value: object) -> str:

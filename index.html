@@ -83,13 +83,11 @@
       font-weight: 900;
       text-transform: uppercase;
     }
-    .brand-pill::before {
-      content: "";
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #2b84cb;
-      box-shadow: 0 0 0 6px rgba(43, 132, 203, .16);
+    .brand-pill img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .24));
     }
     .nav {
       display: flex;
@@ -385,7 +383,7 @@
 <body>
   <header>
     <div>
-      <div class="brand-pill">Grupo Dislub Equador</div>
+      <div class="brand-pill"><img src="https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg" alt="">Grupo Dislub Equador</div>
       <h1>Dashboard Log</h1>
       <p class="subtitle">Viagens por placa, produtos carregados e terminais Equador/Ipiranga.</p>
     </div>
