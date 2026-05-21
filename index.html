@@ -7,49 +7,49 @@
   <style>
     :root {
       --bg: #eef2f5;
-      --top: #10232b;
-      --top-2: #173843;
+      --top: #17113f;
+      --top-2: #26306f;
       --panel: #ffffff;
       --panel-soft: #f8fafb;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #0c7c83;
-      --green: #2f855a;
-      --rust: #c16b3f;
-      --blue: #4c63b6;
-      --gold: #b98218;
+      --teal: #00a884;
+      --green: #65b32e;
+      --rust: #ef7d00;
+      --blue: #2f66d0;
+      --gold: #f6c343;
       --shadow: 0 18px 42px rgba(23, 32, 51, .10);
     }
     body[data-theme="forest"] {
-      --bg: #eef4ef;
-      --top: #123126;
-      --top-2: #1c4a39;
-      --teal: #1f7a5c;
-      --green: #3c8c4f;
-      --rust: #a5672a;
-      --blue: #3f6f7d;
-      --gold: #9f7a1c;
+      --bg: #f0f5ee;
+      --top: #1c4a2b;
+      --top-2: #65b32e;
+      --teal: #00a884;
+      --green: #65b32e;
+      --rust: #ef7d00;
+      --blue: #2f66d0;
+      --gold: #f6c343;
     }
     body[data-theme="graphite"] {
-      --bg: #edf0f3;
-      --top: #171b22;
-      --top-2: #2c3440;
-      --teal: #287980;
-      --green: #45775f;
-      --rust: #a85f44;
-      --blue: #596ca8;
-      --gold: #a47b29;
+      --bg: #f0f0f6;
+      --top: #17113f;
+      --top-2: #2b235f;
+      --teal: #00a884;
+      --green: #65b32e;
+      --rust: #ef7d00;
+      --blue: #2f66d0;
+      --gold: #f6c343;
     }
     body[data-theme="marine"] {
       --bg: #edf4f7;
-      --top: #0e2536;
-      --top-2: #16415c;
-      --teal: #087f8c;
-      --green: #2e7d64;
-      --rust: #b56a40;
-      --blue: #315fb0;
-      --gold: #b2811e;
+      --top: #0f2f35;
+      --top-2: #17113f;
+      --teal: #00a884;
+      --green: #65b32e;
+      --rust: #ef7d00;
+      --blue: #2f66d0;
+      --gold: #f6c343;
     }
     * { box-sizing: border-box; }
     body {
@@ -112,7 +112,7 @@
       width: 100%;
     }
     select:focus, input:focus {
-      outline: 3px solid rgba(12, 124, 131, .18);
+      outline: 3px solid rgba(0, 168, 132, .18);
       border-color: var(--teal);
       background: #fff;
     }
@@ -185,7 +185,7 @@
       min-height: 42px;
       padding: 7px 14px;
       border-radius: 8px;
-      background: #10232b;
+      background: #17113f;
       color: #fff;
       font-size: clamp(22px, 3vw, 34px);
       font-weight: 900;
@@ -297,7 +297,7 @@
     .chart-value-volume { fill: #8d4c31; font-size: 11px; font-weight: 800; }
     .chart-line-trips { fill: none; stroke: var(--teal); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     .chart-line-volume { fill: none; stroke: var(--rust); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-    .chart-area { fill: rgba(12, 124, 131, .10); }
+    .chart-area { fill: rgba(0, 168, 132, .10); }
     .chart-dot-trips { fill: #fff; stroke: var(--teal); stroke-width: 2.5; }
     .chart-dot-volume { fill: #fff; stroke: var(--rust); stroke-width: 2.5; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -481,7 +481,7 @@
     const $ = (id) => document.getElementById(id);
     const fmt = new Intl.NumberFormat("pt-BR");
     const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
-    const palette = ["#0c7c83", "#2f855a", "#c16b3f", "#4c63b6", "#b98218", "#6a5aa8", "#9a5a72", "#52796f"];
+    const palette = ["#00a884", "#65b32e", "#f6c343", "#ef7d00", "#2f66d0", "#6b3fb5", "#b84a7a", "#0f2f35"];
     let chartMode = "both";
 
     function unique(key) {

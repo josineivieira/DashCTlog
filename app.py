@@ -56,12 +56,12 @@ LOGIN_HTML = """<!doctype html>
   <title>Login - Dashboard Log</title>
   <style>
     :root {
-      --bg: #10232b;
+      --bg: #17113f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #0c7c83;
+      --teal: #00a884;
       --error-bg: #fff1ed;
       --error: #9a3412;
       --shadow: 0 24px 60px rgba(0, 0, 0, .22);
@@ -78,7 +78,7 @@ LOGIN_HTML = """<!doctype html>
         linear-gradient(135deg, rgba(255,255,255,.03) 0 1px, transparent 1px 48px),
         radial-gradient(720px circle at var(--mx, 76%) var(--my, 24%), rgba(20, 153, 160, .30), transparent 58%),
         radial-gradient(520px circle at 18% 78%, rgba(60, 140, 79, .20), transparent 62%),
-        linear-gradient(135deg, #0c1f27, #12363c 52%, #10232b),
+        linear-gradient(135deg, #17113f, #26306f 52%, #0f2f35),
         var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
@@ -120,8 +120,8 @@ LOGIN_HTML = """<!doctype html>
       place-items: center;
       color: #fff;
       font-weight: 900;
-      background: linear-gradient(135deg, #0c7c83, #18a7ad);
-      box-shadow: 0 16px 34px rgba(12, 124, 131, .28);
+      background: linear-gradient(135deg, #00a884, #f6c343);
+      box-shadow: 0 16px 34px rgba(0, 168, 132, .28);
     }
     .welcome h1 {
       max-width: 430px;
@@ -208,8 +208,8 @@ LOGIN_HTML = """<!doctype html>
       top: -9%;
       height: 11%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #0c7c83, #15a0a8);
-      box-shadow: 0 0 22px rgba(12, 124, 131, .60);
+      background: linear-gradient(90deg, #00a884, #f6c343);
+      box-shadow: 0 0 22px rgba(0, 168, 132, .60);
     }
     .bot::after {
       content: "";
@@ -219,8 +219,8 @@ LOGIN_HTML = """<!doctype html>
       bottom: 13%;
       height: 12%;
       border-radius: 999px;
-      background: linear-gradient(180deg, rgba(12, 124, 131, .16), rgba(12, 124, 131, .06));
-      border: 1px solid rgba(12, 124, 131, .22);
+      background: linear-gradient(180deg, rgba(0, 168, 132, .16), rgba(0, 168, 132, .06));
+      border: 1px solid rgba(0, 168, 132, .22);
     }
     .face {
       position: absolute;
@@ -233,12 +233,12 @@ LOGIN_HTML = """<!doctype html>
       justify-content: center;
       gap: 14%;
       border-radius: 30px;
-      background: linear-gradient(180deg, #10232b, #0b1e25);
-      box-shadow: inset 0 0 22px rgba(20, 153, 160, .22);
+      background: linear-gradient(180deg, #17113f, #0f2f35);
+      box-shadow: inset 0 0 22px rgba(0, 168, 132, .22);
     }
     .arm, .foot {
       position: absolute;
-      background: #0c7c83;
+      background: #00a884;
       box-shadow: 0 5px 12px rgba(0, 0, 0, .12);
     }
     .arm {
@@ -273,7 +273,7 @@ LOGIN_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: linear-gradient(135deg, #0c7c83, #18a7ad);
+      background: linear-gradient(135deg, #00a884, #f6c343);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out, height .16s ease, border-radius .16s ease;
     }
@@ -288,7 +288,7 @@ LOGIN_HTML = """<!doctype html>
       right: 35%;
       bottom: 27%;
       height: 8%;
-      border-bottom: 3px solid #0c7c83;
+      border-bottom: 3px solid #00a884;
       border-radius: 0 0 999px 999px;
     }
     .shadow {
@@ -323,7 +323,7 @@ LOGIN_HTML = """<!doctype html>
       align-items: center;
       gap: 8px;
       margin-bottom: 16px;
-      color: #0c7c83;
+      color: #00a884;
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -333,8 +333,8 @@ LOGIN_HTML = """<!doctype html>
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: #0c7c83;
-      box-shadow: 0 0 0 6px rgba(12, 124, 131, .12);
+      background: #00a884;
+      box-shadow: 0 0 0 6px rgba(0, 168, 132, .12);
     }
     form { display: grid; gap: 15px; }
     label {
@@ -358,24 +358,24 @@ LOGIN_HTML = """<!doctype html>
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
     }
     input:focus {
-      outline: 3px solid rgba(12, 124, 131, .18);
+      outline: 3px solid rgba(0, 168, 132, .18);
       border-color: var(--teal);
     }
     button {
       min-height: 50px;
       border: 0;
       border-radius: 12px;
-      background: linear-gradient(135deg, #0c7c83, #0f9694);
+      background: linear-gradient(135deg, #00a884, #f6c343);
       color: #fff;
       cursor: pointer;
       font: inherit;
       font-weight: 900;
-      box-shadow: 0 16px 32px rgba(12, 124, 131, .28);
+      box-shadow: 0 16px 32px rgba(0, 168, 132, .28);
       transition: transform .16s ease, box-shadow .16s ease;
     }
     button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 20px 40px rgba(12, 124, 131, .34);
+      box-shadow: 0 20px 40px rgba(0, 168, 132, .34);
     }
     .login-foot {
       margin-top: 18px;
@@ -396,7 +396,7 @@ LOGIN_HTML = """<!doctype html>
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #3c8c4f;
+      background: #f6c343;
     }
     .error {
       margin-bottom: 14px;
@@ -498,14 +498,14 @@ HOME_HTML = """<!doctype html>
   <title>Home - Dashboard Log</title>
   <style>
     :root {
-      --bg: #10232b;
+      --bg: #17113f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #0c7c83;
-      --green: #3c8c4f;
-      --gold: #9f7a1c;
+      --teal: #00a884;
+      --green: #65b32e;
+      --gold: #f6c343;
       --shadow: 0 18px 42px rgba(0, 0, 0, .18);
     }
     * { box-sizing: border-box; }
@@ -559,8 +559,8 @@ HOME_HTML = """<!doctype html>
       top: -9%;
       height: 11%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #0c7c83, #15a0a8);
-      box-shadow: 0 0 30px rgba(12, 124, 131, .68);
+      background: linear-gradient(90deg, #00a884, #f6c343);
+      box-shadow: 0 0 30px rgba(0, 168, 132, .68);
     }
     .assistant .visor {
       position: absolute;
@@ -573,7 +573,7 @@ HOME_HTML = """<!doctype html>
       justify-content: center;
       gap: 14%;
       border-radius: 26px;
-      background: linear-gradient(180deg, #10232b, #0b1e25);
+      background: linear-gradient(180deg, #17113f, #0f2f35);
     }
     .assistant .eye {
       width: 29%;
@@ -590,7 +590,7 @@ HOME_HTML = """<!doctype html>
       width: 42%;
       aspect-ratio: 1;
       border-radius: 50%;
-      background: linear-gradient(135deg, #0c7c83, #18a7ad);
+      background: linear-gradient(135deg, #00a884, #f6c343);
       transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
       transition: transform .08s ease-out;
     }
@@ -600,12 +600,12 @@ HOME_HTML = """<!doctype html>
       right: 35%;
       bottom: 27%;
       height: 8%;
-      border-bottom: 3px solid #0c7c83;
+      border-bottom: 3px solid #00a884;
       border-radius: 0 0 999px 999px;
     }
     .assistant .arm, .assistant .foot {
       position: absolute;
-      background: #0c7c83;
+      background: #00a884;
       box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
     }
     .assistant .arm {
@@ -787,12 +787,12 @@ EDIT_HTML = """<!doctype html>
   <title>Base editavel - Dashboard Log</title>
   <style>
     :root {
-      --bg: #10232b;
+      --bg: #17113f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #0c7c83;
+      --teal: #00a884;
       --shadow: 0 18px 42px rgba(0, 0, 0, .18);
     }
     * { box-sizing: border-box; }
@@ -880,7 +880,7 @@ EDIT_HTML = """<!doctype html>
     .button {
       display: inline-flex;
       align-items: center;
-      background: #263645;
+      background: #2b235f;
     }
     .sheet-wrap {
       max-height: calc(100vh - 245px);
