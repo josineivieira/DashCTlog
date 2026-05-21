@@ -1209,6 +1209,8 @@ def editable_rows() -> list[dict[str, object]]:
 
 
 def save_editable_rows(rows: list[dict[str, object]]) -> None:
+    if not rows:
+        rows = build_dashboard.editable_rows_from_sources()
     DATA_DIR.mkdir(exist_ok=True)
     clean_rows = []
     for row in rows:

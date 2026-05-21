@@ -223,7 +223,9 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
 def ensure_editable_data() -> list[dict[str, object]]:
     DATA_DIR.mkdir(exist_ok=True)
     if EDITABLE_DATA_PATH.exists():
-        return json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
+        rows = json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
+        if isinstance(rows, list) and rows:
+            return rows
     rows = editable_rows_from_sources()
     EDITABLE_DATA_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
     return rows
@@ -485,7 +487,10 @@ HTML_TEMPLATE = """<!doctype html>
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--top);
+      background:
+        radial-gradient(760px circle at 82% 4%, rgba(0, 168, 132, .20), transparent 56%),
+        radial-gradient(560px circle at 16% 90%, rgba(246, 195, 67, .16), transparent 60%),
+        linear-gradient(135deg, var(--top) 0%, var(--top-2) 58%, #0f2f35 100%);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
@@ -499,6 +504,24 @@ HTML_TEMPLATE = """<!doctype html>
     }
     h1 { margin: 0; font-size: clamp(28px, 3vw, 42px); letter-spacing: 0; font-weight: 800; }
     .subtitle { margin: 8px 0 0; color: #c8d6dc; }
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: #f6c343;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .brand-pill::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 6px rgba(0, 168, 132, .16);
+    }
     .nav {
       display: flex;
       gap: 9px;
@@ -793,6 +816,7 @@ HTML_TEMPLATE = """<!doctype html>
 <body>
   <header>
     <div>
+      <div class="brand-pill">Grupo Dislub Equador</div>
       <h1>Dashboard Log</h1>
       <p class="subtitle">Viagens por placa, produtos carregados e terminais Equador/Ipiranga.</p>
     </div>
