@@ -891,7 +891,7 @@ EDIT_HTML = """<!doctype html>
     <section class="panel">
       {message}
       <div class="import-bar">
-        <div class="meta">Importe uma base em CSV ou XLSX usando as mesmas colunas do modelo.</div>
+        <div class="meta">Importe uma base em CSV ou XLSX. Colunas extras serao ignoradas automaticamente.</div>
         <form method="post" action="/importar" enctype="multipart/form-data">
           <a class="button" href="/template.csv">Baixar template</a>
           <input type="file" name="base_file" accept=".csv,.xlsx" required>
@@ -1151,14 +1151,33 @@ def normalize_header(value: str) -> str:
 
 HEADER_ALIASES = {
     "data": "data",
+    "dtemissao": "data",
+    "dataemissao": "data",
+    "emissao": "data",
     "placa": "placa",
+    "placa1veiculo": "placa",
+    "placa1": "placa",
+    "placaveiculo": "placa",
     "terminal": "terminal",
+    "codterminal": "terminal",
+    "codigoterminal": "terminal",
     "viagens": "viagens",
+    "viagem": "viagens",
     "capacidade": "capacidade",
     "notafiscal": "notaFiscal",
+    "nrnotafiscal": "notaFiscal",
+    "numnotafiscal": "notaFiscal",
+    "numeronotafiscal": "notaFiscal",
+    "codnotafiscal": "notaFiscal",
+    "codigonotafiscal": "notaFiscal",
     "nf": "notaFiscal",
     "produto": "produto",
+    "descricaodoproduto": "produto",
+    "descricaoproduto": "produto",
     "cliente": "cliente",
+    "nomefantasiacliente": "cliente",
+    "razaosocialcliente": "cliente",
+    "nomecliente": "cliente",
     "quantidade": "quantidade",
     "qtd": "quantidade",
 }
@@ -1170,6 +1189,8 @@ def row_from_import(raw: dict[str, object]) -> dict[str, object]:
         key = HEADER_ALIASES.get(normalize_header(str(header)))
         if key:
             mapped[key] = "" if value is None else str(value).strip()
+    if mapped["data"]:
+        mapped["data"] = build_dashboard.day(str(mapped["data"])) or str(mapped["data"]).strip()
     return mapped
 
 
