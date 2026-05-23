@@ -1427,6 +1427,11 @@ DAILY_REPORT_HTML = """<!doctype html>
       font-weight: 900;
       cursor: pointer;
     }
+    button.secondary {
+      background: #ffffff;
+      border-color: #ffffff;
+      color: var(--navy);
+    }
     .hero-grid {
       position: relative;
       z-index: 2;
@@ -1537,6 +1542,49 @@ DAILY_REPORT_HTML = """<!doctype html>
       white-space: nowrap;
     }
     .empty { padding: 26px; color: var(--muted); font-weight: 800; text-align: center; }
+    .share-panel {
+      margin-top: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .share-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .share-head h2 { margin: 0; font-size: 18px; }
+    .share-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .share-actions button {
+      background: var(--teal);
+      border-color: transparent;
+    }
+    .share-actions button.secondary {
+      background: #f3f6f8;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+    .canvas-wrap {
+      padding: 18px;
+      background:
+        linear-gradient(90deg, rgba(52,16,79,.06), rgba(43,132,203,.07)),
+        #f8fafb;
+      overflow: auto;
+    }
+    #shareCanvas {
+      display: block;
+      width: min(100%, 720px);
+      height: auto;
+      margin: 0 auto;
+      border-radius: 8px;
+      box-shadow: 0 18px 42px rgba(23, 32, 51, .18);
+      background: #fff;
+    }
     @media (max-width: 900px) {
       .topbar, .hero-grid { grid-template-columns: 1fr; flex-direction: column; }
       .filters { justify-content: flex-start; }
@@ -1582,7 +1630,7 @@ DAILY_REPORT_HTML = """<!doctype html>
             <option value="19">Ipiranga</option>
           </select>
         </label>
-        <button type="button" id="printReport">Imprimir</button>
+        <button type="button" id="generateImage">Gerar imagem</button>
       </div>
     </div>
   </header>
@@ -1622,6 +1670,18 @@ DAILY_REPORT_HTML = """<!doctype html>
         </div>
       </div>
     </section>
+    <section class="share-panel">
+      <div class="share-head">
+        <h2>Imagem para WhatsApp</h2>
+        <div class="share-actions">
+          <button type="button" id="shareImage">Compartilhar</button>
+          <button type="button" id="downloadImage" class="secondary">Baixar PNG</button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="shareCanvas" width="1080" height="1600"></canvas>
+      </div>
+    </section>
   </main>
   <script>
     const dataset = __DATA__;
@@ -1629,6 +1689,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     const fmt = new Intl.NumberFormat("pt-BR");
     const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
     const $ = (id) => document.getElementById(id);
+    const logoUrl = "{favicon_url}";
 
     function parseDate(value) {
       const [day, month, year] = String(value).split("/");
@@ -1715,6 +1776,260 @@ DAILY_REPORT_HTML = """<!doctype html>
         `).join("");
     }
 
+    function wrapText(ctx, text, maxWidth) {
+      const words = String(text || "").split(/\\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      });
+      if (line) lines.push(line);
+      return lines.length ? lines : [""];
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function drawCard(ctx, x, y, width, height, accent) {
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      roundRect(ctx, x, y, width, height, 18);
+      ctx.fill();
+      ctx.fillStyle = accent;
+      roundRect(ctx, x, y, width, 8, 18);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function selectedReport() {
+      const data = filteredRows()
+        .slice()
+        .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa));
+      const trips = data.reduce((total, row) => total + row.viagens, 0);
+      const qty = data.reduce((total, row) => total + row.quantidade, 0);
+      const notes = data.reduce((total, row) => total + row.notas, 0);
+      const plates = new Set(data.map((row) => row.placa)).size;
+      return { data, trips, qty, notes, plates };
+    }
+
+    function drawBrand(ctx) {
+      ctx.save();
+      ctx.translate(58, 50);
+      ctx.fillStyle = "#2b84cb";
+      ctx.beginPath();
+      ctx.moveTo(0, 20);
+      ctx.quadraticCurveTo(36, 2, 82, 12);
+      ctx.quadraticCurveTo(78, 64, 34, 84);
+      ctx.quadraticCurveTo(8, 58, 0, 20);
+      ctx.fill();
+      ctx.fillStyle = "#e2263c";
+      ctx.globalAlpha = .82;
+      ctx.beginPath();
+      ctx.moveTo(44, 16);
+      ctx.quadraticCurveTo(88, 28, 76, 58);
+      ctx.quadraticCurveTo(56, 76, 34, 84);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 16px Arial";
+      ctx.fillText("GRUPO", 104, 24);
+      ctx.font = "900 22px Arial";
+      ctx.fillText("DISLUB", 104, 50);
+      ctx.fillText("EQUADOR", 104, 76);
+      ctx.restore();
+    }
+
+    async function drawShareImage() {
+      const report = selectedReport();
+      const canvas = $("shareCanvas");
+      const rowHeight = 62;
+      const extraRows = Math.max(0, report.data.length - 8);
+      canvas.width = 1080;
+      canvas.height = Math.max(1520, 1450 + extraRows * rowHeight);
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#f2f5f8";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 330);
+      gradient.addColorStop(0, "#34104f");
+      gradient.addColorStop(.62, "#4c176d");
+      gradient.addColorStop(1, "#1b255f");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, 360);
+
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = "#2b84cb";
+      ctx.beginPath();
+      ctx.arc(910, 90, 230, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      drawBrand(ctx);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 58px Arial";
+      ctx.fillText("Relatorio Diario", 54, 200);
+      ctx.font = "700 28px Arial";
+      ctx.fillStyle = "#d7e4ea";
+      ctx.fillText($("reportDate").textContent || "-", 58, 252);
+      ctx.font = "800 24px Arial";
+      const terminalLabel = $("terminalSelect").selectedOptions[0]?.textContent || "Todos";
+      ctx.fillText(`Terminal: ${terminalLabel}`, 58, 298);
+
+      const kpiY = 302;
+      const kpiW = 228;
+      const kpis = [
+        ["Viagens", fmt.format(report.trips), "#64248c"],
+        ["Volume", volume(report.qty), "#2b84cb"],
+        ["Placas", fmt.format(report.plates), "#e2263c"],
+        ["Notas", fmt.format(report.notes), "#1b255f"]
+      ];
+      kpis.forEach(([label, value, accent], idx) => {
+        const x = 54 + idx * (kpiW + 18);
+        drawCard(ctx, x, kpiY, kpiW, 142, accent);
+        ctx.fillStyle = "#657282";
+        ctx.font = "900 22px Arial";
+        ctx.fillText(label.toUpperCase(), x + 22, kpiY + 46);
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 38px Arial";
+        ctx.fillText(value, x + 22, kpiY + 102);
+      });
+
+      let y = 492;
+      drawCard(ctx, 54, y, 972, 188, "#2b84cb");
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 30px Arial";
+      ctx.fillText("Resumo por terminal", 82, y + 52);
+      const terminalTotals = new Map();
+      report.data.forEach((row) => {
+        const item = terminalTotals.get(row.terminalNome) || { viagens: 0, quantidade: 0 };
+        item.viagens += row.viagens;
+        item.quantidade += row.quantidade;
+        terminalTotals.set(row.terminalNome, item);
+      });
+      [["Equador", 84], ["Ipiranga", 560]].forEach(([name, x]) => {
+        const item = terminalTotals.get(name) || { viagens: 0, quantidade: 0 };
+        ctx.fillStyle = "#657282";
+        ctx.font = "900 20px Arial";
+        ctx.fillText(name.toUpperCase(), x, y + 96);
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 34px Arial";
+        ctx.fillText(`${fmt.format(item.viagens)} viagens`, x, y + 138);
+        ctx.fillStyle = "#657282";
+        ctx.font = "700 22px Arial";
+        ctx.fillText(`${volume(item.quantidade)} carregados`, x, y + 168);
+      });
+
+      y += 228;
+      drawCard(ctx, 54, y, 972, 250, "#64248c");
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 30px Arial";
+      ctx.fillText("Top placas do dia", 82, y + 52);
+      const topPlates = sumBy(report.data, "placa", "viagens").slice(0, 5);
+      const maxTrips = Math.max(...topPlates.map((item) => item[1]), 1);
+      topPlates.forEach(([plate, trips], idx) => {
+        const rowY = y + 92 + idx * 30;
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 20px Arial";
+        ctx.fillText(plate, 84, rowY);
+        ctx.fillStyle = "#edf2f6";
+        roundRect(ctx, 250, rowY - 17, 600, 14, 8);
+        ctx.fill();
+        ctx.fillStyle = "#64248c";
+        roundRect(ctx, 250, rowY - 17, Math.max(18, (trips / maxTrips) * 600), 14, 8);
+        ctx.fill();
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 20px Arial";
+        ctx.fillText(fmt.format(trips), 884, rowY);
+      });
+
+      y += 290;
+      drawCard(ctx, 54, y, 972, canvas.height - y - 54, "#e2263c");
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 30px Arial";
+      ctx.fillText("Detalhamento", 82, y + 52);
+      ctx.font = "900 18px Arial";
+      ctx.fillStyle = "#657282";
+      ctx.fillText("PLACA", 82, y + 94);
+      ctx.fillText("TERM.", 230, y + 94);
+      ctx.fillText("VIAG.", 348, y + 94);
+      ctx.fillText("CAP.", 448, y + 94);
+      ctx.fillText("VOL.", 568, y + 94);
+      ctx.fillText("PRODUTOS", 688, y + 94);
+      ctx.strokeStyle = "#d7e0e8";
+      ctx.beginPath();
+      ctx.moveTo(82, y + 112);
+      ctx.lineTo(998, y + 112);
+      ctx.stroke();
+
+      let tableY = y + 150;
+      report.data.forEach((row, idx) => {
+        if (idx % 2 === 0) {
+          ctx.fillStyle = "#f8fafb";
+          roundRect(ctx, 78, tableY - 26, 916, 52, 8);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 20px Arial";
+        ctx.fillText(row.placa, 88, tableY);
+        ctx.font = "800 19px Arial";
+        ctx.fillText(row.terminalNome.slice(0, 3), 238, tableY);
+        ctx.fillText(fmt.format(row.viagens), 366, tableY);
+        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 452, tableY);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 570, tableY);
+        ctx.fillStyle = "#657282";
+        ctx.font = "700 17px Arial";
+        wrapText(ctx, row.mixProdutos, 290).slice(0, 2).forEach((line, lineIdx) => {
+          ctx.fillText(line, 688, tableY - 8 + lineIdx * 20);
+        });
+        tableY += rowHeight;
+      });
+
+      ctx.fillStyle = "#657282";
+      ctx.font = "700 18px Arial";
+      ctx.fillText("Dashboard Log - Grupo Dislub Equador", 54, canvas.height - 24);
+    }
+
+    function canvasToBlob(canvas) {
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/png", .95));
+    }
+
+    async function downloadImage() {
+      await drawShareImage();
+      const canvas = $("shareCanvas");
+      const link = document.createElement("a");
+      link.download = `relatorio-diario-${$("dateSelect").value.replaceAll("/", "-")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    async function shareImage() {
+      await drawShareImage();
+      const blob = await canvasToBlob($("shareCanvas"));
+      if (!blob) return downloadImage();
+      const file = new File([blob], `relatorio-diario-${$("dateSelect").value.replaceAll("/", "-")}.png`, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Relatorio diario" });
+      } else {
+        await downloadImage();
+      }
+    }
+
     function render() {
       const data = filteredRows();
       const trips = data.reduce((total, row) => total + row.viagens, 0);
@@ -1728,6 +2043,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       renderTerminals(data);
       renderBars(sumBy(data, "placa", "viagens"));
       renderTable(data);
+      drawShareImage();
     }
 
     const dates = uniqueDates();
@@ -1735,7 +2051,9 @@ DAILY_REPORT_HTML = """<!doctype html>
     $("dateSelect").value = dates[0] || "";
     $("dateSelect").addEventListener("change", render);
     $("terminalSelect").addEventListener("change", render);
-    $("printReport").addEventListener("click", () => window.print());
+    $("generateImage").addEventListener("click", drawShareImage);
+    $("downloadImage").addEventListener("click", downloadImage);
+    $("shareImage").addEventListener("click", shareImage);
     render();
   </script>
 </body>
