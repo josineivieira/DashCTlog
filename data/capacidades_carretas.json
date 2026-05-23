@@ -1,0 +1,155 @@
+[
+  {
+    "id": "1",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "OAH-4329",
+    "tanques": "",
+    "carreta": "JXA-1558",
+    "observacao": ""
+  },
+  {
+    "id": "2",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "NPB-5A17",
+    "tanques": "",
+    "carreta": "JXA-4749",
+    "observacao": "5 TQ"
+  },
+  {
+    "id": "3",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "OAO-2G70",
+    "tanques": "",
+    "carreta": "JXA-5453",
+    "observacao": ""
+  },
+  {
+    "id": "4",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "QZX-0E87",
+    "tanques": "",
+    "carreta": "JXA-5463",
+    "observacao": "6 TQ"
+  },
+  {
+    "id": "5",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "QZR-4D17",
+    "tanques": "",
+    "carreta": "JXA-5473",
+    "observacao": "6 TQ"
+  },
+  {
+    "id": "6",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "NPB-8487",
+    "tanques": "",
+    "carreta": "JXA-5531",
+    "observacao": "5 TQ"
+  },
+  {
+    "id": "7",
+    "tipo": "CARRETA",
+    "capacidade": "30",
+    "placaCavalo": "OAH-4129",
+    "tanques": "",
+    "carreta": "JXA-5543",
+    "observacao": "6 TQ"
+  },
+  {
+    "id": "8",
+    "tipo": "MANOBRA",
+    "capacidade": "30",
+    "placaCavalo": "JXA-2216",
+    "tanques": "MANOBRA",
+    "carreta": "JXA-7910",
+    "observacao": ""
+  },
+  {
+    "id": "9",
+    "tipo": "CAMINHAO",
+    "capacidade": "20",
+    "placaCavalo": "",
+    "tanques": "4X5",
+    "carreta": "NPB-4686",
+    "observacao": ""
+  },
+  {
+    "id": "10",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "3X5+2X3+1X4",
+    "carreta": "OAK-8G51",
+    "observacao": ""
+  },
+  {
+    "id": "11",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "5X5",
+    "carreta": "PHO-4D02",
+    "observacao": ""
+  },
+  {
+    "id": "12",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "5X5",
+    "carreta": "PHO-4D32",
+    "observacao": ""
+  },
+  {
+    "id": "13",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "",
+    "carreta": "PHZ-8J44",
+    "observacao": ""
+  },
+  {
+    "id": "14",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "BVB",
+    "carreta": "PHZ-8J64",
+    "observacao": ""
+  },
+  {
+    "id": "15",
+    "tipo": "CAMINHAO",
+    "capacidade": "20",
+    "placaCavalo": "",
+    "tanques": "",
+    "carreta": "QZN-8E65",
+    "observacao": ""
+  },
+  {
+    "id": "16",
+    "tipo": "CAMINHAO",
+    "capacidade": "25",
+    "placaCavalo": "",
+    "tanques": "",
+    "carreta": "QZW-6A95",
+    "observacao": ""
+  },
+  {
+    "id": "17",
+    "tipo": "CAMINHAO",
+    "capacidade": "20",
+    "placaCavalo": "",
+    "tanques": "",
+    "carreta": "TAB-2G94",
+    "observacao": ""
+  }
+]

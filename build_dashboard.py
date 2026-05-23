@@ -19,6 +19,7 @@ ORIGINAL_DETAIL_PATH = ROOT / "20260520T202750.243-geral ct log.xlsx"
 UPLOAD_ORDERS_PATH = DATA_DIR / "ordens.xlsx"
 UPLOAD_DETAIL_PATH = DATA_DIR / "geral_ct_log.xlsx"
 EDITABLE_DATA_PATH = DATA_DIR / "dashboard_base.json"
+CAPACITY_DATA_PATH = DATA_DIR / "capacidades_carretas.json"
 OUTPUT_PATH = ROOT / "index.html"
 FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
 
@@ -37,6 +38,34 @@ EDITABLE_COLUMNS = [
     "produto",
     "cliente",
     "quantidade",
+]
+CAPACITY_COLUMNS = [
+    "id",
+    "tipo",
+    "capacidade",
+    "placaCavalo",
+    "tanques",
+    "carreta",
+    "observacao",
+]
+DEFAULT_CAPACITY_ROWS = [
+    {"id": "1", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "OAH-4329", "tanques": "", "carreta": "JXA-1558", "observacao": ""},
+    {"id": "2", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "NPB-5A17", "tanques": "", "carreta": "JXA-4749", "observacao": "5 TQ"},
+    {"id": "3", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "OAO-2G70", "tanques": "", "carreta": "JXA-5453", "observacao": ""},
+    {"id": "4", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "QZX-0E87", "tanques": "", "carreta": "JXA-5463", "observacao": "6 TQ"},
+    {"id": "5", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "QZR-4D17", "tanques": "", "carreta": "JXA-5473", "observacao": "6 TQ"},
+    {"id": "6", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "NPB-8487", "tanques": "", "carreta": "JXA-5531", "observacao": "5 TQ"},
+    {"id": "7", "tipo": "CARRETA", "capacidade": "30", "placaCavalo": "OAH-4129", "tanques": "", "carreta": "JXA-5543", "observacao": "6 TQ"},
+    {"id": "8", "tipo": "MANOBRA", "capacidade": "30", "placaCavalo": "JXA-2216", "tanques": "MANOBRA", "carreta": "JXA-7910", "observacao": ""},
+    {"id": "9", "tipo": "CAMINHAO", "capacidade": "20", "placaCavalo": "", "tanques": "4X5", "carreta": "NPB-4686", "observacao": ""},
+    {"id": "10", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "3X5+2X3+1X4", "carreta": "OAK-8G51", "observacao": ""},
+    {"id": "11", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "5X5", "carreta": "PHO-4D02", "observacao": ""},
+    {"id": "12", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "5X5", "carreta": "PHO-4D32", "observacao": ""},
+    {"id": "13", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "", "carreta": "PHZ-8J44", "observacao": ""},
+    {"id": "14", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "BVB", "carreta": "PHZ-8J64", "observacao": ""},
+    {"id": "15", "tipo": "CAMINHAO", "capacidade": "20", "placaCavalo": "", "tanques": "", "carreta": "QZN-8E65", "observacao": ""},
+    {"id": "16", "tipo": "CAMINHAO", "capacidade": "25", "placaCavalo": "", "tanques": "", "carreta": "QZW-6A95", "observacao": ""},
+    {"id": "17", "tipo": "CAMINHAO", "capacidade": "20", "placaCavalo": "", "tanques": "", "carreta": "TAB-2G94", "observacao": ""},
 ]
 
 
@@ -160,6 +189,17 @@ def num(value: str) -> float:
         return 0.0
 
 
+def normalize_plate(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", str(value).upper())
+
+
+def capacity_liters(value: object) -> int:
+    amount = int(num(str(value)) or 0)
+    if 0 < amount < 1000:
+        return amount * 1000
+    return amount
+
+
 def clean_product(description: str) -> str:
     product = re.split(r"\s+-\s+| \(?ONU| \(?Cod ANP| \(?ANP", description, maxsplit=1)[0]
     return " ".join(product.split()).strip() or "Sem produto"
@@ -228,6 +268,7 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
             load_by_key[(date, plate, terminal)] += quantity
 
     capacities = infer_capacities(orders_by_key, load_by_key)
+    capacities.update(capacity_registry())
     editable_rows: list[dict[str, object]] = []
     keys_with_detail: set[tuple[str, str, str]] = set()
     for row in detail_rows:
@@ -245,7 +286,7 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
                 "placa": plate,
                 "terminal": terminal,
                 "viagens": orders_by_key.get(key, 0),
-                "capacidade": capacities.get(plate) or 30000,
+                "capacidade": capacities.get(normalize_plate(plate)) or capacities.get(plate) or 30000,
                 "notaFiscal": row[dh["nf"]].strip(),
                 "produto": clean_product(row[dh["product"]]),
                 "cliente": row[dh["client"]].strip(),
@@ -260,7 +301,7 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
                 "placa": plate,
                 "terminal": terminal,
                 "viagens": orders_by_key[(date, plate, terminal)],
-                "capacidade": capacities.get(plate) or 30000,
+                "capacidade": capacities.get(normalize_plate(plate)) or capacities.get(plate) or 30000,
                 "notaFiscal": "",
                 "produto": "",
                 "cliente": "",
@@ -279,6 +320,136 @@ def postgres_connection():
         return psycopg.connect(database_url())
 
     return psycopg2.connect(database_url())
+
+
+def clean_capacity_row(row: dict[str, object], idx: int = 0) -> dict[str, str]:
+    cleaned = {key: str(row.get(key, "") or "").strip().upper() for key in CAPACITY_COLUMNS}
+    cleaned["id"] = str(row.get("id", "") or idx or "").strip()
+    cleaned["capacidade"] = str(row.get("capacidade", "") or "").strip()
+    cleaned["observacao"] = str(row.get("observacao", "") or "").strip().upper()
+    return cleaned
+
+
+def ensure_postgres_capacity_table() -> None:
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS capacidade_carretas (
+                    id TEXT PRIMARY KEY,
+                    row_order INTEGER NOT NULL DEFAULT 0,
+                    tipo TEXT NOT NULL DEFAULT '',
+                    capacidade TEXT NOT NULL DEFAULT '',
+                    placa_cavalo TEXT NOT NULL DEFAULT '',
+                    tanques TEXT NOT NULL DEFAULT '',
+                    carreta TEXT NOT NULL DEFAULT '',
+                    observacao TEXT NOT NULL DEFAULT '',
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def postgres_capacity_rows() -> list[dict[str, object]]:
+    ensure_postgres_capacity_table()
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, tipo, capacidade, placa_cavalo, tanques, carreta, observacao
+                FROM capacidade_carretas
+                ORDER BY row_order, id
+                """
+            )
+            rows = [
+                {
+                    "id": item[0],
+                    "tipo": item[1],
+                    "capacidade": item[2],
+                    "placaCavalo": item[3],
+                    "tanques": item[4],
+                    "carreta": item[5],
+                    "observacao": item[6],
+                }
+                for item in cur.fetchall()
+            ]
+            if rows:
+                return rows
+    save_postgres_capacity_rows(DEFAULT_CAPACITY_ROWS)
+    return list(DEFAULT_CAPACITY_ROWS)
+
+
+def save_postgres_capacity_rows(rows: list[dict[str, object]]) -> None:
+    ensure_postgres_capacity_table()
+    with postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE capacidade_carretas")
+            for idx, row in enumerate(rows, start=1):
+                item = clean_capacity_row(row, idx)
+                cur.execute(
+                    """
+                    INSERT INTO capacidade_carretas (
+                        id, row_order, tipo, capacidade, placa_cavalo, tanques, carreta, observacao
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        item["id"] or str(idx),
+                        idx,
+                        item["tipo"],
+                        item["capacidade"],
+                        item["placaCavalo"],
+                        item["tanques"],
+                        item["carreta"],
+                        item["observacao"],
+                    ),
+                )
+
+
+def save_capacity_rows(rows: list[dict[str, object]]) -> None:
+    clean_rows = [clean_capacity_row(row, idx) for idx, row in enumerate(rows, start=1)]
+    if use_postgres():
+        save_postgres_capacity_rows(clean_rows)
+        return
+    DATA_DIR.mkdir(exist_ok=True)
+    CAPACITY_DATA_PATH.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def ensure_capacity_rows() -> list[dict[str, object]]:
+    if use_postgres():
+        return postgres_capacity_rows()
+    DATA_DIR.mkdir(exist_ok=True)
+    if CAPACITY_DATA_PATH.exists():
+        rows = json.loads(CAPACITY_DATA_PATH.read_text(encoding="utf-8"))
+        if isinstance(rows, list):
+            return [clean_capacity_row(row, idx) for idx, row in enumerate(rows, start=1)]
+    save_capacity_rows(DEFAULT_CAPACITY_ROWS)
+    return list(DEFAULT_CAPACITY_ROWS)
+
+
+def capacity_registry() -> dict[str, int]:
+    capacities: dict[str, int] = {}
+    for row in ensure_capacity_rows():
+        capacity = capacity_liters(row.get("capacidade", ""))
+        if capacity <= 0:
+            continue
+        for key in ("placaCavalo", "carreta"):
+            plate = normalize_plate(str(row.get(key, "")))
+            if plate:
+                capacities[plate] = capacity
+    return capacities
+
+
+def apply_capacity_registry_to_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    registry = capacity_registry()
+    updated = []
+    for row in rows:
+        item = dict(row)
+        capacity = registry.get(normalize_plate(str(item.get("placa", ""))))
+        if capacity:
+            item["capacidade"] = capacity
+        updated.append(item)
+    return updated
 
 
 def ensure_postgres_table() -> None:
@@ -365,6 +536,7 @@ def save_postgres_rows(rows: list[dict[str, object]]) -> None:
 
 
 def save_editable_data(rows: list[dict[str, object]]) -> None:
+    rows = apply_capacity_registry_to_rows(rows)
     if use_postgres():
         save_postgres_rows(rows)
         return
@@ -381,7 +553,7 @@ def ensure_editable_data() -> list[dict[str, object]]:
     if EDITABLE_DATA_PATH.exists():
         rows = json.loads(EDITABLE_DATA_PATH.read_text(encoding="utf-8"))
         if isinstance(rows, list) and rows:
-            return rows
+            return apply_capacity_registry_to_rows(rows)
     rows = editable_rows_from_sources()
     save_editable_data(rows)
     return rows
@@ -406,8 +578,8 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
         trips = int(num(str(row.get("viagens", 0))) or 0)
         if trips > orders_by_key.get(key, 0):
             orders_by_key[key] = trips
-        capacity = int(num(str(row.get("capacidade", 0))) or 0)
-        if capacity > 0:
+        capacity = capacity_liters(row.get("capacidade", 0))
+        if capacity > 0 and normalize_plate(plate) not in capacities:
             capacities[plate] = capacity
         quantity = num(str(row.get("quantidade", 0)))
         if quantity > 0:
@@ -433,7 +605,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
     daily_plate_rows: list[dict[str, object]] = []
     for date, plate, terminal in all_keys:
         loaded = load_by_key.get((date, plate, terminal), 0.0)
-        capacity = capacities.get(plate) or 30000
+        capacity = capacities.get(normalize_plate(plate)) or capacities.get(plate) or 30000
         trips_from_orders = orders_by_key.get((date, plate, terminal), 0)
         trips_from_load = math.ceil(loaded / capacity) if loaded else 0
         trips = max(trips_from_orders, trips_from_load)
@@ -533,6 +705,7 @@ def build_data() -> dict[str, object]:
         detail_line_count += 1
 
     capacities = infer_capacities(orders_by_key, load_by_key)
+    capacities.update(capacity_registry())
     all_keys = sorted(
         set(orders_by_key) | set(load_by_key),
         key=lambda item: (
@@ -545,7 +718,7 @@ def build_data() -> dict[str, object]:
     daily_plate_rows: list[dict[str, object]] = []
     for date, plate, terminal in all_keys:
         loaded = load_by_key.get((date, plate, terminal), 0.0)
-        capacity = capacities.get(plate) or 30000
+        capacity = capacities.get(normalize_plate(plate)) or capacities.get(plate) or 30000
         trips_from_orders = orders_by_key.get((date, plate, terminal), 0)
         trips_from_load = math.ceil(loaded / capacity) if loaded else 0
         trips = max(trips_from_orders, trips_from_load)

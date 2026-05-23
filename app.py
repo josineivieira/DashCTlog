@@ -582,6 +582,7 @@ HOME_HTML = """<!doctype html>
       box-shadow: 0 22px 60px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .86);
     }
     .card:nth-child(2) { border-top-color: var(--green); }
+    .card:nth-child(3) { border-top-color: var(--gold); }
     .card span {
       color: var(--muted);
       font-size: 12px;
@@ -609,6 +610,7 @@ HOME_HTML = """<!doctype html>
       font-weight: 900;
     }
     .card:nth-child(2) .button { background: var(--green); }
+    .card:nth-child(3) .button { background: var(--gold); }
     @media (max-width: 680px) {
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
@@ -639,6 +641,12 @@ HOME_HTML = """<!doctype html>
         <strong>Editar dados</strong>
         <p>Envie novas planilhas e atualize os indicadores.</p>
         <div class="button">Atualizar planilhas</div>
+      </a>
+      <a class="card" href="/capacidades">
+        <span>Cadastro</span>
+        <strong>Capacidades</strong>
+        <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
+        <div class="button">Editar capacidades</div>
       </a>
     </section>
   </main>
@@ -884,6 +892,7 @@ EDIT_HTML = """<!doctype html>
     <nav class="nav">
       <a class="top-link" href="/home">Home</a>
       <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/capacidades">Capacidades</a>
       <a class="top-link" href="/logout">Sair</a>
     </nav>
   </header>
@@ -1093,6 +1102,244 @@ EDIT_HTML = """<!doctype html>
 """
 
 
+CAPACITY_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Capacidades - Dashboard</title>
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --panel: #ffffff;
+      --ink: #16212d;
+      --muted: #657282;
+      --line: #d7e0e8;
+      --teal: #64248c;
+      --blue: #2b84cb;
+      --danger: #b91c1c;
+      --shadow: 0 18px 42px rgba(23, 32, 51, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    header {
+      padding: 24px clamp(16px, 4vw, 38px);
+      background: #34104f;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+    }
+    .brand-title { display: flex; align-items: center; gap: 14px; }
+    .brand-title img { width: 78px; height: auto; object-fit: contain; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 38px); }
+    .subtitle { margin: 7px 0 0; color: #c8d6dc; }
+    .nav { display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end; }
+    .top-link, button, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main { padding: 24px clamp(16px, 4vw, 38px) 38px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .message {
+      margin: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: #e7f7ee;
+      color: #166534;
+      font-weight: 800;
+    }
+    .message.error { background: #fee2e2; color: var(--danger); }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      border-bottom: 1px solid var(--line);
+    }
+    .meta { color: var(--muted); font-size: 13px; font-weight: 800; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .actions button, .actions .button {
+      border-color: transparent;
+      background: var(--teal);
+    }
+    .actions .button { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
+    .sheet-wrap { overflow: auto; max-height: calc(100vh - 230px); }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { border-bottom: 1px solid var(--line); border-right: 1px solid #eef2f5; text-align: left; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 10px;
+      background: #eef3f6;
+      color: #506071;
+      font-size: 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    td[contenteditable="true"] {
+      padding: 9px 10px;
+      outline: 0;
+      background: #fff;
+      color: var(--ink);
+      min-height: 36px;
+    }
+    td[contenteditable="true"]:focus {
+      background: #e7f4f2;
+      box-shadow: inset 0 0 0 2px var(--teal);
+    }
+    tr:nth-child(even) td[contenteditable="true"] { background: #fbfcfd; }
+    .hint {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    @media (max-width: 760px) {
+      header { flex-direction: column; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Capacidades</h1></div>
+      <p class="subtitle">Cadastro de capacidades por cavalo, carreta e caminhao.</p>
+    </div>
+    <nav class="nav">
+      <a class="top-link" href="/home">Home</a>
+      <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/editar">Editar dados</a>
+      <a class="top-link" href="/logout">Sair</a>
+    </nav>
+  </header>
+  <main>
+    <section class="panel">
+      {message}
+      <form id="capacityForm" method="post" action="/capacidades">
+        <input type="hidden" name="rows_json" id="rowsJson">
+        <div class="toolbar">
+          <div class="meta"><span id="rowCount">__ROW_COUNT__</span> capacidades cadastradas</div>
+          <div class="actions">
+            <button type="button" id="addRow">Adicionar linha</button>
+            <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
+            <button type="submit">Salvar e atualizar dashboard</button>
+          </div>
+        </div>
+        <div class="sheet-wrap">
+          <table id="sheet">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="hint">A capacidade pode ser digitada em mil litros (30) ou litros (30000). O dashboard vincula pela placa do cavalo ou da carreta, ignorando hifen e espacos.</div>
+      </form>
+    </section>
+  </main>
+  <script>
+    const columns = [
+      ["id", "ID"],
+      ["tipo", "Tipo"],
+      ["capacidade", "Capacidade"],
+      ["placaCavalo", "Placa cavalo"],
+      ["tanques", "Tanques"],
+      ["carreta", "Carreta"],
+      ["observacao", "Observacao"]
+    ];
+    let rows = __ROWS__;
+    const thead = document.querySelector("#sheet thead");
+    const tbody = document.querySelector("#sheet tbody");
+    const rowCount = document.querySelector("#rowCount");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function cleanRow(row = {}) {
+      return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
+    }
+
+    function syncFromTable() {
+      rows = [...tbody.querySelectorAll("tr")].map((tr) => {
+        const row = {};
+        tr.querySelectorAll("[data-key]").forEach((cell) => {
+          row[cell.dataset.key] = cell.textContent.trim().toUpperCase();
+        });
+        return row;
+      });
+    }
+
+    function render() {
+      thead.innerHTML = `<tr><th></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
+      tbody.innerHTML = rows.map((row, idx) => {
+        const clean = cleanRow(row);
+        return `<tr>
+          <td><input type="checkbox" aria-label="Selecionar linha ${idx + 1}"><br>${idx + 1}</td>
+          ${columns.map(([key]) => `<td contenteditable="true" data-key="${key}">${escapeHtml(clean[key])}</td>`).join("")}
+        </tr>`;
+      }).join("");
+      rowCount.textContent = rows.length.toLocaleString("pt-BR");
+    }
+
+    document.querySelector("#addRow").addEventListener("click", () => {
+      syncFromTable();
+      rows.push(cleanRow({ id: String(rows.length + 1), tipo: "CAMINHAO", capacidade: "25" }));
+      render();
+    });
+
+    document.querySelector("#deleteRows").addEventListener("click", () => {
+      syncFromTable();
+      const checked = new Set([...tbody.querySelectorAll("input[type='checkbox']")]
+        .map((input, idx) => input.checked ? idx : -1)
+        .filter((idx) => idx >= 0));
+      rows = rows.filter((_, idx) => !checked.has(idx));
+      render();
+    });
+
+    document.querySelector("#capacityForm").addEventListener("submit", () => {
+      syncFromTable();
+      document.querySelector("#rowsJson").value = JSON.stringify(rows);
+    });
+
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
 def current_file_label(path: Path, fallback: str) -> str:
     if path.exists():
         return f"{path.name} atualizado"
@@ -1141,6 +1388,18 @@ def save_editable_rows(rows: list[dict[str, object]]) -> None:
     for row in rows:
         clean_rows.append({key: row.get(key, "") for key in build_dashboard.EDITABLE_COLUMNS})
     build_dashboard.save_editable_data(clean_rows)
+
+
+def capacity_rows() -> list[dict[str, object]]:
+    return build_dashboard.ensure_capacity_rows()
+
+
+def save_capacity_rows(rows: list[dict[str, object]]) -> None:
+    clean_rows = []
+    for row in rows:
+        clean_rows.append({key: row.get(key, "") for key in build_dashboard.CAPACITY_COLUMNS})
+    build_dashboard.save_capacity_rows(clean_rows)
+    save_editable_rows(editable_rows())
 
 
 def normalize_header(value: str) -> str:
@@ -1408,6 +1667,7 @@ class Handler(BaseHTTPRequestHandler):
   <nav class="nav">
     <a class="top-link" href="/home">Home</a>
     <a class="top-link" href="/editar">Editar dados</a>
+    <a class="top-link" href="/capacidades">Capacidades</a>
     <a class="top-link" href="/logout">Sair</a>
   </nav>"""
         page = page.replace('<a class="top-link" href="/editar">Atualizar dados</a>', nav)
@@ -1427,6 +1687,22 @@ class Handler(BaseHTTPRequestHandler):
             .replace("{favicon_url}", FAVICON_URL)
             .replace("__THEAD__", thead)
             .replace("__TBODY__", tbody)
+            .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
+            .replace("__ROWS__", json_for_script(rows))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_capacities(self) -> None:
+        params = parse_qs(urlparse(self.path).query)
+        message = ""
+        if "ok" in params:
+            message = '<div class="message">Capacidades salvas e dashboard atualizado com sucesso.</div>'
+        if "erro" in params:
+            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        rows = capacity_rows()
+        page = (
+            CAPACITY_HTML.replace("{message}", message)
+            .replace("{favicon_url}", FAVICON_URL)
             .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
             .replace("__ROWS__", json_for_script(rows))
         )
@@ -1506,6 +1782,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_edit()
             return
+        if parsed.path == "/capacidades":
+            if not self.require_login():
+                return
+            self.send_capacities()
+            return
         if parsed.path == "/db-status":
             if not self.require_login():
                 return
@@ -1554,6 +1835,22 @@ class Handler(BaseHTTPRequestHandler):
                 self.redirect("/editar?erro=" + quote(str(exc)))
                 return
             self.redirect("/editar?ok=1")
+            return
+
+        if parsed.path == "/capacidades":
+            if not self.require_login():
+                return
+            try:
+                params = self.body_params()
+                rows = json.loads(params.get("rows_json", ["[]"])[0])
+                if not isinstance(rows, list):
+                    raise ValueError("Cadastro invalido")
+                save_capacity_rows(rows)
+                rebuild_dashboard()
+            except Exception as exc:
+                self.redirect("/capacidades?erro=" + quote(str(exc)))
+                return
+            self.redirect("/capacidades?ok=1")
             return
 
         if parsed.path != "/editar":
