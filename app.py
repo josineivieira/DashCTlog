@@ -285,6 +285,24 @@ LOGIN_HTML = """<!doctype html>
       transform: translateY(-1px);
       box-shadow: 0 20px 40px rgba(100, 36, 140, .34);
     }
+    button.is-loading,
+    button:disabled {
+      cursor: wait;
+      opacity: .78;
+      transform: none;
+      box-shadow: none;
+    }
+    button.is-loading::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      margin-left: 9px;
+      border: 2px solid rgba(255,255,255,.48);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .login-foot {
       margin-top: 18px;
       display: flex;
@@ -364,6 +382,12 @@ LOGIN_HTML = """<!doctype html>
     </section>
   </main>
   <script>
+    function setLoading(button, text) {
+      if (!button) return;
+      button.textContent = text;
+      button.classList.add("is-loading");
+      button.disabled = true;
+    }
     const passwordInput = document.querySelector("#passwordInput");
     const passwordToggle = document.querySelector("#passwordToggle");
     passwordToggle.addEventListener("click", () => {
@@ -372,6 +396,9 @@ LOGIN_HTML = """<!doctype html>
       passwordToggle.textContent = showing ? "Ver" : "Ocultar";
       passwordToggle.setAttribute("aria-label", showing ? "Mostrar senha" : "Ocultar senha");
       passwordInput.focus();
+    });
+    document.querySelector("form").addEventListener("submit", (event) => {
+      setLoading(event.currentTarget.querySelector('button[type="submit"]'), "Entrando...");
     });
   </script>
 </body>
@@ -919,7 +946,7 @@ EDIT_HTML = """<!doctype html>
       <form id="sheetForm" method="post" action="/editar">
         <input type="hidden" name="rows_json" id="rowsJson">
         <div class="toolbar">
-          <div class="meta"><span id="rowCount">__ROW_COUNT__</span> linhas na base</div>
+          <div class="meta"><span id="rowCount">__ROW_COUNT__</span> linhas na base <span id="draftStatus" class="draft-status"></span></div>
           <div class="actions">
             <button type="button" id="addRow">Adicionar linha</button>
             <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
@@ -949,10 +976,15 @@ EDIT_HTML = """<!doctype html>
       ["cliente", "Cliente"],
       ["quantidade", "Quantidade"]
     ];
-    let rows = __ROWS__;
+    const draftKey = "dashboard-edit-draft-v1";
+    const serverRows = __ROWS__;
+    const savedOk = new URLSearchParams(window.location.search).has("ok");
+    if (savedOk) localStorage.removeItem(draftKey);
+    let rows = loadDraft() || serverRows;
     const thead = document.querySelector("#sheet thead");
     const tbody = document.querySelector("#sheet tbody");
     const rowCount = document.querySelector("#rowCount");
+    const draftStatus = document.querySelector("#draftStatus");
     let selectionStart = null;
     let selectionEnd = null;
     let isSelecting = false;
@@ -968,6 +1000,25 @@ EDIT_HTML = """<!doctype html>
       return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
     }
 
+    function loadDraft() {
+      try {
+        const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+        return Array.isArray(draft) ? draft.map(cleanRow) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function updateDraftStatus() {
+      if (!draftStatus) return;
+      draftStatus.textContent = localStorage.getItem(draftKey) ? "Rascunho salvo neste navegador" : "";
+    }
+
+    function saveDraft() {
+      localStorage.setItem(draftKey, JSON.stringify(rows));
+      updateDraftStatus();
+    }
+
     function render() {
       thead.innerHTML = `<tr><th></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
       tbody.innerHTML = rows.map((row, idx) => {
@@ -978,6 +1029,7 @@ EDIT_HTML = """<!doctype html>
         </tr>`;
       }).join("");
       rowCount.textContent = rows.length.toLocaleString("pt-BR");
+      updateDraftStatus();
     }
 
     function cellPosition(cell) {
@@ -1026,6 +1078,7 @@ EDIT_HTML = """<!doctype html>
     document.querySelector("#addRow").addEventListener("click", () => {
       syncFromTable();
       rows.push(cleanRow({ terminal: "10", capacidade: "30000" }));
+      saveDraft();
       render();
       const lastRow = tbody.querySelector(`tr[data-row="${rows.length - 1}"] [data-key="data"]`);
       lastRow?.focus();
@@ -1039,8 +1092,19 @@ EDIT_HTML = """<!doctype html>
       const selected = new Set([...checkedRows, ...cellRows]);
       if (!selected.size) return;
       rows = rows.filter((_, idx) => !selected.has(idx));
+      saveDraft();
       render();
     });
+    tbody.addEventListener("input", (event) => {
+      if (!event.target.closest("[data-key]")) return;
+      syncFromTable();
+      saveDraft();
+    });
+    tbody.addEventListener("blur", (event) => {
+      if (!event.target.closest("[data-key]")) return;
+      syncFromTable();
+      saveDraft();
+    }, true);
     tbody.addEventListener("pointerdown", (event) => {
       const cell = event.target.closest("[data-key]");
       if (!cell) return;
@@ -1077,6 +1141,7 @@ EDIT_HTML = """<!doctype html>
           if (row && column) row[column[0]] = value;
         });
       });
+      saveDraft();
       render();
     });
     document.addEventListener("keydown", (event) => {
@@ -1102,7 +1167,14 @@ EDIT_HTML = """<!doctype html>
     });
     document.querySelector("#sheetForm").addEventListener("submit", () => {
       syncFromTable();
+      saveDraft();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
+      setLoading(document.querySelector('#sheetForm button[type="submit"]'), "Salvando...");
+      lockForm(document.querySelector("#sheetForm"));
+    });
+    document.querySelector('.import-bar form').addEventListener("submit", (event) => {
+      setLoading(event.currentTarget.querySelector('button[type="submit"]'), "Importando...");
+      lockForm(event.currentTarget);
     });
     render();
   </script>
@@ -1193,12 +1265,35 @@ CAPACITY_HTML = """<!doctype html>
       border-bottom: 1px solid var(--line);
     }
     .meta { color: var(--muted); font-size: 13px; font-weight: 800; }
+    .draft-status {
+      display: inline-flex;
+      margin-left: 8px;
+      color: #64248c;
+      font-size: 12px;
+      font-weight: 900;
+    }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .actions button, .actions .button {
       border-color: transparent;
       background: var(--teal);
     }
     .actions .button { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
+    button.is-loading,
+    button:disabled {
+      cursor: wait;
+      opacity: .78;
+    }
+    button.is-loading::after {
+      content: "";
+      width: 13px;
+      height: 13px;
+      margin-left: 8px;
+      border: 2px solid rgba(255,255,255,.45);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .sheet-wrap { overflow: auto; max-height: calc(100vh - 230px); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; }
     th, td { border-bottom: 1px solid var(--line); border-right: 1px solid #eef2f5; text-align: left; }
@@ -1276,6 +1371,19 @@ CAPACITY_HTML = """<!doctype html>
     </section>
   </main>
   <script>
+    function setLoading(button, text) {
+      if (!button) return;
+      button.textContent = text;
+      button.classList.add("is-loading");
+      button.disabled = true;
+    }
+
+    function lockForm(form) {
+      form.querySelectorAll("button").forEach((button) => {
+        if (button.type !== "submit") button.disabled = true;
+      });
+    }
+
     const columns = [
       ["id", "ID"],
       ["tipo", "Tipo"],
@@ -1341,6 +1449,8 @@ CAPACITY_HTML = """<!doctype html>
     document.querySelector("#capacityForm").addEventListener("submit", () => {
       syncFromTable();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
+      setLoading(document.querySelector('#capacityForm button[type="submit"]'), "Salvando...");
+      lockForm(document.querySelector("#capacityForm"));
     });
 
     render();
@@ -1427,6 +1537,22 @@ DAILY_REPORT_HTML = """<!doctype html>
       font-weight: 900;
       cursor: pointer;
     }
+    button.is-loading,
+    button:disabled {
+      cursor: wait;
+      opacity: .78;
+    }
+    button.is-loading::after {
+      content: "";
+      width: 13px;
+      height: 13px;
+      margin-left: 8px;
+      border: 2px solid rgba(255,255,255,.45);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     button.secondary {
       background: #ffffff;
       border-color: #ffffff;
@@ -1690,6 +1816,21 @@ DAILY_REPORT_HTML = """<!doctype html>
     const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
     const $ = (id) => document.getElementById(id);
     const logoUrl = "{favicon_url}";
+
+    async function withButtonLoading(button, text, action) {
+      if (!button) return action();
+      const original = button.textContent;
+      button.textContent = text;
+      button.classList.add("is-loading");
+      button.disabled = true;
+      try {
+        return await action();
+      } finally {
+        button.textContent = original;
+        button.classList.remove("is-loading");
+        button.disabled = false;
+      }
+    }
 
     function parseDate(value) {
       const [day, month, year] = String(value).split("/");
@@ -2051,9 +2192,9 @@ DAILY_REPORT_HTML = """<!doctype html>
     $("dateSelect").value = dates[0] || "";
     $("dateSelect").addEventListener("change", render);
     $("terminalSelect").addEventListener("change", render);
-    $("generateImage").addEventListener("click", drawShareImage);
-    $("downloadImage").addEventListener("click", downloadImage);
-    $("shareImage").addEventListener("click", shareImage);
+    $("generateImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Gerando...", drawShareImage));
+    $("downloadImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Baixando...", downloadImage));
+    $("shareImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Compartilhando...", shareImage));
     render();
   </script>
 </body>
