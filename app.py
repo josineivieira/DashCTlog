@@ -1020,7 +1020,7 @@ EDIT_HTML = """<!doctype html>
     }
 
     function render() {
-      thead.innerHTML = `<tr><th></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
+      thead.innerHTML = `<tr><th><input type="checkbox" id="selectAllRows" aria-label="Selecionar todas as linhas"></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
       tbody.innerHTML = rows.map((row, idx) => {
         const clean = cleanRow(row);
         return `<tr data-row="${idx}">
@@ -1094,6 +1094,12 @@ EDIT_HTML = """<!doctype html>
       rows = rows.filter((_, idx) => !selected.has(idx));
       saveDraft();
       render();
+    });
+    thead.addEventListener("change", (event) => {
+      if (event.target.id !== "selectAllRows") return;
+      tbody.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+        input.checked = event.target.checked;
+      });
     });
     tbody.addEventListener("input", (event) => {
       if (!event.target.closest("[data-key]")) return;
@@ -2512,7 +2518,12 @@ def render_sheet_parts(rows: list[dict[str, object]]) -> tuple[str, str]:
         ("cliente", "Cliente"),
         ("quantidade", "Quantidade"),
     ]
-    thead = "<tr><th></th>" + "".join(f"<th>{label}</th>" for _, label in columns) + "</tr>"
+    thead = (
+        '<tr><th><input type="checkbox" id="selectAllRows" '
+        'aria-label="Selecionar todas as linhas"></th>'
+        + "".join(f"<th>{label}</th>" for _, label in columns)
+        + "</tr>"
+    )
     body_rows = []
     for idx, row in enumerate(rows):
         cells = []
