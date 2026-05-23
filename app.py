@@ -583,6 +583,7 @@ HOME_HTML = """<!doctype html>
     }
     .card:nth-child(2) { border-top-color: var(--green); }
     .card:nth-child(3) { border-top-color: var(--gold); }
+    .card:nth-child(4) { border-top-color: #1b255f; }
     .card span {
       color: var(--muted);
       font-size: 12px;
@@ -611,6 +612,7 @@ HOME_HTML = """<!doctype html>
     }
     .card:nth-child(2) .button { background: var(--green); }
     .card:nth-child(3) .button { background: var(--gold); }
+    .card:nth-child(4) .button { background: #1b255f; }
     @media (max-width: 680px) {
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
@@ -647,6 +649,12 @@ HOME_HTML = """<!doctype html>
         <strong>Capacidades</strong>
         <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
         <div class="button">Editar capacidades</div>
+      </a>
+      <a class="card" href="/relatorio-diario">
+        <span>Relatorio</span>
+        <strong>Diario</strong>
+        <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
+        <div class="button">Abrir relatorio</div>
       </a>
     </section>
   </main>
@@ -892,6 +900,7 @@ EDIT_HTML = """<!doctype html>
     <nav class="nav">
       <a class="top-link" href="/home">Home</a>
       <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
       <a class="top-link" href="/capacidades">Capacidades</a>
       <a class="top-link" href="/logout">Sair</a>
     </nav>
@@ -1236,10 +1245,11 @@ CAPACITY_HTML = """<!doctype html>
       <p class="subtitle">Cadastro de capacidades por cavalo, carreta e caminhao.</p>
     </div>
     <nav class="nav">
-      <a class="top-link" href="/home">Home</a>
-      <a class="top-link" href="/dashboard">Dashboard</a>
-      <a class="top-link" href="/editar">Editar dados</a>
-      <a class="top-link" href="/logout">Sair</a>
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/editar">Editar dados</a>
+        <a class="top-link" href="/logout">Sair</a>
     </nav>
   </header>
   <main>
@@ -1333,6 +1343,399 @@ CAPACITY_HTML = """<!doctype html>
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
     });
 
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
+DAILY_REPORT_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Relatorio Diario - Dashboard</title>
+  <style>
+    :root {
+      --bg: #f2f5f8;
+      --top: #34104f;
+      --ink: #16212d;
+      --muted: #657282;
+      --line: #d7e0e8;
+      --panel: #ffffff;
+      --teal: #64248c;
+      --blue: #2b84cb;
+      --red: #e2263c;
+      --navy: #1b255f;
+      --shadow: 0 18px 42px rgba(23, 32, 51, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    header {
+      position: relative;
+      overflow: hidden;
+      padding: 24px clamp(16px, 4vw, 42px) 28px;
+      background:
+        radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%),
+        linear-gradient(135deg, #34104f 0%, #4c176d 58%, #1b255f 100%);
+      color: #fff;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      right: clamp(20px, 6vw, 76px);
+      bottom: -88px;
+      width: min(46vw, 520px);
+      aspect-ratio: 1.8;
+      background: url("{favicon_url}") center / contain no-repeat;
+      opacity: .18;
+      pointer-events: none;
+    }
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+    }
+    .brand-title { display: flex; align-items: center; gap: 16px; }
+    .brand-title img { width: 98px; height: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 50px); line-height: 1; letter-spacing: 0; }
+    .subtitle { margin: 9px 0 0; color: #d7e4ea; font-size: 15px; }
+    .nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+    .top-link, button {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,.30);
+      border-radius: 8px;
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      margin-top: 34px;
+    }
+    .report-date { font-size: clamp(24px, 3vw, 40px); font-weight: 950; }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: end;
+    }
+    label { display: grid; gap: 7px; color: #d7e4ea; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    select, input {
+      min-height: 42px;
+      min-width: 190px;
+      border: 1px solid rgba(255,255,255,.44);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: rgba(255,255,255,.96);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 800;
+    }
+    main { padding: 22px clamp(16px, 4vw, 42px) 40px; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .kpi, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .kpi {
+      min-height: 112px;
+      padding: 18px;
+      border-top: 5px solid var(--teal);
+    }
+    .kpi:nth-child(2) { border-top-color: var(--blue); }
+    .kpi:nth-child(3) { border-top-color: var(--red); }
+    .kpi:nth-child(4) { border-top-color: var(--navy); }
+    .kpi span { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .kpi strong { display: block; margin-top: 10px; font-size: clamp(25px, 3vw, 34px); line-height: 1; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .panel { overflow: hidden; }
+    .panel h2 {
+      margin: 0;
+      padding: 16px 18px 0;
+      font-size: 18px;
+    }
+    .panel-body { padding: 14px 18px 18px; }
+    .bars { display: grid; gap: 10px; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(100px, 150px) 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 850;
+    }
+    .track { height: 10px; border-radius: 999px; background: #edf2f6; overflow: hidden; }
+    .fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--blue)); }
+    .terminal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .terminal {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafb;
+    }
+    .terminal span { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .terminal strong { display: block; margin-top: 7px; font-size: 24px; }
+    .wide { grid-column: 1 / -1; }
+    .table-wrap { overflow: auto; max-height: calc(100vh - 420px); }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #eef3f6;
+      color: #506071;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    td.num, th.num { text-align: right; }
+    .pill {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #edf2ff;
+      color: var(--navy);
+      font-weight: 950;
+      white-space: nowrap;
+    }
+    .empty { padding: 26px; color: var(--muted); font-weight: 800; text-align: center; }
+    @media (max-width: 900px) {
+      .topbar, .hero-grid { grid-template-columns: 1fr; flex-direction: column; }
+      .filters { justify-content: flex-start; }
+      .kpis, .grid { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+    }
+    @media print {
+      body { background: #fff; }
+      header { padding: 18px 22px; }
+      .nav, .filters button { display: none; }
+      main { padding: 18px 22px; }
+      .kpi, .panel { box-shadow: none; break-inside: avoid; }
+      .table-wrap { max-height: none; overflow: visible; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio Diario</h1></div>
+        <p class="subtitle">Viagens, capacidade e volume carregado por placa e terminal.</p>
+      </div>
+      <nav class="nav">
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/editar">Editar dados</a>
+        <a class="top-link" href="/capacidades">Capacidades</a>
+        <a class="top-link" href="/logout">Sair</a>
+      </nav>
+    </div>
+    <div class="hero-grid">
+      <div class="report-date" id="reportDate">-</div>
+      <div class="filters">
+        <label>Data
+          <select id="dateSelect"></select>
+        </label>
+        <label>Terminal
+          <select id="terminalSelect">
+            <option value="">Todos</option>
+            <option value="10">Equador</option>
+            <option value="19">Ipiranga</option>
+          </select>
+        </label>
+        <button type="button" id="printReport">Imprimir</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="kpis">
+      <div class="kpi"><span>Viagens</span><strong id="kTrips">0</strong></div>
+      <div class="kpi"><span>Volume</span><strong id="kVolume">0</strong></div>
+      <div class="kpi"><span>Placas</span><strong id="kPlates">0</strong></div>
+      <div class="kpi"><span>Notas fiscais</span><strong id="kNotes">0</strong></div>
+    </section>
+    <section class="grid">
+      <div class="panel">
+        <h2>Terminais</h2>
+        <div class="panel-body terminal-grid" id="terminalSummary"></div>
+      </div>
+      <div class="panel">
+        <h2>Top placas do dia</h2>
+        <div class="panel-body bars" id="plateBars"></div>
+      </div>
+      <div class="panel wide">
+        <h2>Detalhamento das viagens</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Terminal</th>
+                <th class="num">Viagens</th>
+                <th class="num">Capacidade</th>
+                <th class="num">Volume</th>
+                <th class="num">Notas</th>
+                <th>Produtos</th>
+              </tr>
+            </thead>
+            <tbody id="reportRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const dataset = __DATA__;
+    const rows = dataset.dailyPlateRows || [];
+    const fmt = new Intl.NumberFormat("pt-BR");
+    const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
+    const $ = (id) => document.getElementById(id);
+
+    function parseDate(value) {
+      const [day, month, year] = String(value).split("/");
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+
+    function dateLabel(value) {
+      return parseDate(value).toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      });
+    }
+
+    function uniqueDates() {
+      return [...new Set(rows.map((row) => row.data))]
+        .sort((a, b) => parseDate(b) - parseDate(a));
+    }
+
+    function filteredRows() {
+      const date = $("dateSelect").value;
+      const terminal = $("terminalSelect").value;
+      return rows.filter((row) => row.data === date && (!terminal || row.terminal === terminal));
+    }
+
+    function sumBy(items, key, valueKey) {
+      const totals = new Map();
+      items.forEach((item) => totals.set(item[key], (totals.get(item[key]) || 0) + item[valueKey]));
+      return [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    }
+
+    function renderBars(data) {
+      if (!data.length) {
+        $("plateBars").innerHTML = `<div class="empty">Sem dados para o filtro.</div>`;
+        return;
+      }
+      const max = Math.max(...data.map((item) => item[1]), 1);
+      $("plateBars").innerHTML = data.slice(0, 8).map(([label, value]) => `
+        <div class="bar-row">
+          <span>${label}</span>
+          <div class="track"><div class="fill" style="width:${Math.max(4, (value / max) * 100)}%"></div></div>
+          <strong>${fmt.format(value)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function renderTerminals(data) {
+      const totals = new Map();
+      data.forEach((row) => {
+        const current = totals.get(row.terminalNome) || { viagens: 0, quantidade: 0 };
+        current.viagens += row.viagens;
+        current.quantidade += row.quantidade;
+        totals.set(row.terminalNome, current);
+      });
+      const terminalRows = ["Equador", "Ipiranga"].map((name) => [name, totals.get(name) || { viagens: 0, quantidade: 0 }]);
+      $("terminalSummary").innerHTML = terminalRows.map(([name, item]) => `
+        <div class="terminal">
+          <span>${name}</span>
+          <strong>${fmt.format(item.viagens)}</strong>
+          <div>${volume(item.quantidade)} carregados</div>
+        </div>
+      `).join("");
+    }
+
+    function renderTable(data) {
+      if (!data.length) {
+        $("reportRows").innerHTML = `<tr><td colspan="7" class="empty">Sem dados para o filtro.</td></tr>`;
+        return;
+      }
+      $("reportRows").innerHTML = data
+        .slice()
+        .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa))
+        .map((row) => `
+          <tr>
+            <td><span class="pill">${row.placa}</span></td>
+            <td>${row.terminalNome}</td>
+            <td class="num">${fmt.format(row.viagens)}</td>
+            <td class="num">${volume(row.capacidade)}</td>
+            <td class="num">${volume(row.quantidade)}</td>
+            <td class="num">${fmt.format(row.notas)}</td>
+            <td>${row.mixProdutos}</td>
+          </tr>
+        `).join("");
+    }
+
+    function render() {
+      const data = filteredRows();
+      const trips = data.reduce((total, row) => total + row.viagens, 0);
+      const qty = data.reduce((total, row) => total + row.quantidade, 0);
+      const notes = data.reduce((total, row) => total + row.notas, 0);
+      $("reportDate").textContent = $("dateSelect").value ? dateLabel($("dateSelect").value) : "-";
+      $("kTrips").textContent = fmt.format(trips);
+      $("kVolume").textContent = volume(qty);
+      $("kPlates").textContent = fmt.format(new Set(data.map((row) => row.placa)).size);
+      $("kNotes").textContent = fmt.format(notes);
+      renderTerminals(data);
+      renderBars(sumBy(data, "placa", "viagens"));
+      renderTable(data);
+    }
+
+    const dates = uniqueDates();
+    $("dateSelect").innerHTML = dates.map((date) => `<option value="${date}">${date}</option>`).join("");
+    $("dateSelect").value = dates[0] || "";
+    $("dateSelect").addEventListener("change", render);
+    $("terminalSelect").addEventListener("change", render);
+    $("printReport").addEventListener("click", () => window.print());
     render();
   </script>
 </body>
@@ -1667,6 +2070,7 @@ class Handler(BaseHTTPRequestHandler):
   <nav class="nav">
     <a class="top-link" href="/home">Home</a>
     <a class="top-link" href="/editar">Editar dados</a>
+    <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
     <a class="top-link" href="/logout">Sair</a>
   </nav>"""
@@ -1705,6 +2109,14 @@ class Handler(BaseHTTPRequestHandler):
             .replace("{favicon_url}", FAVICON_URL)
             .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
             .replace("__ROWS__", json_for_script(rows))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_daily_report(self) -> None:
+        data = build_dashboard.build_data()
+        page = (
+            DAILY_REPORT_HTML.replace("{favicon_url}", FAVICON_URL)
+            .replace("__DATA__", json_for_script(data))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -1786,6 +2198,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             self.send_capacities()
+            return
+        if parsed.path == "/relatorio-diario":
+            if not self.require_login():
+                return
+            self.send_daily_report()
             return
         if parsed.path == "/db-status":
             if not self.require_login():
