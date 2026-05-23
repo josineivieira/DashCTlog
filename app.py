@@ -2301,6 +2301,15 @@ HEADER_ALIASES = {
     "nomecliente": "cliente",
     "quantidade": "quantidade",
     "qtd": "quantidade",
+    "cfop": "cfopDescricao",
+    "cfopdescricao": "cfopDescricao",
+    "descricaocfop": "cfopDescricao",
+    "cfopdescrio": "cfopDescricao",
+}
+
+RETURN_CFOP_DESCRIPTIONS = {
+    "devolucao de venda de combustivel ou lubrificante destinado a comercializacao",
+    "devolucao de venda-cons final",
 }
 
 
@@ -2315,6 +2324,59 @@ def row_from_import(raw: dict[str, object]) -> dict[str, object]:
     return mapped
 
 
+def is_return_row(row: dict[str, object]) -> bool:
+    if build_dashboard.num(str(row.get("quantidade", 0))) < 0:
+        return True
+    description = normalize_header(str(row.get("cfopDescricao", "")))
+    if description in {normalize_header(item) for item in RETURN_CFOP_DESCRIPTIONS}:
+        return True
+    if "devolu" not in description or "venda" not in description:
+        return False
+    return (
+        "consfinal" in description
+        or "combustivel" in description
+        or "lubrificante" in description
+        or "comercializacao" in description
+    )
+
+
+def import_key(row: dict[str, object]) -> tuple[str, ...]:
+    note = str(row.get("notaFiscal", "")).strip()
+    if note:
+        return (
+            "nf",
+            str(row.get("data", "")).strip(),
+            str(row.get("terminal", "")).strip(),
+            str(row.get("placa", "")).strip().upper(),
+            note,
+            str(row.get("produto", "")).strip().upper(),
+            str(row.get("cliente", "")).strip().upper(),
+        )
+    return tuple(
+        ["row"]
+        + [
+            str(row.get(key, "")).strip().upper()
+            for key in build_dashboard.EDITABLE_COLUMNS
+            if key != "cfopDescricao"
+        ]
+    )
+
+
+def merge_import_rows(current_rows: list[dict[str, object]], imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    merged: list[dict[str, object]] = []
+    index: dict[tuple[str, ...], int] = {}
+    for row in [*current_rows, *imported_rows]:
+        if is_return_row(row):
+            continue
+        key = import_key(row)
+        if key in index:
+            merged[index[key]] = dict(row)
+        else:
+            index[key] = len(merged)
+            merged.append(dict(row))
+    return merged
+
+
 def parse_import_file(filename: str, content: bytes) -> list[dict[str, object]]:
     suffix = Path(filename).suffix.lower()
     if suffix == ".xlsx":
@@ -2324,7 +2386,7 @@ def parse_import_file(filename: str, content: bytes) -> list[dict[str, object]]:
             records, _ = build_dashboard.read_xlsx(temp_path)
         finally:
             temp_path.unlink(missing_ok=True)
-        return [row_from_import(row) for row in records]
+        return [row for row in (row_from_import(item) for item in records) if not is_return_row(row)]
 
     text = content.decode("utf-8-sig", errors="ignore")
     sample = text[:2048]
@@ -2333,7 +2395,7 @@ def parse_import_file(filename: str, content: bytes) -> list[dict[str, object]]:
     except csv.Error:
         dialect = csv.excel
     reader = csv.DictReader(io.StringIO(text), dialect=dialect)
-    return [row_from_import(row) for row in reader]
+    return [row for row in (row_from_import(item) for item in reader) if not is_return_row(row)]
 
 
 def template_csv() -> bytes:
@@ -2705,7 +2767,7 @@ class Handler(BaseHTTPRequestHandler):
                 imported_rows = parse_import_file(filename, content)
                 if not imported_rows:
                     raise ValueError("Nenhuma linha encontrada no arquivo")
-                save_editable_rows(editable_rows() + imported_rows)
+                save_editable_rows(merge_import_rows(editable_rows(), imported_rows))
                 rebuild_dashboard()
             except Exception as exc:
                 self.redirect("/editar?erro=" + quote(str(exc)))

@@ -38,6 +38,7 @@ EDITABLE_COLUMNS = [
     "produto",
     "cliente",
     "quantidade",
+    "cfopDescricao",
 ]
 CAPACITY_COLUMNS = [
     "id",
