@@ -1998,11 +1998,19 @@ DAILY_REPORT_HTML = """<!doctype html>
     async function drawShareImage() {
       const report = selectedReport();
       const canvas = $("shareCanvas");
-      const rowHeight = 62;
-      const extraRows = Math.max(0, report.data.length - 8);
       canvas.width = 1080;
-      canvas.height = Math.max(1520, 1450 + extraRows * rowHeight);
-      const ctx = canvas.getContext("2d");
+      let ctx = canvas.getContext("2d");
+      ctx.font = "700 17px Arial";
+      const productWidth = 326;
+      const rowMetrics = report.data.map((row) => {
+        const lines = wrapText(ctx, row.mixProdutos, productWidth).slice(0, 3);
+        return { row, lines, height: Math.max(58, 34 + lines.length * 20) };
+      });
+      const detailTop = 1010;
+      const tableTop = detailTop + 140;
+      const rowsHeight = rowMetrics.reduce((total, item) => total + item.height, 0);
+      canvas.height = Math.max(1520, tableTop + rowsHeight + 86);
+      ctx = canvas.getContext("2d");
 
       ctx.fillStyle = "#f2f5f8";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2111,34 +2119,34 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillText("VIAG.", 348, y + 94);
       ctx.fillText("CAP.", 448, y + 94);
       ctx.fillText("VOL.", 568, y + 94);
-      ctx.fillText("PRODUTOS", 688, y + 94);
+      ctx.fillText("PRODUTOS", 650, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
       ctx.moveTo(82, y + 112);
       ctx.lineTo(998, y + 112);
       ctx.stroke();
 
-      let tableY = y + 150;
-      report.data.forEach((row, idx) => {
+      let tableY = y + 140;
+      rowMetrics.forEach(({ row, lines, height }, idx) => {
         if (idx % 2 === 0) {
           ctx.fillStyle = "#f8fafb";
-          roundRect(ctx, 78, tableY - 26, 916, 52, 8);
+          roundRect(ctx, 78, tableY, 916, height - 8, 8);
           ctx.fill();
         }
         ctx.fillStyle = "#16212d";
         ctx.font = "900 20px Arial";
-        ctx.fillText(row.placa, 88, tableY);
+        ctx.fillText(row.placa, 88, tableY + 29);
         ctx.font = "800 19px Arial";
-        ctx.fillText(row.terminalNome.slice(0, 3), 238, tableY);
-        ctx.fillText(fmt.format(row.viagens), 366, tableY);
-        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 452, tableY);
-        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 570, tableY);
+        ctx.fillText(row.terminalNome.slice(0, 3), 238, tableY + 29);
+        ctx.fillText(fmt.format(row.viagens), 366, tableY + 29);
+        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 452, tableY + 29);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 570, tableY + 29);
         ctx.fillStyle = "#657282";
         ctx.font = "700 17px Arial";
-        wrapText(ctx, row.mixProdutos, 290).slice(0, 2).forEach((line, lineIdx) => {
-          ctx.fillText(line, 688, tableY - 8 + lineIdx * 20);
+        lines.forEach((line, lineIdx) => {
+          ctx.fillText(line, 650, tableY + 20 + lineIdx * 20);
         });
-        tableY += rowHeight;
+        tableY += height;
       });
 
       ctx.fillStyle = "#657282";
