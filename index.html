@@ -457,14 +457,6 @@
         <div id="lineChart" class="line-chart"></div>
       </div>
       <div class="panel">
-        <h2>Top Placas por Viagens</h2>
-        <div id="plateTripBars" class="bars"></div>
-      </div>
-      <div class="panel">
-        <h2>Top Placas por Volume</h2>
-        <div id="plateQtyBars" class="bars"></div>
-      </div>
-      <div class="panel">
         <h2>Produtos</h2>
         <div id="productList" class="product-list"></div>
       </div>
@@ -717,8 +709,6 @@
       const bestDay = dailyTotals(data).sort((a, b) => b.viagens - a.viagens)[0];
       $("kBestDay").textContent = bestDay ? bestDay.data.slice(0, 5) : "-";
 
-      bars("plateTripBars", plateTrips, 12, "var(--teal)");
-      bars("plateQtyBars", plateQty, 12, "var(--green)", volume);
       bars("terminalBars", terminalTotals(data), 4, "var(--blue)");
       productList("productList", products, 8);
       lineChart(data);
