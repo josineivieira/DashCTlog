@@ -420,284 +420,318 @@ HOME_HTML = """<!doctype html>
   <title>Home - Dashboard</title>
   <style>
     :root {
-      --bg: #34104f;
+      --bg: #eef2f6;
+      --side: #2f0d49;
+      --side-2: #3d145f;
       --panel: #ffffff;
       --ink: #16212d;
       --muted: #657282;
       --line: #d7e0e8;
-      --teal: #64248c;
-      --green: #2b84cb;
-      --gold: #e2263c;
-      --shadow: 0 18px 42px rgba(0, 0, 0, .18);
+      --purple: #64248c;
+      --blue: #2b84cb;
+      --red: #e2263c;
+      --green: #00856f;
+      --navy: #1b255f;
+      --shadow: 0 16px 36px rgba(23, 32, 51, .10);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      overflow-x: hidden;
       background: var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .assistant { display: none; }
-    .assistant .ring {
-      position: absolute;
-      inset: 1%;
-      border: 1px solid rgba(255, 255, 255, .15);
-      border-radius: 50%;
-      transform: rotate(-18deg) scaleX(1.18);
+    a { color: inherit; text-decoration: none; }
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
     }
-    .assistant .head {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 62%;
-      aspect-ratio: .78;
-      transform: translate(-50%, -50%);
-      border-radius: 42% 42% 30% 30%;
+    .sidebar {
+      width: 272px;
+      flex: 0 0 272px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 22px 16px;
       background:
-        radial-gradient(circle at 34% 20%, rgba(255,255,255,.95), transparent 24%),
-        linear-gradient(160deg, #ffffff, #d7e5ea 58%, #b8cbd3);
-      border: 1px solid rgba(255, 255, 255, .76);
-      box-shadow: 0 26px 66px rgba(0, 0, 0, .22);
+        linear-gradient(180deg, var(--side), var(--side-2));
+      color: #fff;
     }
-    .assistant .head::before {
-      content: "";
-      position: absolute;
-      left: 22%;
-      right: 22%;
-      top: -9%;
-      height: 11%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #2b84cb, #e2263c);
-      box-shadow: 0 0 30px rgba(43, 132, 203, .58);
-    }
-    .assistant .visor {
-      position: absolute;
-      left: 11%;
-      right: 11%;
-      top: 22%;
-      height: 39%;
+    .brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 14%;
-      border-radius: 26px;
-      background: linear-gradient(180deg, #34104f, #1b255f);
+      gap: 13px;
+      min-height: 74px;
+      padding: 0 8px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.14);
     }
-    .assistant .eye {
-      width: 29%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 32%, #ffffff 0 20%, #eaf8f7 21% 100%);
-      position: relative;
-      overflow: hidden;
+    .brand img {
+      width: 88px;
+      object-fit: contain;
     }
-    .assistant .pupil {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 42%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2b84cb, #e2263c);
-      transform: translate(calc(-50% + var(--look-x, 0px)), calc(-50% + var(--look-y, 0px)));
-      transition: transform .08s ease-out;
+    .brand strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.1;
     }
-    .assistant .mouth {
-      position: absolute;
-      left: 35%;
-      right: 35%;
-      bottom: 27%;
-      height: 8%;
-      border-bottom: 3px solid #64248c;
-      border-radius: 0 0 999px 999px;
+    .brand span {
+      display: block;
+      margin-top: 4px;
+      color: #c8d6dc;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
     }
-    .assistant .arm, .assistant .foot {
-      position: absolute;
-      background: #2b84cb;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, .12);
+    .nav-title {
+      padding: 0 8px;
+      color: #b9c8d2;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
     }
-    .assistant .arm {
-      top: 49%;
-      width: 12%;
-      height: 27%;
-      border-radius: 999px;
+    .side-nav {
+      display: grid;
+      gap: 6px;
     }
-    .assistant .arm.left { left: -5%; transform: rotate(12deg); }
-    .assistant .arm.right { right: -5%; transform: rotate(-12deg); }
-    .assistant .foot {
-      bottom: -7%;
-      width: 24%;
-      height: 9%;
-      border-radius: 999px;
+    .side-link {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 42px;
+      padding: 10px 11px;
+      border-radius: 8px;
+      color: #e8eef3;
+      font-size: 13px;
+      font-weight: 900;
+      background: rgba(255,255,255,.04);
     }
-    .assistant .foot.left { left: 18%; }
-    .assistant .foot.right { right: 18%; }
-    .assistant .shadow {
-      position: absolute;
-      left: 27%;
-      right: 27%;
-      bottom: 4%;
-      height: 8%;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, .22);
-      filter: blur(8px);
-    }
-    header {
-      position: relative;
-      z-index: 3;
-      padding: 30px clamp(16px, 4vw, 44px) 22px;
+    .side-link:hover, .side-link.active {
+      background: rgba(255,255,255,.13);
       color: #fff;
+    }
+    .side-link i {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--purple);
+      box-shadow: 0 0 0 4px rgba(255,255,255,.08);
+    }
+    .side-link:nth-child(2) i { background: var(--blue); }
+    .side-link:nth-child(3) i { background: var(--red); }
+    .side-link:nth-child(4) i { background: var(--navy); }
+    .side-link:nth-child(5) i { background: var(--green); }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px 8px 0;
+      border-top: 1px solid rgba(255,255,255,.14);
+      color: #c8d6dc;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      min-height: 74px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    h1 { margin: 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: 0; }
-    .subtitle { margin: 8px 0 0; color: #c8d6dc; }
-    .brand-title {
-      display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 16px;
+      padding: 18px clamp(18px, 3vw, 34px);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
     }
-    .brand-title img {
-      width: 116px;
-      height: auto;
-      object-fit: contain;
-      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .26));
-    }
-    a { color: inherit; text-decoration: none; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: 0; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
     .logout {
+      min-height: 38px;
       display: inline-flex;
       align-items: center;
-      min-height: 36px;
-      padding: 7px 12px;
-      border: 1px solid rgba(255, 255, 255, .28);
+      padding: 8px 12px;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      color: #fff;
+      color: var(--ink);
       font-size: 13px;
-      font-weight: 800;
-      background: rgba(255, 255, 255, .08);
+      font-weight: 900;
+      background: #f8fafc;
     }
-    main { padding: 0 clamp(16px, 4vw, 44px) 44px; }
-    .home-logo-bg {
-      position: fixed;
-      left: 50%;
-      top: 54%;
-      width: min(58vw, 760px);
-      min-width: 380px;
-      height: auto;
-      transform: translate(-50%, -50%);
-      opacity: .38;
-      filter: drop-shadow(0 26px 58px rgba(0, 0, 0, .28));
-      pointer-events: none;
-      z-index: 1;
+    main {
+      padding: 22px clamp(18px, 3vw, 34px) 34px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .metric {
+      min-height: 82px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 24px;
     }
     .menu {
-      position: relative;
-      z-index: 3;
       display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 1fr));
-      gap: 18px;
-      max-width: 920px;
+      grid-template-columns: repeat(3, minmax(230px, 1fr));
+      gap: 14px;
     }
     .card {
       display: grid;
-      gap: 12px;
-      min-height: 190px;
-      padding: 24px;
+      grid-template-columns: 1fr auto;
+      gap: 10px 14px;
+      min-height: 154px;
+      padding: 18px;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-top: 5px solid var(--teal);
       border-radius: 8px;
-      box-shadow: 0 22px 60px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .86);
+      box-shadow: var(--shadow);
     }
-    .card:nth-child(2) { border-top-color: var(--green); }
-    .card:nth-child(3) { border-top-color: var(--gold); }
-    .card:nth-child(4) { border-top-color: #1b255f; }
-    .card:nth-child(5) { border-top-color: #00856f; }
+    .card::after {
+      content: "";
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--purple);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.32);
+    }
+    .card:nth-child(2)::after { background: var(--blue); }
+    .card:nth-child(3)::after { background: var(--red); }
+    .card:nth-child(4)::after { background: var(--navy); }
+    .card:nth-child(5)::after { background: var(--green); }
     .card span {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
     }
     .card strong {
+      grid-column: 1;
       color: var(--ink);
-      font-size: clamp(25px, 3vw, 34px);
-      line-height: 1.05;
+      font-size: 24px;
+      line-height: 1.1;
     }
     .card p {
+      grid-column: 1 / -1;
       margin: 0;
       color: var(--muted);
-      line-height: 1.5;
+      font-size: 14px;
+      line-height: 1.45;
     }
     .button {
+      grid-column: 1 / -1;
       align-self: end;
       justify-self: start;
-      min-height: 42px;
-      padding: 10px 15px;
+      min-height: 38px;
+      padding: 9px 12px;
       border-radius: 8px;
-      background: var(--teal);
+      background: var(--purple);
       color: #fff;
+      font-size: 13px;
       font-weight: 900;
     }
-    .card:nth-child(2) .button { background: var(--green); }
-    .card:nth-child(3) .button { background: var(--gold); }
-    .card:nth-child(4) .button { background: #1b255f; }
-    .card:nth-child(5) .button { background: #00856f; }
-    @media (max-width: 680px) {
-      header { flex-direction: column; }
-      .menu { grid-template-columns: 1fr; }
-      .assistant { display: none; }
-      .home-logo-bg { width: 82vw; min-width: 0; opacity: .28; }
+    .card:nth-child(2) .button { background: var(--blue); }
+    .card:nth-child(3) .button { background: var(--red); }
+    .card:nth-child(4) .button { background: var(--navy); }
+    .card:nth-child(5) .button { background: var(--green); }
+    @media (max-width: 1080px) {
+      .menu { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .app-shell { display: block; }
+      .sidebar { width: auto; min-height: 0; }
+      .side-nav { grid-template-columns: repeat(2, 1fr); }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .menu, .summary { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <img class="home-logo-bg" src="{favicon_url}" alt="" aria-hidden="true">
-  <header>
-    <div>
-      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Dashboard</h1></div>
-      <p class="subtitle">Escolha uma area para continuar.</p>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="{favicon_url}" alt="">
+        <div><strong>Dashboard Log</strong><span>Operacao</span></div>
+      </div>
+      <div class="nav-title">Modulos</div>
+      <nav class="side-nav">
+        <a class="side-link active" href="/dashboard"><i></i>Dashboard</a>
+        <a class="side-link" href="/editar"><i></i>Editar dados</a>
+        <a class="side-link" href="/capacidades"><i></i>Capacidades</a>
+        <a class="side-link" href="/relatorio-diario"><i></i>Relatorio diario</a>
+        <a class="side-link" href="/controle-ct"><i></i>Controle de CT</a>
+      </nav>
+      <div class="sidebar-footer">Grupo Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
+    </aside>
+    <div class="content">
+      <header class="topbar">
+        <div>
+          <h1>Home operacional</h1>
+          <p class="subtitle">Acesse os modulos de acompanhamento, cadastro e controle.</p>
+        </div>
+        <a class="logout" href="/logout">Sair</a>
+      </header>
+      <main>
+        <section class="summary">
+          <div class="metric"><span>Modulos ativos</span><strong>5</strong></div>
+          <div class="metric"><span>Base operacional</span><strong>CT</strong></div>
+          <div class="metric"><span>Terminais</span><strong>2</strong></div>
+          <div class="metric"><span>Status</span><strong>Online</strong></div>
+        </section>
+        <section class="menu">
+          <a class="card" href="/dashboard">
+            <span>Visualizacao</span>
+            <strong>Dashboard</strong>
+            <p>Acompanhe viagens, placas, produtos e terminais.</p>
+            <div class="button">Abrir dashboard</div>
+          </a>
+          <a class="card" href="/editar">
+            <span>Dados</span>
+            <strong>Editar dados</strong>
+            <p>Envie novas planilhas e atualize os indicadores.</p>
+            <div class="button">Atualizar planilhas</div>
+          </a>
+          <a class="card" href="/capacidades">
+            <span>Cadastro</span>
+            <strong>Capacidades</strong>
+            <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
+            <div class="button">Editar capacidades</div>
+          </a>
+          <a class="card" href="/relatorio-diario">
+            <span>Relatorio</span>
+            <strong>Diario</strong>
+            <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
+            <div class="button">Abrir relatorio</div>
+          </a>
+          <a class="card" href="/controle-ct">
+            <span>Operacao</span>
+            <strong>Controle de CT</strong>
+            <p>Acompanhe chegada, patio, fila, saida e notas fiscais.</p>
+            <div class="button">Abrir controle</div>
+          </a>
+        </section>
+      </main>
     </div>
-    <a class="logout" href="/logout">Sair</a>
-  </header>
-  <main>
-    <section class="menu">
-      <a class="card" href="/dashboard">
-        <span>Visualizacao</span>
-        <strong>Dashboard</strong>
-        <p>Acompanhe viagens, placas, produtos e terminais.</p>
-        <div class="button">Abrir dashboard</div>
-      </a>
-      <a class="card" href="/editar">
-        <span>Dados</span>
-        <strong>Editar dados</strong>
-        <p>Envie novas planilhas e atualize os indicadores.</p>
-        <div class="button">Atualizar planilhas</div>
-      </a>
-      <a class="card" href="/capacidades">
-        <span>Cadastro</span>
-        <strong>Capacidades</strong>
-        <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
-        <div class="button">Editar capacidades</div>
-      </a>
-      <a class="card" href="/relatorio-diario">
-        <span>Relatorio</span>
-        <strong>Diario</strong>
-        <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
-        <div class="button">Abrir relatorio</div>
-      </a>
-      <a class="card" href="/controle-ct">
-        <span>Operacao</span>
-        <strong>Controle de CT</strong>
-        <p>Acompanhe entrada, fila, finalizados, frete, tempos e notas fiscais.</p>
-        <div class="button">Abrir controle</div>
-      </a>
-    </section>
-  </main>
+  </div>
 </body>
 </html>
 """
