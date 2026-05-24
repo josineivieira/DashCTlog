@@ -2061,7 +2061,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
             <option value="">Todos os status</option>
             <option>Aguardando Entrada</option>
             <option>Fila de Carregamento</option>
-            <option>Em Atendimento</option>
             <option>Finalizado</option>
             <option>Patio</option>
           </select>
@@ -2092,7 +2091,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   <script>
     let rows = __ROWS__;
     const $ = (id) => document.getElementById(id);
-    const statuses = ["", "Aguardando Entrada", "Fila de Carregamento", "Em Atendimento", "Finalizado", "Patio"];
+    const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
 
@@ -2145,7 +2144,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("finalizado")) return "status-finalizado";
       if (normalized.includes("fila")) return "status-fila";
       if (normalized.includes("aguardando")) return "status-aguardando";
-      if (normalized.includes("atendimento")) return "status-patio";
       if (normalized.includes("patio")) return "status-patio";
       return "";
     }
@@ -2234,7 +2232,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       document.querySelector('[data-key="motorista"]')?.focus();
     });
     $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
-    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Em Atendimento", entrada: row.entrada || nowDateTimeLocal() })));
+    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Patio", entrada: row.entrada || nowDateTimeLocal() })));
     $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" })));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
