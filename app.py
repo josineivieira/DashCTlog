@@ -2118,6 +2118,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     function toDateTimeInput(value) {
       const text = String(value || "").trim();
       if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/.test(text)) return text.slice(0, 16);
+      const dateTime = text.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})\\s+(\\d{2}):(\\d{2})$/);
+      if (dateTime) return `${dateTime[3]}-${dateTime[2]}-${dateTime[1]}T${dateTime[4]}:${dateTime[5]}`;
       const time = text.match(/^(\\d{2}):(\\d{2})$/);
       if (time) return `${new Date().toISOString().slice(0, 10)}T${time[1]}:${time[2]}`;
       return "";
@@ -2168,7 +2170,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       $("patio").textContent = active.filter((row) => row.status === "Patio").length;
     }
     function render() {
-      syncFromTableIfReady();
       const data = visibleRows();
       $("rows").innerHTML = data.map(({ row, index }) => `
         <tr data-index="${index}">
@@ -3400,7 +3401,106 @@ def clean_ct_control_row(row: dict[str, object]) -> dict[str, str]:
     return clean
 
 
+def ensure_postgres_ct_control_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS controle_ct (
+                    id SERIAL PRIMARY KEY,
+                    row_order INTEGER NOT NULL DEFAULT 0,
+                    data TEXT NOT NULL DEFAULT '',
+                    motorista TEXT NOT NULL DEFAULT '',
+                    tipo_frete TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT '',
+                    viagens TEXT NOT NULL DEFAULT '',
+                    chegada TEXT NOT NULL DEFAULT '',
+                    entrada TEXT NOT NULL DEFAULT '',
+                    saida TEXT NOT NULL DEFAULT '',
+                    nota_fiscal TEXT NOT NULL DEFAULT '',
+                    observacao TEXT NOT NULL DEFAULT '',
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def postgres_ct_control_rows() -> list[dict[str, str]]:
+    ensure_postgres_ct_control_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT data, motorista, tipo_frete, status, viagens,
+                       chegada, entrada, saida, nota_fiscal, observacao
+                FROM controle_ct
+                ORDER BY row_order, id
+                """
+            )
+            return [
+                clean_ct_control_row(
+                    {
+                        "data": item[0],
+                        "motorista": item[1],
+                        "tipoFrete": item[2],
+                        "status": item[3],
+                        "viagens": item[4],
+                        "chegada": item[5],
+                        "entrada": item[6],
+                        "saida": item[7],
+                        "notaFiscal": item[8],
+                        "observacao": item[9],
+                    }
+                )
+                for item in cur.fetchall()
+            ]
+
+
+def save_postgres_ct_control_rows(rows: list[dict[str, object]]) -> None:
+    ensure_postgres_ct_control_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE controle_ct RESTART IDENTITY")
+            for idx, row in enumerate(rows, start=1):
+                item = clean_ct_control_row(row)
+                cur.execute(
+                    """
+                    INSERT INTO controle_ct (
+                        row_order, data, motorista, tipo_frete, status, viagens,
+                        chegada, entrada, saida, nota_fiscal, observacao
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        idx,
+                        item["data"],
+                        item["motorista"],
+                        item["tipoFrete"],
+                        item["status"],
+                        item["viagens"],
+                        item["chegada"],
+                        item["entrada"],
+                        item["saida"],
+                        item["notaFiscal"],
+                        item["observacao"],
+                    ),
+                )
+
+
 def ct_control_rows() -> list[dict[str, str]]:
+    if build_dashboard.use_postgres():
+        rows = postgres_ct_control_rows()
+        if rows:
+            return rows
+        if CT_CONTROL_DATA.exists():
+            try:
+                local_rows = json.loads(CT_CONTROL_DATA.read_text(encoding="utf-8"))
+                if isinstance(local_rows, list):
+                    save_postgres_ct_control_rows(local_rows)
+                    return postgres_ct_control_rows()
+            except json.JSONDecodeError:
+                return []
+        return []
     if CT_CONTROL_DATA.exists():
         try:
             rows = json.loads(CT_CONTROL_DATA.read_text(encoding="utf-8"))
@@ -3412,6 +3512,9 @@ def ct_control_rows() -> list[dict[str, str]]:
 
 
 def save_ct_control_rows(rows: list[dict[str, object]]) -> None:
+    if build_dashboard.use_postgres():
+        save_postgres_ct_control_rows(rows)
+        return
     DATA_DIR.mkdir(exist_ok=True)
     clean_rows = [clean_ct_control_row(row) for row in rows if isinstance(row, dict)]
     CT_CONTROL_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
