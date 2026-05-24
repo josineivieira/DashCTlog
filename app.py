@@ -510,17 +510,12 @@ HOME_HTML = """<!doctype html>
       background: rgba(255,255,255,.13);
       color: #fff;
     }
-    .side-link i {
-      width: 10px;
-      height: 10px;
-      border-radius: 3px;
-      background: var(--purple);
-      box-shadow: 0 0 0 4px rgba(255,255,255,.08);
+    .side-link svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      stroke-width: 2.2;
     }
-    .side-link:nth-child(2) i { background: var(--blue); }
-    .side-link:nth-child(3) i { background: var(--red); }
-    .side-link:nth-child(4) i { background: var(--navy); }
-    .side-link:nth-child(5) i { background: var(--green); }
     .sidebar-footer {
       margin-top: auto;
       padding: 14px 8px 0;
@@ -603,20 +598,23 @@ HOME_HTML = """<!doctype html>
       border-radius: 8px;
       box-shadow: var(--shadow);
     }
-    .card::after {
-      content: "";
+    .card-icon {
       grid-column: 2;
       grid-row: 1 / span 2;
       width: 42px;
       height: 42px;
+      display: grid;
+      place-items: center;
       border-radius: 8px;
+      color: #fff;
       background: var(--purple);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.32);
     }
-    .card:nth-child(2)::after { background: var(--blue); }
-    .card:nth-child(3)::after { background: var(--red); }
-    .card:nth-child(4)::after { background: var(--navy); }
-    .card:nth-child(5)::after { background: var(--green); }
+    .card-icon svg { width: 22px; height: 22px; stroke-width: 2.2; }
+    .card:nth-child(2) .card-icon { background: var(--blue); }
+    .card:nth-child(3) .card-icon { background: var(--red); }
+    .card:nth-child(4) .card-icon { background: var(--navy); }
+    .card:nth-child(5) .card-icon { background: var(--green); }
     .card span {
       color: var(--muted);
       font-size: 11px;
@@ -670,17 +668,17 @@ HOME_HTML = """<!doctype html>
     <aside class="sidebar">
       <div class="brand">
         <img src="{favicon_url}" alt="">
-        <div><strong>Dashboard Log</strong><span>Operacao</span></div>
+        <div><strong>Dislub Equador</strong><span>Operacao</span></div>
       </div>
       <div class="nav-title">Modulos</div>
       <nav class="side-nav">
-        <a class="side-link active" href="/dashboard"><i></i>Dashboard</a>
-        <a class="side-link" href="/editar"><i></i>Editar dados</a>
-        <a class="side-link" href="/capacidades"><i></i>Capacidades</a>
-        <a class="side-link" href="/relatorio-diario"><i></i>Relatorio diario</a>
-        <a class="side-link" href="/controle-ct"><i></i>Controle de CT</a>
+        <a class="side-link active" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg>Dashboard</a>
+        <a class="side-link" href="/editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg>Editar dados</a>
+        <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Capacidades</a>
+        <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Relatorio diario</a>
+        <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
       </nav>
-      <div class="sidebar-footer">Grupo Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
+      <div class="sidebar-footer">Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
     </aside>
     <div class="content">
       <header class="topbar">
@@ -700,30 +698,35 @@ HOME_HTML = """<!doctype html>
         <section class="menu">
           <a class="card" href="/dashboard">
             <span>Visualizacao</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg></div>
             <strong>Dashboard</strong>
             <p>Acompanhe viagens, placas, produtos e terminais.</p>
             <div class="button">Abrir dashboard</div>
           </a>
           <a class="card" href="/editar">
             <span>Dados</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg></div>
             <strong>Editar dados</strong>
             <p>Envie novas planilhas e atualize os indicadores.</p>
             <div class="button">Atualizar planilhas</div>
           </a>
           <a class="card" href="/capacidades">
             <span>Cadastro</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>
             <strong>Capacidades</strong>
             <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
             <div class="button">Editar capacidades</div>
           </a>
           <a class="card" href="/relatorio-diario">
             <span>Relatorio</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg></div>
             <strong>Diario</strong>
             <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
             <div class="button">Abrir relatorio</div>
           </a>
           <a class="card" href="/controle-ct">
             <span>Operacao</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg></div>
             <strong>Controle de CT</strong>
             <p>Acompanhe chegada, patio, fila, saida e notas fiscais.</p>
             <div class="button">Abrir controle</div>
