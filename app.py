@@ -1807,19 +1807,38 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 18px;
-      padding: 18px clamp(12px, 3vw, 30px);
-      background: var(--purple);
+      position: relative;
+      overflow: hidden;
+      padding: 24px clamp(16px, 4vw, 42px) 28px;
+      background:
+        radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%),
+        linear-gradient(135deg, #34104f 0%, #4c176d 58%, #1b255f 100%);
       color: #fff;
     }
-    .brand-title { display: flex; align-items: center; gap: 14px; }
-    .brand-title img { width: 74px; height: 74px; object-fit: contain; background: #fff; padding: 4px; }
-    h1 { margin: 0; font-size: clamp(26px, 3vw, 38px); letter-spacing: 0; }
-    .subtitle { margin: 6px 0 0; color: #e7d8f5; }
-    .nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    header::after {
+      content: "";
+      position: absolute;
+      right: clamp(20px, 6vw, 76px);
+      bottom: -88px;
+      width: min(46vw, 520px);
+      aspect-ratio: 1.8;
+      background: url("{favicon_url}") center / contain no-repeat;
+      opacity: .18;
+      pointer-events: none;
+    }
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+    }
+    .brand-title { display: flex; align-items: center; gap: 16px; }
+    .brand-title img { width: 98px; height: auto; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 50px); line-height: 1; letter-spacing: 0; }
+    .subtitle { margin: 9px 0 0; color: #d7e4ea; font-size: 15px; }
+    .nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
     a { color: inherit; text-decoration: none; }
     .top-link, button, .button {
       display: inline-flex;
@@ -1985,7 +2004,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       line-height: 1.45;
     }
     @media (max-width: 980px) {
-      header { flex-direction: column; }
+      .topbar { flex-direction: column; }
       .nav { justify-content: flex-start; }
       .control-board { grid-template-columns: 1fr; }
       .toolbar { align-items: flex-start; flex-direction: column; }
@@ -1995,17 +2014,19 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
 </head>
 <body>
   <header>
-    <div>
-      <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Controle de CT</h1><p class="subtitle">Fila de chegada, entrada de atendimento e saida dos motoristas.</p></div></div>
+    <div class="topbar">
+      <div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Controle de CT</h1><p class="subtitle">Fila de chegada, entrada de atendimento e saida dos motoristas.</p></div></div>
+      </div>
+      <nav class="nav">
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/editar">Editar dados</a>
+        <a class="top-link" href="/capacidades">Capacidades</a>
+        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/logout">Sair</a>
+      </nav>
     </div>
-    <nav class="nav">
-      <a class="top-link" href="/home">Home</a>
-      <a class="top-link" href="/dashboard">Dashboard</a>
-      <a class="top-link" href="/editar">Editar dados</a>
-      <a class="top-link" href="/capacidades">Capacidades</a>
-      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
-      <a class="top-link" href="/logout">Sair</a>
-    </nav>
   </header>
   <main>
     {message}
