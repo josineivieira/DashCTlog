@@ -1942,10 +1942,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     .actions .secondary { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
     .edit-toggle {
       gap: 7px;
-      border-color: #b8c7d8;
-      background: #f3f6f8;
-      color: var(--ink);
-      box-shadow: none;
     }
     .edit-toggle svg {
       width: 18px;
@@ -2082,7 +2078,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
           <button type="button" id="markQueue" class="secondary">Marcar fila</button>
-          <button type="button" id="editModeToggle" class="edit-toggle" title="Alternar modo de edição" aria-label="Editar">
+          <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edição" aria-label="Editar">
             <span class="edit-icon" aria-hidden="true"></span>
             <span class="edit-label">Editar</span>
           </button>
@@ -2128,6 +2124,10 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     let rows = __ROWS__;
     let editMode = false;
     const $ = (id) => document.getElementById(id);
+    const flashMessage = document.querySelector(".message.auto-dismiss");
+    if (flashMessage) {
+      setTimeout(() => flashMessage.remove(), 3000);
+    }
     const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
@@ -3813,7 +3813,7 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(self.path).query)
         message = ""
         if "ok" in params:
-            message = '<div class="message">Controle de CT salvo com sucesso.</div>'
+            message = '<div class="message auto-dismiss">Controle de CT salvo com sucesso.</div>'
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
         rows = ct_control_rows()
