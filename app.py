@@ -27,6 +27,7 @@ INDEX_PATH = ROOT / "index.html"
 ORDERS_UPLOAD = DATA_DIR / "ordens.xlsx"
 DETAIL_UPLOAD = DATA_DIR / "geral_ct_log.xlsx"
 CT_CONTROL_UPLOAD = ROOT / "Controle de CT .xlsx"
+CT_CONTROL_DATA = DATA_DIR / "controle_ct.json"
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 SESSION_COOKIE = "dashboard_log_session"
 FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
@@ -1776,6 +1777,460 @@ CT_CONTROL_HTML = """<!doctype html>
 """
 
 
+CT_CONTROL_OPERATION_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Controle de CT - Dashboard</title>
+  <style>
+    :root {
+      --purple: #7027a8;
+      --purple-dark: #4f167e;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #657282;
+      --line: #cfd9e4;
+      --green: #9de36e;
+      --yellow: #ffe878;
+      --red: #e2263c;
+      --blue: #2b84cb;
+      --shadow: 0 18px 42px rgba(23, 32, 51, .16);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #eef2f5;
+      color: var(--ink);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      padding: 18px clamp(12px, 3vw, 30px);
+      background: var(--purple);
+      color: #fff;
+    }
+    .brand-title { display: flex; align-items: center; gap: 14px; }
+    .brand-title img { width: 74px; height: 74px; object-fit: contain; background: #fff; padding: 4px; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 38px); letter-spacing: 0; }
+    .subtitle { margin: 6px 0 0; color: #e7d8f5; }
+    .nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    a { color: inherit; text-decoration: none; }
+    .top-link, button, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,.32);
+      border-radius: 6px;
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    main { padding: 14px clamp(10px, 2.4vw, 24px) 30px; }
+    .message {
+      margin-bottom: 12px;
+      padding: 11px 13px;
+      border-radius: 8px;
+      background: #e7f7ee;
+      color: #166534;
+      font-weight: 900;
+    }
+    .message.error { background: #fee2e2; color: #991b1b; }
+    .control-board {
+      display: grid;
+      grid-template-columns: 1fr 1fr .8fr .8fr;
+      gap: 12px;
+      align-items: stretch;
+      padding: 14px;
+      border-radius: 8px 8px 0 0;
+      background: var(--purple);
+      box-shadow: var(--shadow);
+    }
+    .board-group {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(90px, 1fr));
+      gap: 9px;
+      align-content: start;
+    }
+    .board-title {
+      grid-column: 1 / -1;
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.4);
+      background: linear-gradient(#ff6b78, #bb1232);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 1000;
+      text-transform: uppercase;
+      text-shadow: 0 1px 1px rgba(0,0,0,.35);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+    }
+    .counter {
+      display: grid;
+      gap: 5px;
+      align-content: start;
+      text-align: center;
+    }
+    .counter-label {
+      min-height: 24px;
+      display: grid;
+      place-items: center;
+      padding: 3px 8px;
+      background: linear-gradient(#fff, #d7dbe1);
+      color: #263140;
+      font-size: 12px;
+      font-weight: 1000;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    .counter-value {
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #ffffff, #cfd3dc);
+      color: #444;
+      font-size: 25px;
+      font-weight: 1000;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 16px rgba(0,0,0,.24);
+    }
+    .counter.green .counter-value { background: linear-gradient(135deg, #d8ffc4, var(--green)); color: #28521d; }
+    .counter.yellow .counter-value { background: linear-gradient(135deg, #fff7ba, var(--yellow)); color: #735a00; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-top: 0;
+      background: #fff;
+    }
+    .actions, .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .actions button { border-color: transparent; background: var(--purple); }
+    .actions .secondary { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
+    .filters input, .filters select {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 9px;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 800;
+      background: #fff;
+    }
+    .sheet-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 310px);
+      border: 1px solid var(--line);
+      border-top: 0;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    table { width: 100%; min-width: 1160px; border-collapse: collapse; }
+    th, td { border-right: 1px solid #d7dbea; border-bottom: 1px solid #d7dbea; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 7px 8px;
+      background: var(--purple);
+      color: #fff;
+      font-size: 12px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    td { padding: 0; background: #fff; }
+    tr:nth-child(even) td { background: #fbfcfd; }
+    tr.is-selected td { background: #e9f3ff; }
+    td:first-child, th:first-child { width: 40px; text-align: center; }
+    input.cell, select.cell {
+      width: 100%;
+      min-height: 31px;
+      border: 0;
+      padding: 5px 7px;
+      color: var(--ink);
+      background: transparent;
+      font: inherit;
+      font-size: 13px;
+    }
+    input.cell:focus, select.cell:focus {
+      outline: 2px solid #2b84cb;
+      outline-offset: -2px;
+      background: #fff;
+    }
+    .status-finalizado { color: #008000; font-weight: 900; }
+    .status-fila { color: #b27300; font-weight: 900; }
+    .status-aguardando { color: #c1121f; font-weight: 900; }
+    .status-patio { color: #1d4ed8; font-weight: 900; }
+    .hint {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-top: 0;
+      color: var(--muted);
+      background: #fff;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    @media (max-width: 980px) {
+      header { flex-direction: column; }
+      .nav { justify-content: flex-start; }
+      .control-board { grid-template-columns: 1fr; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .sheet-wrap { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Controle de CT</h1><p class="subtitle">Fila de chegada, entrada de atendimento e saida dos motoristas.</p></div></div>
+    </div>
+    <nav class="nav">
+      <a class="top-link" href="/home">Home</a>
+      <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/editar">Editar dados</a>
+      <a class="top-link" href="/capacidades">Capacidades</a>
+      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+      <a class="top-link" href="/logout">Sair</a>
+    </nav>
+  </header>
+  <main>
+    {message}
+    <section class="control-board">
+      <div class="board-group">
+        <div class="board-title">Painel CIF</div>
+        <div class="counter"><div class="counter-label">Base</div><div class="counter-value" id="cifBase">0</div></div>
+        <div class="counter"><div class="counter-label">Fila</div><div class="counter-value" id="cifFila">0</div></div>
+      </div>
+      <div class="board-group">
+        <div class="board-title">Painel FOB</div>
+        <div class="counter"><div class="counter-label">Base</div><div class="counter-value" id="fobBase">0</div></div>
+        <div class="counter"><div class="counter-label">Fila</div><div class="counter-value" id="fobFila">0</div></div>
+      </div>
+      <div class="counter green"><div class="counter-label">Finalizados</div><div class="counter-value" id="finalizados">0</div></div>
+      <div class="counter yellow"><div class="counter-label">Patio</div><div class="counter-value" id="patio">0</div></div>
+    </section>
+    <form id="ctForm" method="post" action="/controle-ct">
+      <input type="hidden" name="rows_json" id="rowsJson">
+      <div class="toolbar">
+        <div class="actions">
+          <button type="button" id="addArrival">Adicionar chegada</button>
+          <button type="button" id="markQueue" class="secondary">Marcar fila</button>
+          <button type="button" id="markEntry" class="secondary">Marcar entrada</button>
+          <button type="button" id="markExit" class="secondary">Marcar saida</button>
+          <button type="button" id="deleteRows" class="secondary">Excluir</button>
+          <button type="submit">Salvar controle</button>
+        </div>
+        <div class="filters">
+          <input id="searchFilter" type="search" placeholder="Buscar motorista">
+          <select id="statusFilter">
+            <option value="">Todos os status</option>
+            <option>Aguardando Entrada</option>
+            <option>Fila de Carregamento</option>
+            <option>Finalizado</option>
+            <option>Patio</option>
+          </select>
+          <select id="freightFilter">
+            <option value="">Todos os fretes</option>
+            <option>CIF</option>
+            <option>FOB</option>
+            <option>Transferencia</option>
+            <option>RZD</option>
+          </select>
+        </div>
+      </div>
+      <div class="sheet-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll" aria-label="Selecionar todos"></th>
+              <th>Data</th><th>Motorista</th><th>Tipo de Frete</th><th>Status</th><th>Viagens</th>
+              <th>Chegada</th><th>Entrada</th><th>Saida</th><th>Nota Fiscal</th><th>Observacao</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="hint">Use Adicionar chegada para criar a linha do motorista. Depois selecione a linha e marque fila, entrada ou saida; o horario atual sera preenchido automaticamente.</div>
+    </form>
+  </main>
+  <script>
+    let rows = __ROWS__;
+    const $ = (id) => document.getElementById(id);
+    const statuses = ["Aguardando Entrada", "Fila de Carregamento", "Finalizado", "Patio"];
+    const freights = ["CIF", "FOB", "Transferencia", "RZD"];
+    const invoices = ["", "Impresso", "Pendente"];
+
+    function today() {
+      return new Date().toLocaleDateString("pt-BR");
+    }
+    function nowTime() {
+      return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function cleanRow(row = {}) {
+      return {
+        data: row.data || today(),
+        motorista: row.motorista || "",
+        tipoFrete: row.tipoFrete || "CIF",
+        status: row.status || "Aguardando Entrada",
+        viagens: row.viagens || "1 viagem",
+        chegada: row.chegada || "",
+        entrada: row.entrada || "",
+        saida: row.saida || "",
+        notaFiscal: row.notaFiscal || "",
+        observacao: row.observacao || ""
+      };
+    }
+    function optionList(values, current) {
+      return values.map((value) => `<option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
+    }
+    function statusClass(status) {
+      const normalized = String(status).toLowerCase();
+      if (normalized.includes("finalizado")) return "status-finalizado";
+      if (normalized.includes("fila")) return "status-fila";
+      if (normalized.includes("aguardando")) return "status-aguardando";
+      if (normalized.includes("patio")) return "status-patio";
+      return "";
+    }
+    function syncFromTable() {
+      rows = [...document.querySelectorAll("#rows tr")].map((tr) => cleanRow({
+        data: tr.querySelector('[data-key="data"]').value.trim(),
+        motorista: tr.querySelector('[data-key="motorista"]').value.trim(),
+        tipoFrete: tr.querySelector('[data-key="tipoFrete"]').value,
+        status: tr.querySelector('[data-key="status"]').value,
+        viagens: tr.querySelector('[data-key="viagens"]').value.trim(),
+        chegada: tr.querySelector('[data-key="chegada"]').value.trim(),
+        entrada: tr.querySelector('[data-key="entrada"]').value.trim(),
+        saida: tr.querySelector('[data-key="saida"]').value.trim(),
+        notaFiscal: tr.querySelector('[data-key="notaFiscal"]').value,
+        observacao: tr.querySelector('[data-key="observacao"]').value.trim()
+      }));
+    }
+    function visibleRows() {
+      const query = $("searchFilter").value.trim().toLowerCase();
+      const status = $("statusFilter").value;
+      const freight = $("freightFilter").value;
+      return rows.map((row, index) => ({ row: cleanRow(row), index })).filter(({ row }) => {
+        return (!query || row.motorista.toLowerCase().includes(query))
+          && (!status || row.status === status)
+          && (!freight || row.tipoFrete === freight);
+      });
+    }
+    function renderCounters() {
+      const active = rows.map(cleanRow);
+      const count = (freight, status) => active.filter((row) => row.tipoFrete === freight && row.status === status).length;
+      $("cifBase").textContent = count("CIF", "Aguardando Entrada");
+      $("cifFila").textContent = count("CIF", "Fila de Carregamento");
+      $("fobBase").textContent = count("FOB", "Aguardando Entrada");
+      $("fobFila").textContent = count("FOB", "Fila de Carregamento");
+      $("finalizados").textContent = active.filter((row) => row.status === "Finalizado").length;
+      $("patio").textContent = active.filter((row) => row.status === "Patio").length;
+    }
+    function render() {
+      syncFromTableIfReady();
+      const data = visibleRows();
+      $("rows").innerHTML = data.map(({ row, index }) => `
+        <tr data-index="${index}">
+          <td><input type="checkbox" aria-label="Selecionar linha"></td>
+          <td><input class="cell" data-key="data" value="${escapeHtml(row.data)}"></td>
+          <td><input class="cell" data-key="motorista" value="${escapeHtml(row.motorista)}"></td>
+          <td><select class="cell" data-key="tipoFrete">${optionList(freights, row.tipoFrete)}</select></td>
+          <td><select class="cell ${statusClass(row.status)}" data-key="status">${optionList(statuses, row.status)}</select></td>
+          <td><input class="cell" data-key="viagens" value="${escapeHtml(row.viagens)}"></td>
+          <td><input class="cell" data-key="chegada" value="${escapeHtml(row.chegada)}"></td>
+          <td><input class="cell" data-key="entrada" value="${escapeHtml(row.entrada)}"></td>
+          <td><input class="cell" data-key="saida" value="${escapeHtml(row.saida)}"></td>
+          <td><select class="cell" data-key="notaFiscal">${optionList(invoices, row.notaFiscal)}</select></td>
+          <td><input class="cell" data-key="observacao" value="${escapeHtml(row.observacao)}"></td>
+        </tr>
+      `).join("");
+      renderCounters();
+    }
+    function syncFromTableIfReady() {
+      if (!$("rows").children.length) return;
+      const visible = [...document.querySelectorAll("#rows tr")];
+      visible.forEach((tr) => {
+        const index = Number(tr.dataset.index);
+        rows[index] = cleanRow({
+          data: tr.querySelector('[data-key="data"]').value.trim(),
+          motorista: tr.querySelector('[data-key="motorista"]').value.trim(),
+          tipoFrete: tr.querySelector('[data-key="tipoFrete"]').value,
+          status: tr.querySelector('[data-key="status"]').value,
+          viagens: tr.querySelector('[data-key="viagens"]').value.trim(),
+          chegada: tr.querySelector('[data-key="chegada"]').value.trim(),
+          entrada: tr.querySelector('[data-key="entrada"]').value.trim(),
+          saida: tr.querySelector('[data-key="saida"]').value.trim(),
+          notaFiscal: tr.querySelector('[data-key="notaFiscal"]').value,
+          observacao: tr.querySelector('[data-key="observacao"]').value.trim()
+        });
+      });
+    }
+    function selectedIndexes() {
+      syncFromTableIfReady();
+      return [...document.querySelectorAll("#rows tr")]
+        .filter((tr) => tr.querySelector('input[type="checkbox"]').checked)
+        .map((tr) => Number(tr.dataset.index));
+    }
+    function updateSelected(updater) {
+      const indexes = selectedIndexes();
+      indexes.forEach((index) => rows[index] = cleanRow(updater(rows[index])));
+      render();
+    }
+    $("addArrival").addEventListener("click", () => {
+      syncFromTableIfReady();
+      rows.unshift(cleanRow({ chegada: nowTime() }));
+      $("searchFilter").value = "";
+      render();
+      document.querySelector('[data-key="motorista"]')?.focus();
+    });
+    $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
+    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento", entrada: row.entrada || nowTime() })));
+    $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowTime(), notaFiscal: row.notaFiscal || "Impresso" })));
+    $("deleteRows").addEventListener("click", () => {
+      const remove = new Set(selectedIndexes());
+      if (!remove.size) return;
+      rows = rows.filter((_, index) => !remove.has(index));
+      render();
+    });
+    $("selectAll").addEventListener("change", (event) => {
+      document.querySelectorAll("#rows input[type='checkbox']").forEach((input) => input.checked = event.target.checked);
+    });
+    $("rows").addEventListener("input", () => {
+      syncFromTableIfReady();
+      renderCounters();
+    });
+    $("rows").addEventListener("change", () => {
+      syncFromTableIfReady();
+      renderCounters();
+    });
+    ["searchFilter", "statusFilter", "freightFilter"].forEach((id) => $(id).addEventListener("input", render));
+    $("ctForm").addEventListener("submit", () => {
+      syncFromTableIfReady();
+      $("rowsJson").value = JSON.stringify(rows);
+    });
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
 DAILY_REPORT_HTML = """<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -2894,6 +3349,48 @@ def parse_ct_control_rows() -> list[dict[str, object]]:
     return records
 
 
+CT_CONTROL_COLUMNS = [
+    "data",
+    "motorista",
+    "tipoFrete",
+    "status",
+    "viagens",
+    "chegada",
+    "entrada",
+    "saida",
+    "notaFiscal",
+    "observacao",
+]
+
+
+def clean_ct_control_row(row: dict[str, object]) -> dict[str, str]:
+    clean = {key: str(row.get(key, "") or "").strip() for key in CT_CONTROL_COLUMNS}
+    if not clean["tipoFrete"]:
+        clean["tipoFrete"] = "CIF"
+    if not clean["status"]:
+        clean["status"] = "Aguardando Entrada"
+    if not clean["viagens"]:
+        clean["viagens"] = "1 viagem"
+    return clean
+
+
+def ct_control_rows() -> list[dict[str, str]]:
+    if CT_CONTROL_DATA.exists():
+        try:
+            rows = json.loads(CT_CONTROL_DATA.read_text(encoding="utf-8"))
+            if isinstance(rows, list):
+                return [clean_ct_control_row(row) for row in rows if isinstance(row, dict)]
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
+def save_ct_control_rows(rows: list[dict[str, object]]) -> None:
+    DATA_DIR.mkdir(exist_ok=True)
+    clean_rows = [clean_ct_control_row(row) for row in rows if isinstance(row, dict)]
+    CT_CONTROL_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def database_status() -> dict[str, object]:
     url = build_dashboard.database_url()
     parsed = urlparse(url) if url else None
@@ -3111,10 +3608,17 @@ class Handler(BaseHTTPRequestHandler):
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def send_ct_control(self) -> None:
-        rows = parse_ct_control_rows()
+        params = parse_qs(urlparse(self.path).query)
+        message = ""
+        if "ok" in params:
+            message = '<div class="message">Controle de CT salvo com sucesso.</div>'
+        if "erro" in params:
+            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        rows = ct_control_rows()
         page = (
-            CT_CONTROL_HTML.replace("{favicon_url}", FAVICON_URL)
-            .replace("__CT_RECORDS__", json_for_script(rows))
+            CT_CONTROL_OPERATION_HTML.replace("{message}", message)
+            .replace("{favicon_url}", FAVICON_URL)
+            .replace("__ROWS__", json_for_script(rows))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -3271,6 +3775,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.redirect("/capacidades?erro=" + quote(str(exc)))
                 return
             self.redirect("/capacidades?ok=1")
+            return
+
+        if parsed.path == "/controle-ct":
+            if not self.require_login():
+                return
+            try:
+                params = self.body_params()
+                rows = json.loads(params.get("rows_json", ["[]"])[0])
+                if not isinstance(rows, list):
+                    raise ValueError("Controle invalido")
+                save_ct_control_rows(rows)
+            except Exception as exc:
+                self.redirect("/controle-ct?erro=" + quote(str(exc)))
+                return
+            self.redirect("/controle-ct?ok=1")
             return
 
         if parsed.path != "/editar":
