@@ -1943,9 +1943,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     .edit-toggle {
       gap: 7px;
       border-color: #b8c7d8;
-      background: linear-gradient(180deg, #ffffff, #e8eef5);
+      background: #f3f6f8;
       color: var(--ink);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 2px 8px rgba(23,32,51,.08);
+      box-shadow: none;
     }
     .edit-toggle svg {
       width: 18px;
@@ -2082,9 +2082,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
           <button type="button" id="markQueue" class="secondary">Marcar fila</button>
-          <button type="button" id="editModeToggle" class="edit-toggle" title="Alternar modo de edição" aria-label="Editar Registro">
+          <button type="button" id="editModeToggle" class="edit-toggle" title="Alternar modo de edição" aria-label="Editar">
             <span class="edit-icon" aria-hidden="true"></span>
-            <span class="edit-label">Editar Registro</span>
+            <span class="edit-label">Editar</span>
           </button>
           <button type="button" id="markEntry" class="secondary">Marcar entrada</button>
           <button type="button" id="markExit" class="secondary">Marcar saida</button>
@@ -2206,9 +2206,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (!button) return;
       button.classList.toggle("is-editing", editMode);
       button.title = editMode ? "Visualizar" : "Alternar modo de edição";
-      button.setAttribute("aria-label", editMode ? "Visualizar" : "Editar Registro");
+      button.setAttribute("aria-label", editMode ? "Visualizar" : "Editar");
       button.querySelector(".edit-icon").innerHTML = editIcon();
-      button.querySelector(".edit-label").textContent = editMode ? "Salvar" : "Editar Registro";
+      button.querySelector(".edit-label").textContent = editMode ? "Salvar" : "Editar";
       document.body.classList.toggle("editing-ct", editMode);
     }
     function visibleRows() {
