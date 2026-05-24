@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import html
 import csv
+import datetime as dt
 import io
 import json
 import os
@@ -14,6 +15,8 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
+from zipfile import ZipFile
+import xml.etree.ElementTree as ET
 
 import build_dashboard
 
@@ -23,6 +26,7 @@ DATA_DIR = ROOT / "data"
 INDEX_PATH = ROOT / "index.html"
 ORDERS_UPLOAD = DATA_DIR / "ordens.xlsx"
 DETAIL_UPLOAD = DATA_DIR / "geral_ct_log.xlsx"
+CT_CONTROL_UPLOAD = ROOT / "Controle de CT .xlsx"
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 SESSION_COOKIE = "dashboard_log_session"
 FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
@@ -611,6 +615,7 @@ HOME_HTML = """<!doctype html>
     .card:nth-child(2) { border-top-color: var(--green); }
     .card:nth-child(3) { border-top-color: var(--gold); }
     .card:nth-child(4) { border-top-color: #1b255f; }
+    .card:nth-child(5) { border-top-color: #00856f; }
     .card span {
       color: var(--muted);
       font-size: 12px;
@@ -640,6 +645,7 @@ HOME_HTML = """<!doctype html>
     .card:nth-child(2) .button { background: var(--green); }
     .card:nth-child(3) .button { background: var(--gold); }
     .card:nth-child(4) .button { background: #1b255f; }
+    .card:nth-child(5) .button { background: #00856f; }
     @media (max-width: 680px) {
       header { flex-direction: column; }
       .menu { grid-template-columns: 1fr; }
@@ -682,6 +688,12 @@ HOME_HTML = """<!doctype html>
         <strong>Diario</strong>
         <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
         <div class="button">Abrir relatorio</div>
+      </a>
+      <a class="card" href="/controle-ct">
+        <span>Operacao</span>
+        <strong>Controle de CT</strong>
+        <p>Acompanhe entrada, fila, finalizados, frete, tempos e notas fiscais.</p>
+        <div class="button">Abrir controle</div>
       </a>
     </section>
   </main>
@@ -927,6 +939,7 @@ EDIT_HTML = """<!doctype html>
     <nav class="nav">
       <a class="top-link" href="/home">Home</a>
       <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/controle-ct">Controle de CT</a>
       <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
       <a class="top-link" href="/capacidades">Capacidades</a>
       <a class="top-link" href="/logout">Sair</a>
@@ -1348,6 +1361,7 @@ CAPACITY_HTML = """<!doctype html>
     <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/controle-ct">Controle de CT</a>
         <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/logout">Sair</a>
@@ -1459,6 +1473,302 @@ CAPACITY_HTML = """<!doctype html>
       lockForm(document.querySelector("#capacityForm"));
     });
 
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
+CT_CONTROL_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Controle de CT - Dashboard</title>
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --panel: #ffffff;
+      --ink: #16212d;
+      --muted: #657282;
+      --line: #d7e0e8;
+      --purple: #64248c;
+      --blue: #2b84cb;
+      --red: #e2263c;
+      --green: #00856f;
+      --shadow: 0 18px 42px rgba(23, 32, 51, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    header {
+      padding: 24px clamp(16px, 4vw, 38px);
+      background: #34104f;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+    }
+    .brand-title { display: flex; align-items: center; gap: 14px; }
+    .brand-title img { width: 78px; height: auto; object-fit: contain; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 38px); letter-spacing: 0; }
+    .subtitle { margin: 7px 0 0; color: #c8d6dc; }
+    .nav { display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end; }
+    a { color: inherit; text-decoration: none; }
+    .top-link, button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    main { padding: 24px clamp(16px, 4vw, 38px) 38px; }
+    .filters, .kpis, .content-grid { display: grid; gap: 14px; }
+    .filters {
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      align-items: end;
+      margin-bottom: 16px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    select, input {
+      min-height: 40px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-weight: 800;
+    }
+    .filters button { border-color: transparent; background: var(--purple); }
+    .kpis { grid-template-columns: repeat(4, minmax(150px, 1fr)); margin-bottom: 16px; }
+    .kpi {
+      min-height: 112px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--purple);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .kpi:nth-child(2) { border-top-color: var(--blue); }
+    .kpi:nth-child(3) { border-top-color: var(--red); }
+    .kpi:nth-child(4) { border-top-color: var(--green); }
+    .kpi span { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .kpi strong { display: block; margin-top: 10px; font-size: clamp(28px, 4vw, 42px); line-height: 1; }
+    .content-grid { grid-template-columns: minmax(280px, .72fr) minmax(0, 1.28fr); }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel h2 { margin: 0; padding: 15px; border-bottom: 1px solid var(--line); font-size: 18px; }
+    .bars { display: grid; gap: 12px; padding: 15px; }
+    .bar-row { display: grid; gap: 7px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; font-weight: 900; }
+    .bar-track { height: 10px; border-radius: 999px; background: #edf2f5; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: inherit; background: var(--purple); }
+    .table-wrap { max-height: calc(100vh - 375px); min-height: 360px; overflow: auto; }
+    table { width: 100%; min-width: 1180px; border-collapse: collapse; }
+    th, td { padding: 10px 11px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 2; background: #eef3f6; color: #506071; font-size: 12px; text-transform: uppercase; white-space: nowrap; }
+    td { font-size: 13px; }
+    .status {
+      display: inline-flex;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #edf2f5;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .status.finalizado { background: #e7f7ee; color: #166534; }
+    .status.aguardando { background: #fff4de; color: #92400e; }
+    .status.fila { background: #e8f2ff; color: #1d4ed8; }
+    .empty { padding: 26px; color: var(--muted); font-weight: 800; text-align: center; }
+    @media (max-width: 980px) {
+      header { flex-direction: column; }
+      .nav { justify-content: flex-start; }
+      .filters, .kpis, .content-grid { grid-template-columns: 1fr; }
+      .table-wrap { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Controle de CT</h1></div>
+      <p class="subtitle">Entrada, fila, finalizados, frete, notas e tempos de carregamento.</p>
+    </div>
+    <nav class="nav">
+      <a class="top-link" href="/home">Home</a>
+      <a class="top-link" href="/dashboard">Dashboard</a>
+      <a class="top-link" href="/editar">Editar dados</a>
+      <a class="top-link" href="/capacidades">Capacidades</a>
+      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+      <a class="top-link" href="/logout">Sair</a>
+    </nav>
+  </header>
+  <main>
+    <section class="filters">
+      <label>Data <select id="dateFilter"></select></label>
+      <label>Status <select id="statusFilter"></select></label>
+      <label>Tipo de Frete <select id="freightFilter"></select></label>
+      <label>Nota Fiscal <select id="invoiceFilter"></select></label>
+      <label>Buscar <input id="searchFilter" type="search" placeholder="Motorista ou observacao"></label>
+      <button type="button" id="clearFilters">Limpar filtros</button>
+    </section>
+    <section class="kpis">
+      <div class="kpi"><span>Registros</span><strong id="kRecords">0</strong></div>
+      <div class="kpi"><span>Viagens</span><strong id="kTrips">0</strong></div>
+      <div class="kpi"><span>Finalizados</span><strong id="kDone">0</strong></div>
+      <div class="kpi"><span>Tempo medio total</span><strong id="kAvg">-</strong></div>
+    </section>
+    <section class="content-grid">
+      <div class="panel">
+        <h2>Status por frete</h2>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="panel">
+        <h2>Base da planilha</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Motorista</th><th>Frete</th><th>Status</th><th>Viagens</th>
+                <th>Chegada</th><th>Entrada</th><th>Saida</th><th>Nota</th><th>Carregamento</th><th>Total</th><th>Observacao</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const records = __CT_RECORDS__;
+    const fmt = new Intl.NumberFormat("pt-BR");
+    const $ = (id) => document.getElementById(id);
+
+    function unique(key) {
+      return [...new Set(records.map((row) => row[key]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "pt-BR"));
+    }
+    function fillSelect(id, values, label) {
+      $(id).innerHTML = [`<option value="">${label}</option>`, ...values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)].join("");
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function statusClass(value) {
+      const text = String(value).toLowerCase();
+      if (text.includes("finalizado")) return "finalizado";
+      if (text.includes("aguardando")) return "aguardando";
+      if (text.includes("fila")) return "fila";
+      return "";
+    }
+    function filteredRows() {
+      const date = $("dateFilter").value;
+      const status = $("statusFilter").value;
+      const freight = $("freightFilter").value;
+      const invoice = $("invoiceFilter").value;
+      const query = $("searchFilter").value.trim().toLowerCase();
+      return records.filter((row) => {
+        const haystack = `${row.motorista} ${row.observacao}`.toLowerCase();
+        return (!date || row.data === date)
+          && (!status || row.status === status)
+          && (!freight || row.tipoFrete === freight)
+          && (!invoice || row.notaFiscal === invoice)
+          && (!query || haystack.includes(query));
+      });
+    }
+    function trips(row) {
+      const match = String(row.viagens || "").match(/\\d+/);
+      return match ? Number(match[0]) : 0;
+    }
+    function averageTotal(rows) {
+      const values = rows.map((row) => row.tempoTotalMinutos).filter((value) => Number.isFinite(value) && value > 0);
+      if (!values.length) return "-";
+      const minutes = values.reduce((total, value) => total + value, 0) / values.length;
+      const h = Math.floor(minutes / 60);
+      const m = Math.round(minutes % 60);
+      return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+    }
+    function renderBars(rows) {
+      const counts = new Map();
+      rows.forEach((row) => {
+        const key = `${row.status || "Sem status"} / ${row.tipoFrete || "Sem frete"}`;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const max = Math.max(...entries.map(([, value]) => value), 1);
+      $("bars").innerHTML = entries.length ? entries.map(([label, value]) => `
+        <div class="bar-row">
+          <div class="bar-head"><span>${escapeHtml(label)}</span><strong>${fmt.format(value)}</strong></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, value / max * 100)}%"></div></div>
+        </div>
+      `).join("") : '<div class="empty">Nenhum registro para os filtros atuais.</div>';
+    }
+    function renderTable(rows) {
+      $("rows").innerHTML = rows.length ? rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.data)}</td>
+          <td>${escapeHtml(row.motorista)}</td>
+          <td>${escapeHtml(row.tipoFrete)}</td>
+          <td><span class="status ${statusClass(row.status)}">${escapeHtml(row.status || "-")}</span></td>
+          <td>${escapeHtml(row.viagens)}</td>
+          <td>${escapeHtml(row.chegada)}</td>
+          <td>${escapeHtml(row.entrada)}</td>
+          <td>${escapeHtml(row.saida)}</td>
+          <td>${escapeHtml(row.notaFiscal)}</td>
+          <td>${escapeHtml(row.tempoCarregamento)}</td>
+          <td>${escapeHtml(row.tempoTotal)}</td>
+          <td>${escapeHtml(row.observacao)}</td>
+        </tr>
+      `).join("") : '<tr><td class="empty" colspan="12">Nenhum registro encontrado.</td></tr>';
+    }
+    function render() {
+      const rows = filteredRows();
+      $("kRecords").textContent = fmt.format(rows.length);
+      $("kTrips").textContent = fmt.format(rows.reduce((total, row) => total + trips(row), 0));
+      $("kDone").textContent = fmt.format(rows.filter((row) => String(row.status).toLowerCase().includes("finalizado")).length);
+      $("kAvg").textContent = averageTotal(rows);
+      renderBars(rows);
+      renderTable(rows);
+    }
+    fillSelect("dateFilter", unique("data").reverse(), "Todas");
+    fillSelect("statusFilter", unique("status"), "Todos");
+    fillSelect("freightFilter", unique("tipoFrete"), "Todos");
+    fillSelect("invoiceFilter", unique("notaFiscal"), "Todas");
+    ["dateFilter", "statusFilter", "freightFilter", "invoiceFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", render));
+    $("clearFilters").addEventListener("click", () => {
+      ["dateFilter", "statusFilter", "freightFilter", "invoiceFilter", "searchFilter"].forEach((id) => $(id).value = "");
+      render();
+    });
     render();
   </script>
 </body>
@@ -1744,6 +2054,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/controle-ct">Controle de CT</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/capacidades">Capacidades</a>
         <a class="top-link" href="/logout">Sair</a>
@@ -2445,6 +2756,144 @@ def html_escape(value: object) -> str:
     return html.escape(str(value if value is not None else ""), quote=False)
 
 
+XLSX_NS = {
+    "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+    "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+}
+
+
+def column_number(ref: str) -> int:
+    letters = re.match(r"[A-Z]+", ref.upper())
+    if not letters:
+        return 0
+    number = 0
+    for char in letters.group(0):
+        number = number * 26 + ord(char) - 64
+    return number
+
+
+def xlsx_text(cell: ET.Element, shared_strings: list[str]) -> str:
+    cell_type = cell.attrib.get("t", "")
+    value = cell.find("a:v", XLSX_NS)
+    inline = cell.find("a:is", XLSX_NS)
+    if cell_type == "s" and value is not None:
+        return shared_strings[int(value.text or "0")]
+    if cell_type == "inlineStr" and inline is not None:
+        return "".join(text.text or "" for text in inline.findall(".//a:t", XLSX_NS))
+    if value is not None:
+        return value.text or ""
+    return ""
+
+
+def xlsx_rows(path: Path, sheet_name: str) -> list[list[str]]:
+    if not path.exists():
+        return []
+    with ZipFile(path) as xlsx:
+        shared_strings: list[str] = []
+        if "xl/sharedStrings.xml" in xlsx.namelist():
+            shared_root = ET.fromstring(xlsx.read("xl/sharedStrings.xml"))
+            for item in shared_root.findall("a:si", XLSX_NS):
+                shared_strings.append("".join(text.text or "" for text in item.findall(".//a:t", XLSX_NS)))
+
+        workbook = ET.fromstring(xlsx.read("xl/workbook.xml"))
+        rels = ET.fromstring(xlsx.read("xl/_rels/workbook.xml.rels"))
+        rel_map = {rel.attrib["Id"]: rel.attrib["Target"] for rel in rels}
+        sheet_path = ""
+        for sheet in workbook.findall("a:sheets/a:sheet", XLSX_NS):
+            if sheet.attrib.get("name") == sheet_name:
+                rel_id = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "")
+                target = rel_map.get(rel_id, "")
+                sheet_path = "xl/" + target.lstrip("/") if not target.startswith("xl/") else target
+                break
+        if not sheet_path:
+            return []
+
+        root = ET.fromstring(xlsx.read(sheet_path))
+        rows: list[list[str]] = []
+        for row in root.findall("a:sheetData/a:row", XLSX_NS):
+            values: list[str] = []
+            last_column = 0
+            for cell in row.findall("a:c", XLSX_NS):
+                column = column_number(cell.attrib.get("r", ""))
+                while last_column + 1 < column:
+                    values.append("")
+                    last_column += 1
+                values.append(xlsx_text(cell, shared_strings))
+                last_column = column
+            rows.append(values)
+        return rows
+
+
+def excel_number(value: object) -> float | None:
+    try:
+        text = str(value).strip().replace(",", ".")
+        return float(text) if text else None
+    except ValueError:
+        return None
+
+
+def excel_date(value: object) -> str:
+    number = excel_number(value)
+    if number is None:
+        return str(value or "").strip()
+    return (dt.datetime(1899, 12, 30) + dt.timedelta(days=number)).strftime("%d/%m/%Y")
+
+
+def excel_time(value: object) -> str:
+    number = excel_number(value)
+    if number is None:
+        return str(value or "").strip()
+    total_minutes = round((number % 1) * 24 * 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def excel_duration(value: object) -> tuple[str, float | None]:
+    number = excel_number(value)
+    if number is None:
+        return str(value or "").strip(), None
+    total_minutes = round(number * 24 * 60)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"{hours:02d}:{minutes:02d}", float(total_minutes)
+
+
+def parse_ct_control_rows() -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    rows = xlsx_rows(CT_CONTROL_UPLOAD, "Controle de CT")
+    for raw_row in rows:
+        values = raw_row + [""] * 24
+        data, motorista, tipo_frete, status, viagens = [str(item).strip() for item in values[10:15]]
+        chegada, entrada, saida, nota_fiscal = [str(item).strip() for item in values[15:19]]
+        tempo_carregamento, carregamento_minutos = excel_duration(values[19])
+        tempo_total, total_minutos = excel_duration(values[20])
+        observacao = str(values[21]).strip()
+        if not motorista:
+            continue
+        if not any([tipo_frete, status, viagens, chegada, entrada, saida, nota_fiscal, observacao]):
+            continue
+        if normalize_header(data) == "data" or normalize_header(motorista) == "motorista":
+            continue
+        records.append(
+            {
+                "data": excel_date(data),
+                "motorista": motorista,
+                "tipoFrete": tipo_frete,
+                "status": status,
+                "viagens": viagens,
+                "chegada": excel_time(chegada),
+                "entrada": excel_time(entrada),
+                "saida": excel_time(saida),
+                "notaFiscal": nota_fiscal,
+                "tempoCarregamento": tempo_carregamento,
+                "tempoCarregamentoMinutos": carregamento_minutos,
+                "tempoTotal": tempo_total,
+                "tempoTotalMinutos": total_minutos,
+                "observacao": observacao,
+            }
+        )
+    return records
+
+
 def database_status() -> dict[str, object]:
     url = build_dashboard.database_url()
     parsed = urlparse(url) if url else None
@@ -2610,6 +3059,7 @@ class Handler(BaseHTTPRequestHandler):
   <nav class="nav">
     <a class="top-link" href="/home">Home</a>
     <a class="top-link" href="/editar">Editar dados</a>
+    <a class="top-link" href="/controle-ct">Controle de CT</a>
     <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
     <a class="top-link" href="/logout">Sair</a>
@@ -2657,6 +3107,14 @@ class Handler(BaseHTTPRequestHandler):
         page = (
             DAILY_REPORT_HTML.replace("{favicon_url}", FAVICON_URL)
             .replace("__DATA__", json_for_script(data))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_ct_control(self) -> None:
+        rows = parse_ct_control_rows()
+        page = (
+            CT_CONTROL_HTML.replace("{favicon_url}", FAVICON_URL)
+            .replace("__CT_RECORDS__", json_for_script(rows))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -2743,6 +3201,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             self.send_daily_report()
+            return
+        if parsed.path == "/controle-ct":
+            if not self.require_login():
+                return
+            self.send_ct_control()
             return
         if parsed.path == "/db-status":
             if not self.require_login():
