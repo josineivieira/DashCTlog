@@ -2061,6 +2061,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
             <option value="">Todos os status</option>
             <option>Aguardando Entrada</option>
             <option>Fila de Carregamento</option>
+            <option>Em Atendimento</option>
             <option>Finalizado</option>
             <option>Patio</option>
           </select>
@@ -2091,7 +2092,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   <script>
     let rows = __ROWS__;
     const $ = (id) => document.getElementById(id);
-    const statuses = ["", "Aguardando Entrada", "Fila de Carregamento", "Finalizado", "Patio"];
+    const statuses = ["", "Aguardando Entrada", "Fila de Carregamento", "Em Atendimento", "Finalizado", "Patio"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
 
@@ -2099,6 +2100,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const date = new Date();
       date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
       return date.toISOString().slice(0, 16);
+    }
+    function todayDateLocal() {
+      return nowDateTimeLocal().slice(0, 10);
     }
     function escapeHtml(value) {
       return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -2141,6 +2145,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("finalizado")) return "status-finalizado";
       if (normalized.includes("fila")) return "status-fila";
       if (normalized.includes("aguardando")) return "status-aguardando";
+      if (normalized.includes("atendimento")) return "status-patio";
       if (normalized.includes("patio")) return "status-patio";
       return "";
     }
@@ -2217,7 +2222,11 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     $("addArrival").addEventListener("click", () => {
       syncFromTableIfReady();
-      rows.unshift(cleanRow({}));
+      rows.unshift(cleanRow({
+        data: todayDateLocal(),
+        status: "Aguardando Entrada",
+        chegada: nowDateTimeLocal()
+      }));
       $("searchFilter").value = "";
       $("statusFilter").value = "";
       $("freightFilter").value = "";
@@ -2225,7 +2234,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       document.querySelector('[data-key="motorista"]')?.focus();
     });
     $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
-    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento", entrada: row.entrada || nowDateTimeLocal() })));
+    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Em Atendimento", entrada: row.entrada || nowDateTimeLocal() })));
     $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" })));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
@@ -3390,12 +3399,6 @@ CT_CONTROL_COLUMNS = [
 
 def clean_ct_control_row(row: dict[str, object]) -> dict[str, str]:
     clean = {key: str(row.get(key, "") or "").strip() for key in CT_CONTROL_COLUMNS}
-    if not clean["tipoFrete"]:
-        clean["tipoFrete"] = "CIF"
-    if not clean["status"]:
-        clean["status"] = "Aguardando Entrada"
-    if not clean["viagens"]:
-        clean["viagens"] = "1 viagem"
     return clean
 
 
