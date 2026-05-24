@@ -1940,6 +1940,23 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     .actions, .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .actions button { border-color: transparent; background: var(--purple); }
     .actions .secondary { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
+    .edit-toggle {
+      gap: 7px;
+      border-color: #b8c7d8;
+      background: linear-gradient(180deg, #ffffff, #e8eef5);
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 2px 8px rgba(23,32,51,.08);
+    }
+    .edit-toggle svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+    .edit-toggle.is-editing {
+      border-color: transparent;
+      background: linear-gradient(180deg, #7c31b4, var(--purple));
+      color: #fff;
+    }
     .filters input, .filters select {
       min-height: 36px;
       border: 1px solid var(--line);
@@ -1989,6 +2006,21 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       outline: 2px solid #2b84cb;
       outline-offset: -2px;
       background: #fff;
+    }
+    input.cell:disabled, select.cell:disabled {
+      cursor: default;
+      color: #243041;
+      opacity: 1;
+    }
+    body.editing-ct input.cell,
+    body.editing-ct select.cell {
+      background: #fffdf1;
+      box-shadow: inset 0 0 0 1px rgba(226, 177, 38, .38);
+    }
+    body.editing-ct input.cell:focus,
+    body.editing-ct select.cell:focus {
+      background: #fff;
+      box-shadow: inset 0 0 0 2px #2b84cb;
     }
     .status-finalizado { color: #008000; font-weight: 900; }
     .status-fila { color: #b27300; font-weight: 900; }
@@ -2050,6 +2082,10 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
           <button type="button" id="markQueue" class="secondary">Marcar fila</button>
+          <button type="button" id="editModeToggle" class="edit-toggle" title="Alternar modo de edição" aria-label="Editar Registro">
+            <span class="edit-icon" aria-hidden="true"></span>
+            <span class="edit-label">Editar Registro</span>
+          </button>
           <button type="button" id="markEntry" class="secondary">Marcar entrada</button>
           <button type="button" id="markExit" class="secondary">Marcar saida</button>
           <button type="button" id="deleteRows" class="secondary">Excluir</button>
@@ -2090,6 +2126,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   </main>
   <script>
     let rows = __ROWS__;
+    let editMode = false;
     const $ = (id) => document.getElementById(id);
     const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
@@ -2149,6 +2186,31 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("patio")) return "status-patio";
       return "";
     }
+    function editIcon() {
+      if (editMode) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6 9 17l-5 1 1-5L16 2z"></path>
+          <path d="m15 3 6 6"></path>
+        </svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"></path>
+        <circle cx="8.5" cy="12" r="2.5"></circle>
+        <circle cx="15.5" cy="12" r="2.5"></circle>
+        <path d="M11 12h2"></path>
+        <path d="m17 19 4-4 1 1-4 4-2 .5z"></path>
+      </svg>`;
+    }
+    function updateEditModeButton() {
+      const button = $("editModeToggle");
+      if (!button) return;
+      button.classList.toggle("is-editing", editMode);
+      button.title = editMode ? "Visualizar" : "Alternar modo de edição";
+      button.setAttribute("aria-label", editMode ? "Visualizar" : "Editar Registro");
+      button.querySelector(".edit-icon").innerHTML = editIcon();
+      button.querySelector(".edit-label").textContent = editMode ? "Salvar" : "Editar Registro";
+      document.body.classList.toggle("editing-ct", editMode);
+    }
     function visibleRows() {
       const query = $("searchFilter").value.trim().toLowerCase();
       const status = $("statusFilter").value;
@@ -2171,22 +2233,24 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     function render() {
       const data = visibleRows();
+      const disabled = editMode ? "" : " disabled";
       $("rows").innerHTML = data.map(({ row, index }) => `
         <tr data-index="${index}">
           <td><input type="checkbox" aria-label="Selecionar linha"></td>
-          <td><input class="cell" type="date" data-key="data" value="${escapeAttr(toDateInput(row.data))}"></td>
-          <td><input class="cell" data-key="motorista" value="${escapeAttr(row.motorista)}"></td>
-          <td><select class="cell" data-key="tipoFrete">${optionList(freights, row.tipoFrete)}</select></td>
-          <td><select class="cell ${statusClass(row.status)}" data-key="status">${optionList(statuses, row.status)}</select></td>
-          <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}"></td>
-          <td><input class="cell" type="datetime-local" data-key="chegada" value="${escapeAttr(toDateTimeInput(row.chegada))}"></td>
-          <td><input class="cell" type="datetime-local" data-key="entrada" value="${escapeAttr(toDateTimeInput(row.entrada))}"></td>
-          <td><input class="cell" type="datetime-local" data-key="saida" value="${escapeAttr(toDateTimeInput(row.saida))}"></td>
-          <td><select class="cell" data-key="notaFiscal">${optionList(invoices, row.notaFiscal)}</select></td>
-          <td><input class="cell" data-key="observacao" value="${escapeAttr(row.observacao)}"></td>
+          <td><input class="cell" type="date" data-key="data" value="${escapeAttr(toDateInput(row.data))}"${disabled}></td>
+          <td><input class="cell" data-key="motorista" value="${escapeAttr(row.motorista)}"${disabled}></td>
+          <td><select class="cell" data-key="tipoFrete"${disabled}>${optionList(freights, row.tipoFrete)}</select></td>
+          <td><select class="cell ${statusClass(row.status)}" data-key="status"${disabled}>${optionList(statuses, row.status)}</select></td>
+          <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}"${disabled}></td>
+          <td><input class="cell" type="datetime-local" data-key="chegada" value="${escapeAttr(toDateTimeInput(row.chegada))}"${disabled}></td>
+          <td><input class="cell" type="datetime-local" data-key="entrada" value="${escapeAttr(toDateTimeInput(row.entrada))}"${disabled}></td>
+          <td><input class="cell" type="datetime-local" data-key="saida" value="${escapeAttr(toDateTimeInput(row.saida))}"${disabled}></td>
+          <td><select class="cell" data-key="notaFiscal"${disabled}>${optionList(invoices, row.notaFiscal)}</select></td>
+          <td><input class="cell" data-key="observacao" value="${escapeAttr(row.observacao)}"${disabled}></td>
         </tr>
       `).join("");
       renderCounters();
+      updateEditModeButton();
     }
     function syncFromTableIfReady() {
       if (!$("rows").children.length) return;
@@ -2233,6 +2297,15 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       document.querySelector('[data-key="motorista"]')?.focus();
     });
     $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
+    $("editModeToggle").addEventListener("click", () => {
+      if (editMode) {
+        syncFromTableIfReady();
+        $("ctForm").requestSubmit();
+        return;
+      }
+      editMode = true;
+      render();
+    });
     $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Patio", entrada: row.entrada || nowDateTimeLocal() })));
     $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" })));
     $("deleteRows").addEventListener("click", () => {
