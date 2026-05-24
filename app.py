@@ -2091,26 +2091,41 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   <script>
     let rows = __ROWS__;
     const $ = (id) => document.getElementById(id);
-    const statuses = ["Aguardando Entrada", "Fila de Carregamento", "Finalizado", "Patio"];
-    const freights = ["CIF", "FOB", "Transferencia", "RZD"];
+    const statuses = ["", "Aguardando Entrada", "Fila de Carregamento", "Finalizado", "Patio"];
+    const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
 
-    function today() {
-      return new Date().toLocaleDateString("pt-BR");
-    }
-    function nowTime() {
-      return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    function nowDateTimeLocal() {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
     }
     function escapeHtml(value) {
       return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/"/g, "&quot;");
+    }
+    function toDateInput(value) {
+      const text = String(value || "").trim();
+      if (/^\\d{4}-\\d{2}-\\d{2}/.test(text)) return text.slice(0, 10);
+      const match = text.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+      return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+    }
+    function toDateTimeInput(value) {
+      const text = String(value || "").trim();
+      if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/.test(text)) return text.slice(0, 16);
+      const time = text.match(/^(\\d{2}):(\\d{2})$/);
+      if (time) return `${new Date().toISOString().slice(0, 10)}T${time[1]}:${time[2]}`;
+      return "";
+    }
     function cleanRow(row = {}) {
       return {
-        data: row.data || today(),
+        data: row.data || "",
         motorista: row.motorista || "",
-        tipoFrete: row.tipoFrete || "CIF",
-        status: row.status || "Aguardando Entrada",
-        viagens: row.viagens || "1 viagem",
+        tipoFrete: row.tipoFrete || "",
+        status: row.status || "",
+        viagens: row.viagens || "",
         chegada: row.chegada || "",
         entrada: row.entrada || "",
         saida: row.saida || "",
@@ -2119,7 +2134,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       };
     }
     function optionList(values, current) {
-      return values.map((value) => `<option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
+      return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
     function statusClass(status) {
       const normalized = String(status).toLowerCase();
@@ -2128,20 +2143,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("aguardando")) return "status-aguardando";
       if (normalized.includes("patio")) return "status-patio";
       return "";
-    }
-    function syncFromTable() {
-      rows = [...document.querySelectorAll("#rows tr")].map((tr) => cleanRow({
-        data: tr.querySelector('[data-key="data"]').value.trim(),
-        motorista: tr.querySelector('[data-key="motorista"]').value.trim(),
-        tipoFrete: tr.querySelector('[data-key="tipoFrete"]').value,
-        status: tr.querySelector('[data-key="status"]').value,
-        viagens: tr.querySelector('[data-key="viagens"]').value.trim(),
-        chegada: tr.querySelector('[data-key="chegada"]').value.trim(),
-        entrada: tr.querySelector('[data-key="entrada"]').value.trim(),
-        saida: tr.querySelector('[data-key="saida"]').value.trim(),
-        notaFiscal: tr.querySelector('[data-key="notaFiscal"]').value,
-        observacao: tr.querySelector('[data-key="observacao"]').value.trim()
-      }));
     }
     function visibleRows() {
       const query = $("searchFilter").value.trim().toLowerCase();
@@ -2169,16 +2170,16 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       $("rows").innerHTML = data.map(({ row, index }) => `
         <tr data-index="${index}">
           <td><input type="checkbox" aria-label="Selecionar linha"></td>
-          <td><input class="cell" data-key="data" value="${escapeHtml(row.data)}"></td>
-          <td><input class="cell" data-key="motorista" value="${escapeHtml(row.motorista)}"></td>
+          <td><input class="cell" type="date" data-key="data" value="${escapeAttr(toDateInput(row.data))}"></td>
+          <td><input class="cell" data-key="motorista" value="${escapeAttr(row.motorista)}"></td>
           <td><select class="cell" data-key="tipoFrete">${optionList(freights, row.tipoFrete)}</select></td>
           <td><select class="cell ${statusClass(row.status)}" data-key="status">${optionList(statuses, row.status)}</select></td>
-          <td><input class="cell" data-key="viagens" value="${escapeHtml(row.viagens)}"></td>
-          <td><input class="cell" data-key="chegada" value="${escapeHtml(row.chegada)}"></td>
-          <td><input class="cell" data-key="entrada" value="${escapeHtml(row.entrada)}"></td>
-          <td><input class="cell" data-key="saida" value="${escapeHtml(row.saida)}"></td>
+          <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}"></td>
+          <td><input class="cell" type="datetime-local" data-key="chegada" value="${escapeAttr(toDateTimeInput(row.chegada))}"></td>
+          <td><input class="cell" type="datetime-local" data-key="entrada" value="${escapeAttr(toDateTimeInput(row.entrada))}"></td>
+          <td><input class="cell" type="datetime-local" data-key="saida" value="${escapeAttr(toDateTimeInput(row.saida))}"></td>
           <td><select class="cell" data-key="notaFiscal">${optionList(invoices, row.notaFiscal)}</select></td>
-          <td><input class="cell" data-key="observacao" value="${escapeHtml(row.observacao)}"></td>
+          <td><input class="cell" data-key="observacao" value="${escapeAttr(row.observacao)}"></td>
         </tr>
       `).join("");
       renderCounters();
@@ -2210,19 +2211,22 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     function updateSelected(updater) {
       const indexes = selectedIndexes();
+      if (!indexes.length) return;
       indexes.forEach((index) => rows[index] = cleanRow(updater(rows[index])));
       render();
     }
     $("addArrival").addEventListener("click", () => {
       syncFromTableIfReady();
-      rows.unshift(cleanRow({ chegada: nowTime() }));
+      rows.unshift(cleanRow({}));
       $("searchFilter").value = "";
+      $("statusFilter").value = "";
+      $("freightFilter").value = "";
       render();
       document.querySelector('[data-key="motorista"]')?.focus();
     });
     $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
-    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento", entrada: row.entrada || nowTime() })));
-    $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowTime(), notaFiscal: row.notaFiscal || "Impresso" })));
+    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento", entrada: row.entrada || nowDateTimeLocal() })));
+    $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" })));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
       if (!remove.size) return;
