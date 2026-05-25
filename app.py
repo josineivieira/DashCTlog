@@ -2880,6 +2880,61 @@ DAILY_REPORT_HTML = """<!doctype html>
       return rows.filter((row) => row.data === date && (!terminal || row.terminal === terminal));
     }
 
+    function groupedRowsByPlate(data) {
+      const terminalOrder = { Equador: 1, Ipiranga: 2 };
+      const groups = new Map();
+      data.forEach((row) => {
+        const key = row.placa;
+        const current = groups.get(key) || {
+          ...row,
+          terminal: "",
+          terminalNome: "",
+          terminalShort: "",
+          viagens: 0,
+          viagensOrdens: 0,
+          viagensCarga: 0,
+          capacidade: 0,
+          quantidade: 0,
+          notas: 0,
+          clientes: 0,
+          produtos: [],
+          mixProdutos: ""
+        };
+        current.viagens += Number(row.viagens) || 0;
+        current.viagensOrdens += Number(row.viagensOrdens) || 0;
+        current.viagensCarga += Number(row.viagensCarga) || 0;
+        current.capacidade = Math.max(current.capacidade, Number(row.capacidade) || 0);
+        current.quantidade += Number(row.quantidade) || 0;
+        current.notas += Number(row.notas) || 0;
+        current.clientes += Number(row.clientes) || 0;
+        current.produtos.push(...(row.produtos || []));
+        current._terminals = current._terminals || new Map();
+        current._terminals.set(row.terminalNome, row.terminal);
+        groups.set(key, current);
+      });
+      return [...groups.values()].map((row) => {
+        const terminals = [...row._terminals.entries()]
+          .sort((a, b) => (terminalOrder[a[0]] || 99) - (terminalOrder[b[0]] || 99));
+        const productTotals = new Map();
+        row.produtos.forEach((item) => {
+          const name = item.produto || "Sem produto detalhado";
+          productTotals.set(name, (productTotals.get(name) || 0) + (Number(item.quantidade) || 0));
+        });
+        const products = [...productTotals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([produto, quantidade]) => ({ produto, quantidade }));
+        return {
+          ...row,
+          terminal: terminals.map(([, code]) => code).join("/"),
+          terminalNome: terminals.map(([name]) => name).join("/"),
+          terminalShort: terminals.map(([name]) => name.slice(0, 3)).join("/"),
+          produtos: products,
+          mixProdutos: products.slice(0, 4).map((item) => `${item.produto} (${fmt.format(Math.round(item.quantidade / 1000))}k)`).join(", ") || "Sem produto detalhado",
+          _terminals: undefined
+        };
+      });
+    }
+
     function sumBy(items, key, valueKey) {
       const totals = new Map();
       items.forEach((item) => totals.set(item[key], (totals.get(item[key]) || 0) + item[valueKey]));
@@ -2920,11 +2975,12 @@ DAILY_REPORT_HTML = """<!doctype html>
     }
 
     function renderTable(data) {
-      if (!data.length) {
+      const detailData = groupedRowsByPlate(data);
+      if (!detailData.length) {
         $("reportRows").innerHTML = `<tr><td colspan="7" class="empty">Sem dados para o filtro.</td></tr>`;
         return;
       }
-      $("reportRows").innerHTML = data
+      $("reportRows").innerHTML = detailData
         .slice()
         .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa))
         .map((row) => `
@@ -2983,11 +3039,13 @@ DAILY_REPORT_HTML = """<!doctype html>
       const data = filteredRows()
         .slice()
         .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa));
+      const detailData = groupedRowsByPlate(data)
+        .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa));
       const trips = data.reduce((total, row) => total + row.viagens, 0);
       const qty = data.reduce((total, row) => total + row.quantidade, 0);
       const notes = data.reduce((total, row) => total + row.notas, 0);
       const plates = new Set(data.map((row) => row.placa)).size;
-      return { data, trips, qty, notes, plates };
+      return { data, detailData, trips, qty, notes, plates };
     }
 
     function drawBrand(ctx) {
@@ -3025,7 +3083,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       let ctx = canvas.getContext("2d");
       ctx.font = "700 17px Arial";
       const productWidth = 326;
-      const rowMetrics = report.data.map((row) => {
+      const rowMetrics = report.detailData.map((row) => {
         const lines = wrapText(ctx, row.mixProdutos, productWidth).slice(0, 3);
         return { row, lines, height: Math.max(58, 34 + lines.length * 20) };
       });
@@ -3160,7 +3218,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         ctx.font = "900 20px Arial";
         ctx.fillText(row.placa, 88, tableY + 29);
         ctx.font = "800 19px Arial";
-        ctx.fillText(row.terminalNome.slice(0, 3), 238, tableY + 29);
+        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 238, tableY + 29);
         ctx.fillText(fmt.format(row.viagens), 366, tableY + 29);
         ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 452, tableY + 29);
         ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 570, tableY + 29);
