@@ -3797,6 +3797,12 @@ def save_postgres_conductor_rows(names: list[object]) -> None:
 def conductor_rows() -> list[str]:
     if build_dashboard.use_postgres():
         names = postgres_conductor_rows()
+        if names:
+            return names
+        names = sort_conductor_names([row.get("motorista", "") for row in postgres_ct_control_rows()])
+        if names:
+            save_postgres_conductor_rows(names)
+            return names
     elif CONDUCTOR_DATA.exists():
         try:
             data = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
@@ -4251,6 +4257,8 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     os.environ.pop("BUILDING_DASHBOARD", None)
     DATA_DIR.mkdir(exist_ok=True)
+    if build_dashboard.use_postgres():
+        ensure_postgres_conductor_table()
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()
     port = int(os.environ.get("PORT", "8000"))
