@@ -1464,7 +1464,7 @@ CAPACITY_HTML = """<!doctype html>
           </div>
           <div class="sheet-wrap">
             <table id="conductorSheet">
-              <thead><tr><th></th><th>Motorista</th></tr></thead>
+              <thead><tr><th></th><th>Motorista</th><th>Tipo de Frete</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -1525,22 +1525,44 @@ CAPACITY_HTML = """<!doctype html>
       });
     }
 
-    function cleanConductor(value = "") {
-      return String(value ?? "").trim().toUpperCase();
+    function normalizeFreight(value = "") {
+      const text = String(value ?? "").trim();
+      const key = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (key === "transferencia") return "Transferencia";
+      if (key === "cif") return "CIF";
+      if (key === "fob") return "FOB";
+      if (key === "rzd") return "RZD";
+      return text;
+    }
+
+    function cleanConductor(row = {}) {
+      if (typeof row === "string") {
+        return { nome: row.trim().toUpperCase(), tipoFrete: "" };
+      }
+      return {
+        nome: String(row.nome ?? row.motorista ?? "").trim().toUpperCase(),
+        tipoFrete: normalizeFreight(row.tipoFrete ?? row.tipo_frete ?? "")
+      };
     }
 
     function sortConductors() {
       const cleaned = conductors.map(cleanConductor);
-      const blankCount = cleaned.filter((name) => !name).length;
+      const blankCount = cleaned.filter((row) => !row.nome).length;
+      const unique = new Map();
+      cleaned.filter((row) => row.nome).forEach((row) => {
+        if (!unique.has(row.nome) || (!unique.get(row.nome).tipoFrete && row.tipoFrete)) unique.set(row.nome, row);
+      });
       conductors = [
-        ...new Set(cleaned.filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR"))),
-        ...Array(blankCount).fill("")
+        ...[...unique.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        ...Array(blankCount).fill({ nome: "", tipoFrete: "" })
       ];
     }
 
     function syncConductorsFromTable() {
-      conductors = [...conductorTbody.querySelectorAll("[data-key='nome']")]
-        .map((cell) => cleanConductor(cell.textContent));
+      conductors = [...conductorTbody.querySelectorAll("tr")].map((tr) => cleanConductor({
+        nome: tr.querySelector("[data-key='nome']")?.textContent || "",
+        tipoFrete: tr.querySelector("[data-key='tipoFrete']")?.value || ""
+      }));
       sortConductors();
     }
 
@@ -1555,13 +1577,22 @@ CAPACITY_HTML = """<!doctype html>
       }).join("");
       rowCount.textContent = rows.length.toLocaleString("pt-BR");
       sortConductors();
-      conductorTbody.innerHTML = conductors.map((name, idx) => `
+      conductorTbody.innerHTML = conductors.map((row, idx) => `
         <tr>
           <td><input type="checkbox" aria-label="Selecionar condutor ${idx + 1}"><br>${idx + 1}</td>
-          <td contenteditable="true" data-key="nome">${escapeHtml(name)}</td>
+          <td contenteditable="true" data-key="nome">${escapeHtml(row.nome)}</td>
+          <td>
+            <select data-key="tipoFrete">
+              <option value=""></option>
+              <option value="CIF" ${row.tipoFrete === "CIF" ? "selected" : ""}>CIF</option>
+              <option value="FOB" ${row.tipoFrete === "FOB" ? "selected" : ""}>FOB</option>
+              <option value="Transferencia" ${row.tipoFrete === "Transferencia" ? "selected" : ""}>Transferencia</option>
+              <option value="RZD" ${row.tipoFrete === "RZD" ? "selected" : ""}>RZD</option>
+            </select>
+          </td>
         </tr>
       `).join("");
-      conductorCount.textContent = conductors.filter(Boolean).length.toLocaleString("pt-BR");
+      conductorCount.textContent = conductors.filter((row) => row.nome).length.toLocaleString("pt-BR");
     }
 
     document.querySelectorAll(".tab-button").forEach((button) => {
@@ -1591,7 +1622,7 @@ CAPACITY_HTML = """<!doctype html>
 
     document.querySelector("#addConductor").addEventListener("click", () => {
       syncConductorsFromTable();
-      conductors.push("");
+      conductors.push({ nome: "", tipoFrete: "" });
       render();
       document.querySelector("#conductorSheet tbody tr:last-child [data-key='nome']")?.focus();
     });
@@ -2272,6 +2303,10 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
+    const conductorFreights = new Map(conductors.map((item) => {
+      const row = typeof item === "string" ? { nome: item, tipoFrete: "" } : item;
+      return [String(row.nome || row.motorista || "").trim(), String(row.tipoFrete || row.tipo_frete || "").trim()];
+    }).filter(([name]) => name));
 
     function nowDateTimeLocal() {
       const date = new Date();
@@ -2320,7 +2355,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
     function conductorOptions(current) {
-      const values = [...new Set(["", ...conductors, current].map((value) => String(value || "").trim()).filter((value, idx) => idx === 0 || value))];
+      const conductorNames = conductors.map((item) => typeof item === "string" ? item : (item.nome || item.motorista || ""));
+      const values = [...new Set(["", ...conductorNames, current].map((value) => String(value || "").trim()).filter((value, idx) => idx === 0 || value))];
       return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
     function statusClass(status) {
@@ -2466,7 +2502,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       syncFromTableIfReady();
       renderCounters();
     });
-    $("rows").addEventListener("change", () => {
+    $("rows").addEventListener("change", (event) => {
+      if (event.target?.dataset?.key === "motorista") {
+        const tr = event.target.closest("tr");
+        const freight = conductorFreights.get(event.target.value.trim()) || "";
+        const freightSelect = tr?.querySelector('[data-key="tipoFrete"]');
+        if (freight && freightSelect) freightSelect.value = freight;
+      }
       syncFromTableIfReady();
       renderCounters();
     });
@@ -3357,19 +3399,45 @@ def clean_conductor_name(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip()).upper()
 
 
+def clean_conductor_freight(value: object) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    normalized = normalize_header(text)
+    if normalized == "cif":
+        return "CIF"
+    if normalized == "fob":
+        return "FOB"
+    if normalized == "rzd":
+        return "RZD"
+    if normalized == "transferencia":
+        return "Transferencia"
+    return text
+
+
 def normalize_header(value: str) -> str:
     text = unicodedata.normalize("NFKD", str(value).strip().lower())
     text = "".join(char for char in text if not unicodedata.combining(char))
     return re.sub(r"[^a-z0-9]+", "", text)
 
 
-def sort_conductor_names(names: list[str]) -> list[str]:
-    unique: dict[str, str] = {}
-    for name in names:
-        clean = clean_conductor_name(name)
-        if clean:
-            unique.setdefault(normalize_header(clean), clean)
-    return sorted(unique.values(), key=lambda value: normalize_header(value))
+def clean_conductor_row(row: object) -> dict[str, str]:
+    if isinstance(row, dict):
+        name = row.get("nome", row.get("motorista", ""))
+        freight = row.get("tipoFrete", row.get("tipo_frete", ""))
+    else:
+        name = row
+        freight = ""
+    return {"nome": clean_conductor_name(name), "tipoFrete": clean_conductor_freight(freight)}
+
+
+def sort_conductor_rows(rows: list[object]) -> list[dict[str, str]]:
+    unique: dict[str, dict[str, str]] = {}
+    for row in rows:
+        clean = clean_conductor_row(row)
+        if clean["nome"]:
+            key = normalize_header(clean["nome"])
+            if key not in unique or (not unique[key]["tipoFrete"] and clean["tipoFrete"]):
+                unique[key] = clean
+    return sorted(unique.values(), key=lambda item: normalize_header(item["nome"]))
 
 
 HEADER_ALIASES = {
@@ -3671,6 +3739,25 @@ def parse_ct_control_rows() -> list[dict[str, object]]:
     return records
 
 
+def parse_conductor_base_rows(path: Path = CT_CONTROL_UPLOAD) -> list[dict[str, str]]:
+    rows = xlsx_rows(path, "Base")
+    if not rows:
+        return []
+    headers = [normalize_header(item) for item in rows[0]]
+    try:
+        name_idx = headers.index("motorista")
+    except ValueError:
+        return []
+    freight_idx = headers.index("tipodefrete") if "tipodefrete" in headers else None
+    conductors: list[dict[str, str]] = []
+    for raw_row in rows[1:]:
+        values = raw_row + [""] * 5
+        name = values[name_idx] if name_idx < len(values) else ""
+        freight = values[freight_idx] if freight_idx is not None and freight_idx < len(values) else ""
+        conductors.append({"nome": name, "tipoFrete": freight})
+    return sort_conductor_rows(conductors)
+
+
 CT_CONTROL_COLUMNS = [
     "data",
     "motorista",
@@ -3821,66 +3908,76 @@ def ensure_postgres_conductor_table() -> None:
                 )
                 """
             )
+            cur.execute("ALTER TABLE condutores ADD COLUMN IF NOT EXISTS tipo_frete TEXT NOT NULL DEFAULT ''")
 
 
-def postgres_conductor_rows() -> list[str]:
+def postgres_conductor_rows() -> list[dict[str, str]]:
     ensure_postgres_conductor_table()
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT nome FROM condutores ORDER BY nome")
-            names = sort_conductor_names([item[0] for item in cur.fetchall()])
-    if names:
-        return names
+            cur.execute("SELECT nome, tipo_frete FROM condutores ORDER BY nome")
+            conductors = sort_conductor_rows([{"nome": item[0], "tipoFrete": item[1]} for item in cur.fetchall()])
+    if conductors:
+        return conductors
     if CONDUCTOR_DATA.exists():
         try:
-            local_names = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
-            if isinstance(local_names, list):
-                save_postgres_conductor_rows(local_names)
+            local_rows = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
+            if isinstance(local_rows, list):
+                save_postgres_conductor_rows(local_rows)
                 return postgres_conductor_rows()
         except json.JSONDecodeError:
             pass
     return []
 
 
-def save_postgres_conductor_rows(names: list[object]) -> None:
+def save_postgres_conductor_rows(rows: list[object]) -> None:
     ensure_postgres_conductor_table()
-    clean_names = sort_conductor_names([str(name) for name in names])
+    clean_rows = sort_conductor_rows(rows)
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("TRUNCATE TABLE condutores RESTART IDENTITY")
-            for name in clean_names:
-                cur.execute("INSERT INTO condutores (nome) VALUES (%s)", (name,))
+            for row in clean_rows:
+                cur.execute("INSERT INTO condutores (nome, tipo_frete) VALUES (%s, %s)", (row["nome"], row["tipoFrete"]))
 
 
-def conductor_rows() -> list[str]:
+def conductor_rows() -> list[dict[str, str]]:
     if build_dashboard.use_postgres():
-        names = postgres_conductor_rows()
-        if names:
-            return names
-        names = sort_conductor_names([row.get("motorista", "") for row in postgres_ct_control_rows()])
-        if names:
-            save_postgres_conductor_rows(names)
-            return names
+        conductors = postgres_conductor_rows()
+        if conductors:
+            merged = sort_conductor_rows([*conductors, *parse_conductor_base_rows()])
+            if merged != conductors:
+                save_postgres_conductor_rows(merged)
+            return merged
+        conductors = parse_conductor_base_rows()
+        if not conductors:
+            conductors = sort_conductor_rows([{"nome": row.get("motorista", ""), "tipoFrete": row.get("tipoFrete", "")} for row in postgres_ct_control_rows()])
+        if conductors:
+            save_postgres_conductor_rows(conductors)
+            return conductors
     elif CONDUCTOR_DATA.exists():
         try:
             data = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
-            names = sort_conductor_names(data if isinstance(data, list) else [])
+            conductors = sort_conductor_rows(data if isinstance(data, list) else [])
         except json.JSONDecodeError:
-            names = []
+            conductors = []
     else:
-        names = []
-    if names:
-        return names
-    return sort_conductor_names([row.get("motorista", "") for row in ct_control_rows()])
+        conductors = []
+    if conductors:
+        merged = sort_conductor_rows([*conductors, *parse_conductor_base_rows()])
+        return merged
+    conductors = parse_conductor_base_rows()
+    if conductors:
+        return conductors
+    return sort_conductor_rows([{"nome": row.get("motorista", ""), "tipoFrete": row.get("tipoFrete", "")} for row in ct_control_rows()])
 
 
-def save_conductor_rows(names: list[object]) -> None:
-    clean_names = sort_conductor_names([str(name) for name in names])
+def save_conductor_rows(rows: list[object]) -> None:
+    clean_rows = sort_conductor_rows(rows)
     if build_dashboard.use_postgres():
-        save_postgres_conductor_rows(clean_names)
+        save_postgres_conductor_rows(clean_rows)
         return
     DATA_DIR.mkdir(exist_ok=True)
-    CONDUCTOR_DATA.write_text(json.dumps(clean_names, ensure_ascii=False, indent=2), encoding="utf-8")
+    CONDUCTOR_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def database_status() -> dict[str, object]:
