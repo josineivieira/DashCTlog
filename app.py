@@ -2229,6 +2229,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   </header>
   <main>
     {message}
+    <div id="ctNotice" class="message error" hidden></div>
     <section class="control-board">
       <div class="board-group">
         <div class="board-title">Painel CIF</div>
@@ -2303,6 +2304,18 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
+    const statusFlow = ["Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
+    const statusStepLabels = {
+      "Aguardando Entrada": "adicionar chegada",
+      "Patio": "marcar entrada",
+      "Fila de Carregamento": "marcar fila",
+      "Finalizado": "marcar saida"
+    };
+    const requiredStepMessages = {
+      "Patio": "Bloqueado: para marcar entrada, primeiro adicione a chegada do motorista.",
+      "Fila de Carregamento": "Bloqueado: para marcar fila, primeiro marque entrada.",
+      "Finalizado": "Bloqueado: para marcar saida, primeiro marque fila."
+    };
     const conductorFreights = new Map(conductors.map((item) => {
       const row = typeof item === "string" ? { nome: item, tipoFrete: "" } : item;
       return [String(row.nome || row.motorista || "").trim(), String(row.tipoFrete || row.tipo_frete || "").trim()];
@@ -2366,6 +2379,44 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("aguardando")) return "status-aguardando";
       if (normalized.includes("patio")) return "status-patio";
       return "";
+    }
+    function showCtNotice(message) {
+      const notice = $("ctNotice");
+      notice.textContent = message;
+      notice.hidden = false;
+      clearTimeout(showCtNotice.timer);
+      showCtNotice.timer = setTimeout(() => {
+        notice.hidden = true;
+        notice.textContent = "";
+      }, 4200);
+    }
+    function canMoveStatus(currentStatus, targetStatus) {
+      if (currentStatus === targetStatus) return true;
+      if (!targetStatus) return !currentStatus;
+      const currentIndex = statusFlow.indexOf(currentStatus);
+      const targetIndex = statusFlow.indexOf(targetStatus);
+      if (targetIndex === 0) return currentIndex <= 0;
+      return currentIndex === targetIndex - 1;
+    }
+    function blockedStatusMessage(currentStatus, targetStatus) {
+      if (!targetStatus) return "Bloqueado: o status nao pode voltar para vazio. Siga a ordem: chegada, entrada, fila e saida.";
+      if (requiredStepMessages[targetStatus]) return requiredStepMessages[targetStatus];
+      if (statusFlow.includes(targetStatus)) return "Bloqueado: o status nao pode voltar etapas. Siga a ordem: chegada, entrada, fila e saida.";
+      const current = statusStepLabels[currentStatus] || "a etapa atual";
+      const target = statusStepLabels[targetStatus] || "a proxima etapa";
+      return `Bloqueado: os status devem seguir a ordem. Depois de ${current}, use ${target}.`;
+    }
+    function applyStatusSideEffects(row, targetStatus) {
+      if (targetStatus === "Patio") {
+        return { ...row, status: targetStatus, entrada: row.entrada || nowDateTimeLocal() };
+      }
+      if (targetStatus === "Fila de Carregamento") {
+        return { ...row, status: targetStatus };
+      }
+      if (targetStatus === "Finalizado") {
+        return { ...row, status: targetStatus, saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" };
+      }
+      return { ...row, status: targetStatus };
     }
     function editIcon() {
       if (editMode) {
@@ -2460,8 +2511,25 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     function updateSelected(updater) {
       const indexes = selectedIndexes();
-      if (!indexes.length) return;
+      if (!indexes.length) {
+        showCtNotice("Selecione uma linha para alterar o status.");
+        return;
+      }
       indexes.forEach((index) => rows[index] = cleanRow(updater(rows[index])));
+      render();
+    }
+    function moveSelectedToStatus(targetStatus) {
+      const indexes = selectedIndexes();
+      if (!indexes.length) {
+        showCtNotice("Selecione uma linha para alterar o status.");
+        return;
+      }
+      const blocked = indexes.map((index) => cleanRow(rows[index])).find((row) => !canMoveStatus(row.status, targetStatus));
+      if (blocked) {
+        showCtNotice(blockedStatusMessage(blocked.status, targetStatus));
+        return;
+      }
+      indexes.forEach((index) => rows[index] = cleanRow(applyStatusSideEffects(cleanRow(rows[index]), targetStatus)));
       render();
     }
     $("addArrival").addEventListener("click", () => {
@@ -2477,7 +2545,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       render();
       document.querySelector('[data-key="motorista"]')?.focus();
     });
-    $("markQueue").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Fila de Carregamento" })));
+    $("markQueue").addEventListener("click", () => moveSelectedToStatus("Fila de Carregamento"));
     $("editModeToggle").addEventListener("click", () => {
       if (editMode) {
         syncFromTableIfReady();
@@ -2487,8 +2555,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       editMode = true;
       render();
     });
-    $("markEntry").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Patio", entrada: row.entrada || nowDateTimeLocal() })));
-    $("markExit").addEventListener("click", () => updateSelected((row) => ({ ...row, status: "Finalizado", saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" })));
+    $("markEntry").addEventListener("click", () => moveSelectedToStatus("Patio"));
+    $("markExit").addEventListener("click", () => moveSelectedToStatus("Finalizado"));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
       if (!remove.size) return;
@@ -2508,6 +2576,21 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         const freight = conductorFreights.get(event.target.value.trim()) || "";
         const freightSelect = tr?.querySelector('[data-key="tipoFrete"]');
         if (freight && freightSelect) freightSelect.value = freight;
+      }
+      if (event.target?.dataset?.key === "status") {
+        const tr = event.target.closest("tr");
+        const index = Number(tr?.dataset?.index);
+        const currentRow = cleanRow(rows[index]);
+        const targetStatus = event.target.value;
+        if (!canMoveStatus(currentRow.status, targetStatus)) {
+          event.target.value = currentRow.status;
+          showCtNotice(blockedStatusMessage(currentRow.status, targetStatus));
+        } else {
+          const nextRow = applyStatusSideEffects(currentRow, targetStatus);
+          tr.querySelector('[data-key="entrada"]').value = toDateTimeInput(nextRow.entrada);
+          tr.querySelector('[data-key="saida"]').value = toDateTimeInput(nextRow.saida);
+          tr.querySelector('[data-key="notaFiscal"]').value = nextRow.notaFiscal;
+        }
       }
       syncFromTableIfReady();
       renderCounters();
