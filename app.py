@@ -28,6 +28,7 @@ ORDERS_UPLOAD = DATA_DIR / "ordens.xlsx"
 DETAIL_UPLOAD = DATA_DIR / "geral_ct_log.xlsx"
 CT_CONTROL_UPLOAD = ROOT / "Controle de CT .xlsx"
 CT_CONTROL_DATA = DATA_DIR / "controle_ct.json"
+CONDUCTOR_DATA = DATA_DIR / "condutores.json"
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 SESSION_COOKIE = "dashboard_log_session"
 FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
@@ -1329,6 +1330,25 @@ CAPACITY_HTML = """<!doctype html>
       font-size: 12px;
       font-weight: 900;
     }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 15px 15px 0;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab-button {
+      border-color: var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+    .tab-button.active {
+      border-color: transparent;
+      background: var(--teal);
+      color: #fff;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .actions button, .actions .button {
       border-color: transparent;
@@ -1353,6 +1373,7 @@ CAPACITY_HTML = """<!doctype html>
     @keyframes spin { to { transform: rotate(360deg); } }
     .sheet-wrap { overflow: auto; max-height: calc(100vh - 230px); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    #conductorSheet { min-width: 520px; }
     th, td { border-bottom: 1px solid var(--line); border-right: 1px solid #eef2f5; text-align: left; }
     th {
       position: sticky;
@@ -1410,21 +1431,45 @@ CAPACITY_HTML = """<!doctype html>
       {message}
       <form id="capacityForm" method="post" action="/capacidades">
         <input type="hidden" name="rows_json" id="rowsJson">
-        <div class="toolbar">
-          <div class="meta"><span id="rowCount">__ROW_COUNT__</span> capacidades cadastradas</div>
-          <div class="actions">
-            <button type="button" id="addRow">Adicionar linha</button>
-            <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
-            <button type="submit">Salvar e atualizar dashboard</button>
+        <input type="hidden" name="conductors_json" id="conductorsJson">
+        <div class="tabs" role="tablist" aria-label="Cadastros">
+          <button type="button" class="tab-button active" data-tab="capacities">Capacidades</button>
+          <button type="button" class="tab-button" data-tab="conductors">Condutores</button>
+        </div>
+        <div class="tab-panel active" data-panel="capacities">
+          <div class="toolbar">
+            <div class="meta"><span id="rowCount">__ROW_COUNT__</span> capacidades cadastradas</div>
+            <div class="actions">
+              <button type="button" id="addRow">Adicionar linha</button>
+              <button type="button" id="deleteRows" class="button">Excluir selecionadas</button>
+              <button type="submit">Salvar e atualizar dashboard</button>
+            </div>
           </div>
+          <div class="sheet-wrap">
+            <table id="sheet">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="hint">A capacidade pode ser digitada em mil litros (30) ou litros (30000). O dashboard vincula pela placa do cavalo ou da carreta, ignorando hifen e espacos.</div>
         </div>
-        <div class="sheet-wrap">
-          <table id="sheet">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
+        <div class="tab-panel" data-panel="conductors">
+          <div class="toolbar">
+            <div class="meta"><span id="conductorCount">__CONDUCTOR_COUNT__</span> condutores cadastrados</div>
+            <div class="actions">
+              <button type="button" id="addConductor">Adicionar condutor</button>
+              <button type="button" id="deleteConductors" class="button">Excluir selecionados</button>
+              <button type="submit">Salvar e atualizar dashboard</button>
+            </div>
+          </div>
+          <div class="sheet-wrap">
+            <table id="conductorSheet">
+              <thead><tr><th></th><th>Motorista</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="hint">Os nomes salvos aqui aparecem em ordem alfabetica no campo Motorista da tela Controle de CT.</div>
         </div>
-        <div class="hint">A capacidade pode ser digitada em mil litros (30) ou litros (30000). O dashboard vincula pela placa do cavalo ou da carreta, ignorando hifen e espacos.</div>
       </form>
     </section>
   </main>
@@ -1452,9 +1497,12 @@ CAPACITY_HTML = """<!doctype html>
       ["observacao", "Observacao"]
     ];
     let rows = __ROWS__;
+    let conductors = __CONDUCTORS__;
     const thead = document.querySelector("#sheet thead");
     const tbody = document.querySelector("#sheet tbody");
+    const conductorTbody = document.querySelector("#conductorSheet tbody");
     const rowCount = document.querySelector("#rowCount");
+    const conductorCount = document.querySelector("#conductorCount");
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1477,6 +1525,25 @@ CAPACITY_HTML = """<!doctype html>
       });
     }
 
+    function cleanConductor(value = "") {
+      return String(value ?? "").trim().toUpperCase();
+    }
+
+    function sortConductors() {
+      const cleaned = conductors.map(cleanConductor);
+      const blankCount = cleaned.filter((name) => !name).length;
+      conductors = [
+        ...new Set(cleaned.filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR"))),
+        ...Array(blankCount).fill("")
+      ];
+    }
+
+    function syncConductorsFromTable() {
+      conductors = [...conductorTbody.querySelectorAll("[data-key='nome']")]
+        .map((cell) => cleanConductor(cell.textContent));
+      sortConductors();
+    }
+
     function render() {
       thead.innerHTML = `<tr><th></th>${columns.map(([, label]) => `<th>${label}</th>`).join("")}</tr>`;
       tbody.innerHTML = rows.map((row, idx) => {
@@ -1487,7 +1554,25 @@ CAPACITY_HTML = """<!doctype html>
         </tr>`;
       }).join("");
       rowCount.textContent = rows.length.toLocaleString("pt-BR");
+      sortConductors();
+      conductorTbody.innerHTML = conductors.map((name, idx) => `
+        <tr>
+          <td><input type="checkbox" aria-label="Selecionar condutor ${idx + 1}"><br>${idx + 1}</td>
+          <td contenteditable="true" data-key="nome">${escapeHtml(name)}</td>
+        </tr>
+      `).join("");
+      conductorCount.textContent = conductors.filter(Boolean).length.toLocaleString("pt-BR");
     }
+
+    document.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        syncFromTable();
+        syncConductorsFromTable();
+        document.querySelectorAll(".tab-button").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === button.dataset.tab));
+        render();
+      });
+    });
 
     document.querySelector("#addRow").addEventListener("click", () => {
       syncFromTable();
@@ -1504,9 +1589,27 @@ CAPACITY_HTML = """<!doctype html>
       render();
     });
 
+    document.querySelector("#addConductor").addEventListener("click", () => {
+      syncConductorsFromTable();
+      conductors.push("");
+      render();
+      document.querySelector("#conductorSheet tbody tr:last-child [data-key='nome']")?.focus();
+    });
+
+    document.querySelector("#deleteConductors").addEventListener("click", () => {
+      syncConductorsFromTable();
+      const checked = new Set([...conductorTbody.querySelectorAll("input[type='checkbox']")]
+        .map((input, idx) => input.checked ? idx : -1)
+        .filter((idx) => idx >= 0));
+      conductors = conductors.filter((_, idx) => !checked.has(idx));
+      render();
+    });
+
     document.querySelector("#capacityForm").addEventListener("submit", () => {
       syncFromTable();
+      syncConductorsFromTable();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
+      document.querySelector("#conductorsJson").value = JSON.stringify(conductors);
       setLoading(document.querySelector('#capacityForm button[type="submit"]'), "Salvando...");
       lockForm(document.querySelector("#capacityForm"));
     });
@@ -2159,6 +2262,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   </main>
   <script>
     let rows = __ROWS__;
+    const conductors = __CONDUCTORS__;
     let editMode = false;
     const $ = (id) => document.getElementById(id);
     const flashMessage = document.querySelector(".message.auto-dismiss");
@@ -2213,6 +2317,10 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       };
     }
     function optionList(values, current) {
+      return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
+    }
+    function conductorOptions(current) {
+      const values = [...new Set(["", ...conductors, current].map((value) => String(value || "").trim()).filter((value, idx) => idx === 0 || value))];
       return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
     function statusClass(status) {
@@ -2275,7 +2383,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <tr data-index="${index}">
           <td><input type="checkbox" aria-label="Selecionar linha"></td>
           <td><input class="cell" type="date" data-key="data" value="${escapeAttr(toDateInput(row.data))}"${disabled}></td>
-          <td><input class="cell" data-key="motorista" value="${escapeAttr(row.motorista)}"${disabled}></td>
+          <td><select class="cell" data-key="motorista"${disabled}>${conductorOptions(row.motorista)}</select></td>
           <td><select class="cell" data-key="tipoFrete"${disabled}>${optionList(freights, row.tipoFrete)}</select></td>
           <td><select class="cell ${statusClass(row.status)}" data-key="status"${disabled}>${optionList(statuses, row.status)}</select></td>
           <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}"${disabled}></td>
@@ -3187,10 +3295,23 @@ def save_capacity_rows(rows: list[dict[str, object]]) -> None:
     save_editable_rows(editable_rows())
 
 
+def clean_conductor_name(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip()).upper()
+
+
 def normalize_header(value: str) -> str:
     text = unicodedata.normalize("NFKD", str(value).strip().lower())
     text = "".join(char for char in text if not unicodedata.combining(char))
     return re.sub(r"[^a-z0-9]+", "", text)
+
+
+def sort_conductor_names(names: list[str]) -> list[str]:
+    unique: dict[str, str] = {}
+    for name in names:
+        clean = clean_conductor_name(name)
+        if clean:
+            unique.setdefault(normalize_header(clean), clean)
+    return sorted(unique.values(), key=lambda value: normalize_header(value))
 
 
 HEADER_ALIASES = {
@@ -3630,6 +3751,74 @@ def save_ct_control_rows(rows: list[dict[str, object]]) -> None:
     CT_CONTROL_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def ensure_postgres_conductor_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS condutores (
+                    id SERIAL PRIMARY KEY,
+                    nome TEXT NOT NULL DEFAULT '',
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def postgres_conductor_rows() -> list[str]:
+    ensure_postgres_conductor_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT nome FROM condutores ORDER BY nome")
+            names = sort_conductor_names([item[0] for item in cur.fetchall()])
+    if names:
+        return names
+    if CONDUCTOR_DATA.exists():
+        try:
+            local_names = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
+            if isinstance(local_names, list):
+                save_postgres_conductor_rows(local_names)
+                return postgres_conductor_rows()
+        except json.JSONDecodeError:
+            pass
+    return []
+
+
+def save_postgres_conductor_rows(names: list[object]) -> None:
+    ensure_postgres_conductor_table()
+    clean_names = sort_conductor_names([str(name) for name in names])
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE condutores RESTART IDENTITY")
+            for name in clean_names:
+                cur.execute("INSERT INTO condutores (nome) VALUES (%s)", (name,))
+
+
+def conductor_rows() -> list[str]:
+    if build_dashboard.use_postgres():
+        names = postgres_conductor_rows()
+    elif CONDUCTOR_DATA.exists():
+        try:
+            data = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
+            names = sort_conductor_names(data if isinstance(data, list) else [])
+        except json.JSONDecodeError:
+            names = []
+    else:
+        names = []
+    if names:
+        return names
+    return sort_conductor_names([row.get("motorista", "") for row in ct_control_rows()])
+
+
+def save_conductor_rows(names: list[object]) -> None:
+    clean_names = sort_conductor_names([str(name) for name in names])
+    if build_dashboard.use_postgres():
+        save_postgres_conductor_rows(clean_names)
+        return
+    DATA_DIR.mkdir(exist_ok=True)
+    CONDUCTOR_DATA.write_text(json.dumps(clean_names, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def database_status() -> dict[str, object]:
     url = build_dashboard.database_url()
     parsed = urlparse(url) if url else None
@@ -3830,11 +4019,14 @@ class Handler(BaseHTTPRequestHandler):
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
         rows = capacity_rows()
+        conductors = conductor_rows()
         page = (
             CAPACITY_HTML.replace("{message}", message)
             .replace("{favicon_url}", FAVICON_URL)
             .replace("__ROW_COUNT__", f"{len(rows):,}".replace(",", "."))
+            .replace("__CONDUCTOR_COUNT__", f"{len(conductors):,}".replace(",", "."))
             .replace("__ROWS__", json_for_script(rows))
+            .replace("__CONDUCTORS__", json_for_script(conductors))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -3854,10 +4046,12 @@ class Handler(BaseHTTPRequestHandler):
         if "erro" in params:
             message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
         rows = ct_control_rows()
+        conductors = conductor_rows()
         page = (
             CT_CONTROL_OPERATION_HTML.replace("{message}", message)
             .replace("{favicon_url}", FAVICON_URL)
             .replace("__ROWS__", json_for_script(rows))
+            .replace("__CONDUCTORS__", json_for_script(conductors))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -4006,9 +4200,13 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 params = self.body_params()
                 rows = json.loads(params.get("rows_json", ["[]"])[0])
+                conductors = json.loads(params.get("conductors_json", ["[]"])[0])
                 if not isinstance(rows, list):
                     raise ValueError("Cadastro invalido")
+                if not isinstance(conductors, list):
+                    raise ValueError("Cadastro de condutores invalido")
                 save_capacity_rows(rows)
+                save_conductor_rows(conductors)
                 rebuild_dashboard()
             except Exception as exc:
                 self.redirect("/capacidades?erro=" + quote(str(exc)))
