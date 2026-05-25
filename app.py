@@ -2364,6 +2364,31 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         observacao: row.observacao || ""
       };
     }
+    function tripKey(row) {
+      const clean = cleanRow(row);
+      const date = toDateInput(clean.data);
+      const driver = clean.motorista.trim().toLowerCase();
+      return date && driver ? `${date}||${driver}` : "";
+    }
+    function recalculateTrips() {
+      const keys = rows.map(tripKey);
+      const totals = keys.reduce((map, key) => {
+        if (key) map.set(key, (map.get(key) || 0) + 1);
+        return map;
+      }, new Map());
+      rows = rows.map((row, index) => {
+        const clean = cleanRow(row);
+        clean.viagens = keys[index] ? String(totals.get(keys[index]) || 1) : "";
+        return clean;
+      });
+    }
+    function updateVisibleTrips() {
+      document.querySelectorAll("#rows tr").forEach((tr) => {
+        const index = Number(tr.dataset.index);
+        const tripsInput = tr.querySelector('[data-key="viagens"]');
+        if (tripsInput) tripsInput.value = cleanRow(rows[index]).viagens;
+      });
+    }
     function optionList(values, current) {
       return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
@@ -2464,6 +2489,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       $("patio").textContent = active.filter((row) => row.status === "Patio").length;
     }
     function render() {
+      recalculateTrips();
       const data = visibleRows();
       const disabled = editMode ? "" : " disabled";
       $("rows").innerHTML = data.map(({ row, index }) => `
@@ -2473,7 +2499,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           <td><select class="cell" data-key="motorista"${disabled}>${conductorOptions(row.motorista)}</select></td>
           <td><select class="cell" data-key="tipoFrete"${disabled}>${optionList(freights, row.tipoFrete)}</select></td>
           <td><select class="cell ${statusClass(row.status)}" data-key="status"${disabled}>${optionList(statuses, row.status)}</select></td>
-          <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}"${disabled}></td>
+          <td><input class="cell" data-key="viagens" value="${escapeAttr(row.viagens)}" readonly${disabled}></td>
           <td><input class="cell" type="datetime-local" data-key="chegada" value="${escapeAttr(toDateTimeInput(row.chegada))}"${disabled}></td>
           <td><input class="cell" type="datetime-local" data-key="entrada" value="${escapeAttr(toDateTimeInput(row.entrada))}"${disabled}></td>
           <td><input class="cell" type="datetime-local" data-key="saida" value="${escapeAttr(toDateTimeInput(row.saida))}"${disabled}></td>
@@ -2505,6 +2531,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     function selectedIndexes() {
       syncFromTableIfReady();
+      recalculateTrips();
       return [...document.querySelectorAll("#rows tr")]
         .filter((tr) => tr.querySelector('input[type="checkbox"]').checked)
         .map((tr) => Number(tr.dataset.index));
@@ -2568,6 +2595,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     });
     $("rows").addEventListener("input", () => {
       syncFromTableIfReady();
+      recalculateTrips();
+      updateVisibleTrips();
       renderCounters();
     });
     $("rows").addEventListener("change", (event) => {
@@ -2593,11 +2622,14 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         }
       }
       syncFromTableIfReady();
+      recalculateTrips();
+      updateVisibleTrips();
       renderCounters();
     });
     ["searchFilter", "statusFilter", "freightFilter"].forEach((id) => $(id).addEventListener("input", render));
     $("ctForm").addEventListener("submit", () => {
       syncFromTableIfReady();
+      recalculateTrips();
       $("rowsJson").value = JSON.stringify(rows);
     });
     render();
