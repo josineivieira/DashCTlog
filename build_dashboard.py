@@ -600,6 +600,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
     products_by_key: dict[tuple[str, str, str], Counter[str]] = defaultdict(Counter)
     notes_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
     clients_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    drivers_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
     capacities: dict[str, int] = {}
     detail_line_count = 0
 
@@ -628,6 +629,9 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             notes_by_key[key].add(note)
         if client:
             clients_by_key[key].add(client)
+        driver = str(row.get("motorista1", "")).strip().upper()
+        if driver:
+            drivers_by_key[key].add(driver)
 
     all_keys = sorted(
         set(orders_by_key) | set(load_by_key),
@@ -661,6 +665,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
                 "quantidade": loaded,
                 "notas": len(notes_by_key.get((date, plate, terminal), set())),
                 "clientes": len(clients_by_key.get((date, plate, terminal), set())),
+                "motorista": " / ".join(sorted(drivers_by_key.get((date, plate, terminal), set()))),
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"
@@ -774,6 +779,7 @@ def build_data() -> dict[str, object]:
                 "quantidade": loaded,
                 "notas": len(notes_by_key.get((date, plate, terminal), set())),
                 "clientes": len(clients_by_key.get((date, plate, terminal), set())),
+                "motorista": "",
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"
@@ -1268,6 +1274,7 @@ HTML_TEMPLATE = """<!doctype html>
               <tr>
                 <th>Data</th>
                 <th>Placa</th>
+                <th>Motorista</th>
                 <th>Terminal</th>
                 <th>Viagens</th>
                 <th>Capacidade usada</th>
@@ -1306,7 +1313,7 @@ HTML_TEMPLATE = """<!doctype html>
       const terminal = $("terminal").value;
       const plate = $("plate").value;
       return rows.filter((row) => {
-        const haystack = [row.placa, row.terminalNome, row.mixProdutos, ...row.produtos.map((item) => item.produto)].join(" ").toLowerCase();
+        const haystack = [row.placa, row.motorista, row.terminalNome, row.mixProdutos, ...row.produtos.map((item) => item.produto)].join(" ").toLowerCase();
         const rowDate = brToIso(row.data);
         return (!query || haystack.includes(query))
           && (!dateStart || rowDate >= dateStart)
@@ -1517,6 +1524,7 @@ HTML_TEMPLATE = """<!doctype html>
           <tr>
             <td>${row.data}</td>
             <td><span class="pill">${row.placa}</span></td>
+            <td>${row.motorista || "-"}</td>
             <td class="terminal-cell">${row.terminal} - ${row.terminalNome}</td>
             <td class="num-cell">${fmt.format(row.viagens)}</td>
             <td class="num-cell">${volume(row.capacidade)}</td>
@@ -1526,7 +1534,7 @@ HTML_TEMPLATE = """<!doctype html>
             </td>
             <td class="num-cell">${fmt.format(row.notas)}</td>
           </tr>
-        `).join("") || `<tr><td colspan="7" class="empty">Nenhum registro encontrado</td></tr>`;
+        `).join("") || `<tr><td colspan="8" class="empty">Nenhum registro encontrado</td></tr>`;
     }
 
     fillSelect("terminal", [["10", "10 - Equador"], ["19", "19 - Ipiranga"]].map((item) => item.join(" - ").replace(" - ", " - ")), "Todos os terminais");

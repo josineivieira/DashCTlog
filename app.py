@@ -2942,6 +2942,7 @@ DAILY_REPORT_HTML = """<!doctype html>
             <thead>
               <tr>
                 <th>Placa</th>
+                <th>Motorista</th>
                 <th>Terminal</th>
                 <th class="num">Viagens</th>
                 <th class="num">Capacidade</th>
@@ -3033,6 +3034,8 @@ DAILY_REPORT_HTML = """<!doctype html>
           quantidade: 0,
           notas: 0,
           clientes: 0,
+          motoristas: [],
+          motorista: "",
           produtos: [],
           mixProdutos: ""
         };
@@ -3043,6 +3046,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         current.quantidade += Number(row.quantidade) || 0;
         current.notas += Number(row.notas) || 0;
         current.clientes += Number(row.clientes) || 0;
+        if (row.motorista) current.motoristas.push(row.motorista);
         current.produtos.push(...(row.produtos || []));
         current._terminals = current._terminals || new Map();
         current._terminals.set(row.terminalNome, row.terminal);
@@ -3059,8 +3063,11 @@ DAILY_REPORT_HTML = """<!doctype html>
         const products = [...productTotals.entries()]
           .sort((a, b) => b[1] - a[1])
           .map(([produto, quantidade]) => ({ produto, quantidade }));
+        const motoristas = [...new Set(row.motoristas.flatMap((name) => String(name).split("/")).map((name) => name.trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "pt-BR"));
         return {
           ...row,
+          motorista: motoristas.join(" / "),
           terminal: terminals.map(([, code]) => code).join("/"),
           terminalNome: terminals.map(([name]) => name).join("/"),
           terminalShort: terminals.map(([name]) => name.slice(0, 3)).join("/"),
@@ -3113,7 +3120,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     function renderTable(data) {
       const detailData = groupedRowsByPlate(data);
       if (!detailData.length) {
-        $("reportRows").innerHTML = `<tr><td colspan="7" class="empty">Sem dados para o filtro.</td></tr>`;
+        $("reportRows").innerHTML = `<tr><td colspan="8" class="empty">Sem dados para o filtro.</td></tr>`;
         return;
       }
       $("reportRows").innerHTML = detailData
@@ -3122,6 +3129,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         .map((row) => `
           <tr>
             <td><span class="pill">${row.placa}</span></td>
+            <td>${row.motorista || "-"}</td>
             <td>${row.terminalNome}</td>
             <td class="num">${fmt.format(row.viagens)}</td>
             <td class="num">${volume(row.capacidade)}</td>
@@ -3218,10 +3226,11 @@ DAILY_REPORT_HTML = """<!doctype html>
       canvas.width = 1080;
       let ctx = canvas.getContext("2d");
       ctx.font = "700 17px Arial";
-      const productWidth = 326;
+      const productWidth = 214;
       const rowMetrics = report.detailData.map((row) => {
         const lines = wrapText(ctx, row.mixProdutos, productWidth).slice(0, 3);
-        return { row, lines, height: Math.max(58, 34 + lines.length * 20) };
+        const driverLines = wrapText(ctx, row.motorista || "-", 170).slice(0, 2);
+        return { row, lines, driverLines, height: Math.max(58, 34 + Math.max(lines.length, driverLines.length) * 20) };
       });
       const detailTop = 1010;
       const tableTop = detailTop + 140;
@@ -3332,11 +3341,12 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.font = "900 18px Arial";
       ctx.fillStyle = "#657282";
       ctx.fillText("PLACA", 82, y + 94);
-      ctx.fillText("TERM.", 230, y + 94);
-      ctx.fillText("VIAG.", 348, y + 94);
-      ctx.fillText("CAP.", 448, y + 94);
-      ctx.fillText("VOL.", 568, y + 94);
-      ctx.fillText("PRODUTOS", 650, y + 94);
+      ctx.fillText("MOTORISTA", 218, y + 94);
+      ctx.fillText("TERM.", 408, y + 94);
+      ctx.fillText("VIAG.", 500, y + 94);
+      ctx.fillText("CAP.", 588, y + 94);
+      ctx.fillText("VOL.", 698, y + 94);
+      ctx.fillText("PRODUTOS", 790, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
       ctx.moveTo(82, y + 112);
@@ -3344,7 +3354,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.stroke();
 
       let tableY = y + 140;
-      rowMetrics.forEach(({ row, lines, height }, idx) => {
+      rowMetrics.forEach(({ row, lines, driverLines, height }, idx) => {
         if (idx % 2 === 0) {
           ctx.fillStyle = "#f8fafb";
           roundRect(ctx, 78, tableY, 916, height - 8, 8);
@@ -3354,14 +3364,17 @@ DAILY_REPORT_HTML = """<!doctype html>
         ctx.font = "900 20px Arial";
         ctx.fillText(row.placa, 88, tableY + 29);
         ctx.font = "800 19px Arial";
-        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 238, tableY + 29);
-        ctx.fillText(fmt.format(row.viagens), 366, tableY + 29);
-        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 452, tableY + 29);
-        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 570, tableY + 29);
+        driverLines.forEach((line, lineIdx) => {
+          ctx.fillText(line, 218, tableY + 20 + lineIdx * 20);
+        });
+        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 414, tableY + 29);
+        ctx.fillText(fmt.format(row.viagens), 516, tableY + 29);
+        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 592, tableY + 29);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 700, tableY + 29);
         ctx.fillStyle = "#657282";
         ctx.font = "700 17px Arial";
         lines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 650, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, 790, tableY + 20 + lineIdx * 20);
         });
         tableY += height;
       });
