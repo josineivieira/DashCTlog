@@ -2556,15 +2556,21 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const indexes = selectedIndexes();
       if (!indexes.length) {
         showCtNotice("Selecione ao menos uma linha para atualizar o status.");
-        return;
+        return false;
       }
       const blocked = indexes.map((index) => cleanRow(rows[index])).find((row) => !canMoveStatus(row.status, targetStatus));
       if (blocked) {
         showCtNotice(blockedStatusMessage(blocked.status, targetStatus));
-        return;
+        return false;
       }
       indexes.forEach((index) => rows[index] = cleanRow(applyStatusSideEffects(cleanRow(rows[index]), targetStatus)));
       render();
+      return true;
+    }
+    function moveSelectedToStatusAndSave(targetStatus) {
+      if (moveSelectedToStatus(targetStatus)) {
+        $("ctForm").requestSubmit();
+      }
     }
     $("addArrival").addEventListener("click", () => {
       syncFromTableIfReady();
@@ -2588,8 +2594,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       editMode = true;
       render();
     });
-    $("markEntry").addEventListener("click", () => moveSelectedToStatus("Patio"));
-    $("markExit").addEventListener("click", () => moveSelectedToStatus("Finalizado"));
+    $("markEntry").addEventListener("click", () => moveSelectedToStatusAndSave("Patio"));
+    $("markExit").addEventListener("click", () => moveSelectedToStatusAndSave("Finalizado"));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
       if (!remove.size) return;
