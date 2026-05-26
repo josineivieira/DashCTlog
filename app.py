@@ -1029,11 +1029,9 @@ EDIT_HTML = """<!doctype html>
       ["cliente", "Cliente"],
       ["quantidade", "Quantidade"]
     ];
-    const draftKey = "dashboard-edit-draft-v1";
     const serverRows = __ROWS__;
-    const savedOk = new URLSearchParams(window.location.search).has("ok");
-    if (savedOk) localStorage.removeItem(draftKey);
-    let rows = loadDraft() || serverRows;
+    localStorage.removeItem("dashboard-edit-draft-v1");
+    let rows = serverRows;
     const thead = document.querySelector("#sheet thead");
     const tbody = document.querySelector("#sheet tbody");
     const rowCount = document.querySelector("#rowCount");
@@ -1053,39 +1051,9 @@ EDIT_HTML = """<!doctype html>
       return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
     }
 
-    function dateValue(value) {
-      const match = String(value || "").match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);
-      if (!match) return 0;
-      return Number(`${match[3]}${match[2].padStart(2, "0")}${match[1].padStart(2, "0")}`);
-    }
-
-    function maxRowDate(items) {
-      return Math.max(0, ...items.map((row) => dateValue(row?.data)));
-    }
-
-    function loadDraft() {
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
-        if (!Array.isArray(draft)) return null;
-        const cleanDraft = draft.map(cleanRow);
-        if (serverRows.length > cleanDraft.length || maxRowDate(serverRows) > maxRowDate(cleanDraft)) {
-          localStorage.removeItem(draftKey);
-          return null;
-        }
-        return cleanDraft;
-      } catch {
-        return null;
-      }
-    }
-
     function updateDraftStatus() {
       if (!draftStatus) return;
-      draftStatus.textContent = localStorage.getItem(draftKey) ? "Rascunho salvo neste navegador" : "";
-    }
-
-    function saveDraft() {
-      localStorage.setItem(draftKey, JSON.stringify(rows));
-      updateDraftStatus();
+      draftStatus.textContent = "";
     }
 
     function render() {
@@ -1147,7 +1115,6 @@ EDIT_HTML = """<!doctype html>
     document.querySelector("#addRow").addEventListener("click", () => {
       syncFromTable();
       rows.push(cleanRow({ terminal: "10", capacidade: "30000" }));
-      saveDraft();
       render();
       const lastRow = tbody.querySelector(`tr[data-row="${rows.length - 1}"] [data-key="data"]`);
       lastRow?.focus();
@@ -1161,7 +1128,6 @@ EDIT_HTML = """<!doctype html>
       const selected = new Set([...checkedRows, ...cellRows]);
       if (!selected.size) return;
       rows = rows.filter((_, idx) => !selected.has(idx));
-      saveDraft();
       render();
     });
     thead.addEventListener("change", (event) => {
@@ -1173,12 +1139,10 @@ EDIT_HTML = """<!doctype html>
     tbody.addEventListener("input", (event) => {
       if (!event.target.closest("[data-key]")) return;
       syncFromTable();
-      saveDraft();
     });
     tbody.addEventListener("blur", (event) => {
       if (!event.target.closest("[data-key]")) return;
       syncFromTable();
-      saveDraft();
     }, true);
     tbody.addEventListener("pointerdown", (event) => {
       const cell = event.target.closest("[data-key]");
@@ -1216,7 +1180,6 @@ EDIT_HTML = """<!doctype html>
           if (row && column) row[column[0]] = value;
         });
       });
-      saveDraft();
       render();
     });
     document.addEventListener("keydown", (event) => {
@@ -1242,7 +1205,6 @@ EDIT_HTML = """<!doctype html>
     });
     document.querySelector("#sheetForm").addEventListener("submit", () => {
       syncFromTable();
-      saveDraft();
       document.querySelector("#rowsJson").value = JSON.stringify(rows);
       setLoading(document.querySelector('#sheetForm button[type="submit"]'), "Salvando...");
       lockForm(document.querySelector("#sheetForm"));
@@ -4192,6 +4154,10 @@ class Handler(BaseHTTPRequestHandler):
     def send_bytes(self, content: bytes, content_type: str, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
+        if content_type.startswith("text/html"):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
