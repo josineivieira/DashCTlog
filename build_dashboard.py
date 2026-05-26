@@ -858,20 +858,37 @@ HTML_TEMPLATE = """<!doctype html>
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        radial-gradient(760px circle at 82% 4%, rgba(43, 132, 203, .24), transparent 56%),
-        radial-gradient(560px circle at 16% 90%, rgba(226, 38, 60, .18), transparent 60%),
-        linear-gradient(135deg, var(--top) 0%, var(--top-2) 58%, #1b255f 100%);
+      background: #eef2f5;
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
     }
     header {
-      padding: 28px clamp(16px, 4vw, 44px) 22px;
+      position: relative;
+      overflow: hidden;
+      padding: 24px clamp(16px, 4vw, 42px) 28px;
+      background:
+        radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%),
+        linear-gradient(135deg, #34104f 0%, #4c176d 58%, #1b255f 100%);
       color: #fff;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      right: clamp(20px, 6vw, 76px);
+      bottom: -88px;
+      width: min(46vw, 520px);
+      aspect-ratio: 1.8;
+      background: url("__FAVICON__") center / contain no-repeat;
+      opacity: .18;
+      pointer-events: none;
+    }
+    header > * {
+      position: relative;
+      z-index: 2;
     }
     h1 { margin: 0; font-size: clamp(28px, 3vw, 42px); letter-spacing: 0; font-weight: 800; }
     .subtitle { margin: 8px 0 0; color: #c8d6dc; }
@@ -913,7 +930,7 @@ HTML_TEMPLATE = """<!doctype html>
     main { padding: 0 clamp(16px, 4vw, 44px) 42px; }
     .filters {
       display: grid;
-      grid-template-columns: 1.4fr repeat(5, minmax(132px, 1fr));
+      grid-template-columns: minmax(240px, 1.4fr) repeat(6, minmax(138px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
       padding: 14px;
@@ -961,7 +978,7 @@ HTML_TEMPLATE = """<!doctype html>
     .kpi strong { display: block; margin-top: 11px; font-size: 29px; line-height: 1.05; color: #111b26; }
     .grid {
       display: grid;
-      grid-template-columns: 1.3fr .7fr;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .55fr);
       gap: 15px;
       align-items: start;
     }
@@ -982,12 +999,12 @@ HTML_TEMPLATE = """<!doctype html>
     .value { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
     .hero-board {
       display: grid;
-      grid-template-columns: 1fr 330px;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
       gap: 15px;
       margin-bottom: 15px;
     }
     .focus-card {
-      min-height: 320px;
+      min-height: 250px;
       background: #fff;
     }
     .focus-head {
@@ -1011,6 +1028,12 @@ HTML_TEMPLATE = """<!doctype html>
       font-size: clamp(22px, 3vw, 34px);
       font-weight: 900;
       letter-spacing: 0;
+    }
+    .focus-driver {
+      margin-top: 8px;
+      color: #344457;
+      font-size: 14px;
+      font-weight: 850;
     }
     .focus-metrics {
       display: grid;
@@ -1056,7 +1079,8 @@ HTML_TEMPLATE = """<!doctype html>
     .mini-card strong {
       display: block;
       margin-top: 7px;
-      font-size: 28px;
+      font-size: 24px;
+      line-height: 1.1;
     }
     .product-list {
       display: grid;
@@ -1073,7 +1097,7 @@ HTML_TEMPLATE = """<!doctype html>
     .product-name { font-weight: 800; color: #253545; }
     .product-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
     .product-value { color: var(--ink); text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .line-chart { min-height: clamp(320px, 24vw, 430px); }
+    .line-chart { min-height: clamp(240px, 18vw, 330px); }
     .chart-toolbar {
       display: flex;
       justify-content: space-between;
@@ -1110,7 +1134,7 @@ HTML_TEMPLATE = """<!doctype html>
       font-weight: 800;
       text-transform: uppercase;
     }
-    .line-chart svg { width: 100%; height: clamp(300px, 22vw, 400px); display: block; }
+    .line-chart svg { width: 100%; height: clamp(240px, 18vw, 330px); display: block; }
     .chart-grid { stroke: #dde6ed; stroke-width: 1; }
     .chart-axis { stroke: #b8c5d0; stroke-width: 1.2; }
     .chart-label { fill: var(--muted); font-size: 11px; }
@@ -1206,6 +1230,9 @@ HTML_TEMPLATE = """<!doctype html>
       <label>Placa
         <select id="plate"></select>
       </label>
+      <label>Motorista
+        <select id="driver"></select>
+      </label>
       <label>Tema
         <select id="theme">
           <option value="marine">Marine</option>
@@ -1228,6 +1255,7 @@ HTML_TEMPLATE = """<!doctype html>
           <div>
             <div class="focus-label">Placa destaque</div>
             <div id="focusPlate" class="focus-plate-pill">-</div>
+            <div id="focusDriver" class="focus-driver">-</div>
           </div>
           <div class="focus-label">Maior volume/viagens no filtro</div>
         </div>
@@ -1241,6 +1269,7 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="mini-grid">
         <div class="mini-card"><span>Top produto</span><strong id="kTopProduct">-</strong></div>
         <div class="mini-card"><span>Top terminal</span><strong id="kTopTerminal">-</strong></div>
+        <div class="mini-card"><span>Motoristas</span><strong id="kDrivers">0</strong></div>
         <div class="mini-card"><span>Maior dia</span><strong id="kBestDay">-</strong></div>
       </div>
     </section>
@@ -1302,6 +1331,11 @@ HTML_TEMPLATE = """<!doctype html>
       return [...new Set(rows.map((row) => row[key]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), "pt-BR"));
     }
 
+    function uniqueDrivers() {
+      return [...new Set(rows.flatMap((row) => String(row.motorista || "").split("/").map((item) => item.trim()).filter(Boolean)))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
+
     function fillSelect(id, values, label) {
       $(id).innerHTML = `<option value="">${label}</option>` + values.map((value) => `<option>${value}</option>`).join("");
     }
@@ -1312,14 +1346,17 @@ HTML_TEMPLATE = """<!doctype html>
       const dateEnd = $("dateEnd").value;
       const terminal = $("terminal").value;
       const plate = $("plate").value;
+      const driver = $("driver").value;
       return rows.filter((row) => {
         const haystack = [row.placa, row.motorista, row.terminalNome, row.mixProdutos, ...row.produtos.map((item) => item.produto)].join(" ").toLowerCase();
+        const rowDrivers = String(row.motorista || "").split("/").map((item) => item.trim());
         const rowDate = brToIso(row.data);
         return (!query || haystack.includes(query))
           && (!dateStart || rowDate >= dateStart)
           && (!dateEnd || rowDate <= dateEnd)
           && (!terminal || row.terminal === terminal)
-          && (!plate || row.placa === plate);
+          && (!plate || row.placa === plate)
+          && (!driver || rowDrivers.includes(driver));
       });
     }
 
@@ -1480,6 +1517,7 @@ HTML_TEMPLATE = """<!doctype html>
       const topPlate = plateTrips[0]?.[0];
       if (!topPlate) {
         $("focusPlate").textContent = "-";
+        $("focusDriver").textContent = "-";
         $("focusTrips").textContent = "0";
         $("focusVolume").textContent = "0";
         $("focusCapacity").textContent = "0";
@@ -1487,7 +1525,9 @@ HTML_TEMPLATE = """<!doctype html>
         return;
       }
       const plateRows = data.filter((row) => row.placa === topPlate);
+      const drivers = [...new Set(plateRows.flatMap((row) => String(row.motorista || "").split("/").map((item) => item.trim()).filter(Boolean)))];
       $("focusPlate").textContent = topPlate;
+      $("focusDriver").textContent = drivers.join(" / ") || "Sem motorista informado";
       $("focusTrips").textContent = fmt.format(plateTrips[0][1]);
       $("focusVolume").textContent = volume(plateQty.find((item) => item[0] === topPlate)?.[1] || 0);
       $("focusCapacity").textContent = volume(Math.max(...plateRows.map((row) => row.capacidade || 0), 0));
@@ -1509,6 +1549,7 @@ HTML_TEMPLATE = """<!doctype html>
       $("kNotes").textContent = fmt.format(notes);
       $("kTopProduct").textContent = products[0]?.[0]?.split(" ").slice(0, 2).join(" ") || "-";
       $("kTopTerminal").textContent = terminalTotals(data)[0]?.[0] || "-";
+      $("kDrivers").textContent = fmt.format(new Set(data.flatMap((row) => String(row.motorista || "").split("/").map((item) => item.trim()).filter(Boolean))).size);
       const bestDay = dailyTotals(data).sort((a, b) => b.viagens - a.viagens)[0];
       $("kBestDay").textContent = bestDay ? bestDay.data.slice(0, 5) : "-";
 
@@ -1540,6 +1581,7 @@ HTML_TEMPLATE = """<!doctype html>
     fillSelect("terminal", [["10", "10 - Equador"], ["19", "19 - Ipiranga"]].map((item) => item.join(" - ").replace(" - ", " - ")), "Todos os terminais");
     $("terminal").innerHTML = `<option value="">Todos os terminais</option><option value="10">10 - Equador</option><option value="19">19 - Ipiranga</option>`;
     fillSelect("plate", unique("placa"), "Todas as placas");
+    fillSelect("driver", uniqueDrivers(), "Todos os motoristas");
     $("theme").addEventListener("input", () => document.body.dataset.theme = $("theme").value);
     document.body.dataset.theme = $("theme").value;
     setCurrentMonthRange();
@@ -1550,7 +1592,7 @@ HTML_TEMPLATE = """<!doctype html>
         render();
       });
     });
-    ["search", "dateStart", "dateEnd", "terminal", "plate"].forEach((id) => $(id).addEventListener("input", render));
+    ["search", "dateStart", "dateEnd", "terminal", "plate", "driver"].forEach((id) => $(id).addEventListener("input", render));
     render();
   </script>
 </body>

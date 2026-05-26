@@ -2931,10 +2931,6 @@ DAILY_REPORT_HTML = """<!doctype html>
         <h2>Terminais</h2>
         <div class="panel-body terminal-grid" id="terminalSummary"></div>
       </div>
-      <div class="panel">
-        <h2>Top placas do dia</h2>
-        <div class="panel-body bars" id="plateBars"></div>
-      </div>
       <div class="panel wide">
         <h2>Detalhamento das viagens</h2>
         <div class="table-wrap">
@@ -3078,27 +3074,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       });
     }
 
-    function sumBy(items, key, valueKey) {
-      const totals = new Map();
-      items.forEach((item) => totals.set(item[key], (totals.get(item[key]) || 0) + item[valueKey]));
-      return [...totals.entries()].sort((a, b) => b[1] - a[1]);
-    }
-
-    function renderBars(data) {
-      if (!data.length) {
-        $("plateBars").innerHTML = `<div class="empty">Sem dados para o filtro.</div>`;
-        return;
-      }
-      const max = Math.max(...data.map((item) => item[1]), 1);
-      $("plateBars").innerHTML = data.slice(0, 8).map(([label, value]) => `
-        <div class="bar-row">
-          <span>${label}</span>
-          <div class="track"><div class="fill" style="width:${Math.max(4, (value / max) * 100)}%"></div></div>
-          <strong>${fmt.format(value)}</strong>
-        </div>
-      `).join("");
-    }
-
     function renderTerminals(data) {
       const totals = new Map();
       data.forEach((row) => {
@@ -3232,10 +3207,10 @@ DAILY_REPORT_HTML = """<!doctype html>
         const driverLines = wrapText(ctx, row.motorista || "-", 170).slice(0, 2);
         return { row, lines, driverLines, height: Math.max(58, 34 + Math.max(lines.length, driverLines.length) * 20) };
       });
-      const detailTop = 1010;
+      const detailTop = 720;
       const tableTop = detailTop + 140;
       const rowsHeight = rowMetrics.reduce((total, item) => total + item.height, 0);
-      canvas.height = Math.max(1520, tableTop + rowsHeight + 86);
+      canvas.height = Math.max(1240, tableTop + rowsHeight + 86);
       ctx = canvas.getContext("2d");
 
       ctx.fillStyle = "#f2f5f8";
@@ -3311,29 +3286,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       });
 
       y += 228;
-      drawCard(ctx, 54, y, 972, 250, "#64248c");
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 30px Arial";
-      ctx.fillText("Top placas do dia", 82, y + 52);
-      const topPlates = sumBy(report.data, "placa", "viagens").slice(0, 5);
-      const maxTrips = Math.max(...topPlates.map((item) => item[1]), 1);
-      topPlates.forEach(([plate, trips], idx) => {
-        const rowY = y + 92 + idx * 30;
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 20px Arial";
-        ctx.fillText(plate, 84, rowY);
-        ctx.fillStyle = "#edf2f6";
-        roundRect(ctx, 250, rowY - 17, 600, 14, 8);
-        ctx.fill();
-        ctx.fillStyle = "#64248c";
-        roundRect(ctx, 250, rowY - 17, Math.max(18, (trips / maxTrips) * 600), 14, 8);
-        ctx.fill();
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 20px Arial";
-        ctx.fillText(fmt.format(trips), 884, rowY);
-      });
-
-      y += 290;
       drawCard(ctx, 54, y, 972, canvas.height - y - 54, "#e2263c");
       ctx.fillStyle = "#16212d";
       ctx.font = "900 30px Arial";
@@ -3420,7 +3372,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       $("kPlates").textContent = fmt.format(new Set(data.map((row) => row.placa)).size);
       $("kNotes").textContent = fmt.format(notes);
       renderTerminals(data);
-      renderBars(sumBy(data, "placa", "viagens"));
       renderTable(data);
       drawShareImage();
     }
