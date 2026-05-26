@@ -1082,6 +1082,21 @@ HTML_TEMPLATE = """<!doctype html>
       font-size: 24px;
       line-height: 1.1;
     }
+    .mini-card.terminal-card {
+      display: grid;
+      align-content: start;
+      gap: 11px;
+    }
+    .mini-card .bars {
+      gap: 9px;
+    }
+    .mini-card .bar-row {
+      grid-template-columns: minmax(94px, 130px) 1fr 44px;
+      gap: 8px;
+      min-height: 24px;
+      font-size: 13px;
+    }
+    .mini-card .track { height: 9px; }
     .product-list {
       display: grid;
       gap: 12px;
@@ -1097,7 +1112,7 @@ HTML_TEMPLATE = """<!doctype html>
     .product-name { font-weight: 800; color: #253545; }
     .product-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
     .product-value { color: var(--ink); text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .line-chart { min-height: clamp(240px, 18vw, 330px); }
+    .line-chart { min-height: clamp(230px, 32vh, 420px); }
     .chart-toolbar {
       display: flex;
       justify-content: space-between;
@@ -1134,7 +1149,7 @@ HTML_TEMPLATE = """<!doctype html>
       font-weight: 800;
       text-transform: uppercase;
     }
-    .line-chart svg { width: 100%; height: clamp(240px, 18vw, 330px); display: block; }
+    .line-chart svg { width: 100%; height: auto; display: block; }
     .chart-grid { stroke: #dde6ed; stroke-width: 1; }
     .chart-axis { stroke: #b8c5d0; stroke-width: 1.2; }
     .chart-label { fill: var(--muted); font-size: 11px; }
@@ -1268,7 +1283,7 @@ HTML_TEMPLATE = """<!doctype html>
       </div>
       <div class="mini-grid">
         <div class="mini-card"><span>Top produto</span><strong id="kTopProduct">-</strong></div>
-        <div class="mini-card"><span>Top terminal</span><strong id="kTopTerminal">-</strong></div>
+        <div class="mini-card terminal-card"><span>Terminais</span><div id="terminalSummaryTop" class="bars"></div></div>
         <div class="mini-card"><span>Motoristas</span><strong id="kDrivers">0</strong></div>
         <div class="mini-card"><span>Maior dia</span><strong id="kBestDay">-</strong></div>
       </div>
@@ -1290,10 +1305,6 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="panel">
         <h2>Produtos</h2>
         <div id="productList" class="product-list"></div>
-      </div>
-      <div class="panel">
-        <h2>Terminais</h2>
-        <div id="terminalBars" class="bars"></div>
       </div>
       <div class="panel wide">
         <h2>Viagens no Dia por Placa</h2>
@@ -1471,8 +1482,14 @@ HTML_TEMPLATE = """<!doctype html>
       $("chartTotal").textContent = `${fmt.format(totalTrips)} viagens | ${volume(totalQty)} carregados no período`;
       const boxWidth = $("lineChart").clientWidth || 1120;
       const width = Math.max(720, Math.round(boxWidth));
-      const height = Math.max(300, Math.min(400, Math.round(width * .22)));
-      const pad = { left: 48, right: 36, top: 34, bottom: 42 };
+      const viewportHeight = window.innerHeight || 900;
+      const height = Math.round(Math.max(250, Math.min(440, viewportHeight * .34, width * .26)));
+      const pad = {
+        left: width > 1100 ? 64 : 48,
+        right: width > 1100 ? 52 : 36,
+        top: 36,
+        bottom: 44
+      };
       const chartW = width - pad.left - pad.right;
       const chartH = height - pad.top - pad.bottom;
       const maxTrips = Math.max(1, ...days.map((item) => item.viagens));
@@ -1548,12 +1565,11 @@ HTML_TEMPLATE = """<!doctype html>
       $("kPlates").textContent = fmt.format(new Set(data.map((row) => row.placa)).size);
       $("kNotes").textContent = fmt.format(notes);
       $("kTopProduct").textContent = products[0]?.[0]?.split(" ").slice(0, 2).join(" ") || "-";
-      $("kTopTerminal").textContent = terminalTotals(data)[0]?.[0] || "-";
       $("kDrivers").textContent = fmt.format(new Set(data.flatMap((row) => String(row.motorista || "").split("/").map((item) => item.trim()).filter(Boolean))).size);
       const bestDay = dailyTotals(data).sort((a, b) => b.viagens - a.viagens)[0];
       $("kBestDay").textContent = bestDay ? bestDay.data.slice(0, 5) : "-";
 
-      bars("terminalBars", terminalTotals(data), 4, "var(--blue)");
+      bars("terminalSummaryTop", terminalTotals(data), 2, "var(--blue)");
       productList("productList", products, 8);
       lineChart(data);
       focusPanel(data, plateTrips, plateQty);
@@ -1591,6 +1607,11 @@ HTML_TEMPLATE = """<!doctype html>
         document.querySelectorAll("[data-chart-mode]").forEach((item) => item.classList.toggle("active", item === button));
         render();
       });
+    });
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => lineChart(filteredRows()), 120);
     });
     ["search", "dateStart", "dateEnd", "terminal", "plate", "driver"].forEach((id) => $(id).addEventListener("input", render));
     render();
