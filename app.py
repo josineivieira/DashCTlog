@@ -1023,6 +1023,7 @@ EDIT_HTML = """<!doctype html>
       ["terminal", "Terminal"],
       ["viagens", "Viagens"],
       ["capacidade", "Capacidade"],
+      ["motorista1", "Motorista 1"],
       ["notaFiscal", "Nota fiscal"],
       ["produto", "Produto"],
       ["cliente", "Cliente"],
@@ -3570,6 +3571,13 @@ HEADER_ALIASES = {
     "viagens": "viagens",
     "viagem": "viagens",
     "capacidade": "capacidade",
+    "motorista1": "motorista1",
+    "motorista": "motorista1",
+    "nomemotorista1": "motorista1",
+    "nomedomotorista1": "motorista1",
+    "motoristaum": "motorista1",
+    "condutor1": "motorista1",
+    "condutor": "motorista1",
     "notafiscal": "notaFiscal",
     "nrnotafiscal": "notaFiscal",
     "numnotafiscal": "notaFiscal",
@@ -3693,13 +3701,14 @@ def template_csv() -> bytes:
             "terminal",
             "viagens",
             "capacidade",
+            "motorista1",
             "notaFiscal",
             "produto",
             "cliente",
             "quantidade",
         ]
     )
-    writer.writerow(["16/03/2026", "ABC1D23", "10", "1", "30000", "123456", "DIESEL S10", "CLIENTE EXEMPLO", "5000"])
+    writer.writerow(["16/03/2026", "ABC1D23", "10", "1", "30000", "MOTORISTA EXEMPLO", "123456", "DIESEL S10", "CLIENTE EXEMPLO", "5000"])
     return output.getvalue().encode("utf-8-sig")
 
 
@@ -4163,6 +4172,7 @@ def render_sheet_parts(rows: list[dict[str, object]]) -> tuple[str, str]:
         ("terminal", "Terminal"),
         ("viagens", "Viagens"),
         ("capacidade", "Capacidade"),
+        ("motorista1", "Motorista 1"),
         ("notaFiscal", "Nota fiscal"),
         ("produto", "Produto"),
         ("cliente", "Cliente"),
