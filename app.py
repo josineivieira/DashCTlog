@@ -2007,14 +2007,43 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     main { padding: 14px clamp(10px, 2.4vw, 24px) 30px; }
     .message {
-      margin-bottom: 12px;
-      padding: 11px 13px;
+      width: min(420px, calc(100vw - 28px));
+      padding: 13px 15px;
       border-radius: 8px;
-      background: #e7f7ee;
-      color: #166534;
+      border: 1px solid #bbf7d0;
+      background: #f0fdf4;
+      color: #14532d;
       font-weight: 900;
+      box-shadow: 0 18px 42px rgba(23, 32, 51, .22);
     }
-    .message.error { background: #fee2e2; color: #991b1b; }
+    .message-zone {
+      position: fixed;
+      right: clamp(14px, 2vw, 24px);
+      bottom: clamp(14px, 2vw, 24px);
+      z-index: 20;
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+      pointer-events: none;
+    }
+    .message-zone .message {
+      pointer-events: auto;
+      animation: toast-in .18s ease-out both;
+    }
+    .message.error {
+      border-color: #fecaca;
+      background: #fff1f2;
+      color: #991b1b;
+    }
+    .message.warning {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #92400e;
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .control-board {
       display: grid;
       grid-template-columns: 1fr 1fr .8fr .8fr;
@@ -2170,7 +2199,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     }
     .status-finalizado { color: #008000; font-weight: 900; }
     .status-fila { color: #b27300; font-weight: 900; }
-    .status-aguardando { color: #c1121f; font-weight: 900; }
     .status-patio { color: #1d4ed8; font-weight: 900; }
     .hint {
       padding: 10px 12px;
@@ -2207,8 +2235,10 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     </div>
   </header>
   <main>
-    {message}
-    <div id="ctNotice" class="message error" hidden></div>
+    <div class="message-zone" aria-live="polite">
+      {message}
+      <div id="ctNotice" class="message warning" hidden></div>
+    </div>
     <section class="control-board">
       <div class="board-group">
         <div class="board-title">Painel CIF</div>
@@ -2228,7 +2258,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       <div class="toolbar">
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
-          <button type="button" id="markQueue" class="secondary">Marcar fila</button>
           <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edição" aria-label="Editar">
             <span class="edit-icon" aria-hidden="true"></span>
             <span class="edit-label">Editar</span>
@@ -2242,10 +2271,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           <input id="searchFilter" type="search" placeholder="Buscar motorista">
           <select id="statusFilter">
             <option value="">Todos os status</option>
-            <option>Aguardando Entrada</option>
             <option>Fila de Carregamento</option>
-            <option>Finalizado</option>
             <option>Patio</option>
+            <option>Finalizado</option>
           </select>
           <select id="freightFilter">
             <option value="">Todos os fretes</option>
@@ -2268,7 +2296,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <div class="hint">Use Adicionar chegada para criar a linha do motorista. Depois selecione a linha e marque fila, entrada ou saida; o horario atual sera preenchido automaticamente.</div>
+      <div class="hint">Use Adicionar chegada para colocar o motorista na fila. Depois selecione a linha e marque entrada ou saida; o horario atual sera preenchido automaticamente.</div>
     </form>
   </main>
   <script>
@@ -2276,24 +2304,23 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     const conductors = __CONDUCTORS__;
     let editMode = false;
     const $ = (id) => document.getElementById(id);
-    const flashMessage = document.querySelector(".message.auto-dismiss");
-    if (flashMessage) {
-      setTimeout(() => flashMessage.remove(), 3000);
+    function dismissToast(element, delay = 4200) {
+      if (!element) return;
+      window.setTimeout(() => element.remove(), delay);
     }
-    const statuses = ["", "Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
+    document.querySelectorAll(".message.auto-dismiss").forEach((item) => dismissToast(item, 4200));
+    const statuses = ["", "Fila de Carregamento", "Patio", "Finalizado"];
     const freights = ["", "CIF", "FOB", "Transferencia", "RZD"];
     const invoices = ["", "Impresso", "Pendente"];
-    const statusFlow = ["Aguardando Entrada", "Patio", "Fila de Carregamento", "Finalizado"];
+    const statusFlow = ["Fila de Carregamento", "Patio", "Finalizado"];
     const statusStepLabels = {
-      "Aguardando Entrada": "adicionar chegada",
+      "Fila de Carregamento": "adicionar chegada",
       "Patio": "marcar entrada",
-      "Fila de Carregamento": "marcar fila",
       "Finalizado": "marcar saida"
     };
     const requiredStepMessages = {
-      "Patio": "Bloqueado: para marcar entrada, primeiro adicione a chegada do motorista.",
-      "Fila de Carregamento": "Bloqueado: para marcar fila, primeiro marque entrada.",
-      "Finalizado": "Bloqueado: para marcar saida, primeiro marque fila."
+      "Patio": "Para registrar a entrada, primeiro adicione a chegada do motorista na fila.",
+      "Finalizado": "Para registrar a saida, primeiro marque a entrada do motorista no patio."
     };
     const conductorFreights = new Map(conductors.map((item) => {
       const row = typeof item === "string" ? { nome: item, tipoFrete: "" } : item;
@@ -2330,11 +2357,12 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return "";
     }
     function cleanRow(row = {}) {
+      const status = row.status === "Aguardando Entrada" ? "Fila de Carregamento" : (row.status || "");
       return {
         data: row.data || "",
         motorista: row.motorista || "",
         tipoFrete: row.tipoFrete || "",
-        status: row.status || "",
+        status,
         viagens: row.viagens || "",
         chegada: row.chegada || "",
         entrada: row.entrada || "",
@@ -2380,13 +2408,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const normalized = String(status).toLowerCase();
       if (normalized.includes("finalizado")) return "status-finalizado";
       if (normalized.includes("fila")) return "status-fila";
-      if (normalized.includes("aguardando")) return "status-aguardando";
       if (normalized.includes("patio")) return "status-patio";
       return "";
     }
-    function showCtNotice(message) {
+    function showCtNotice(message, type = "warning") {
       const notice = $("ctNotice");
       notice.textContent = message;
+      notice.className = `message ${type}`;
       notice.hidden = false;
       clearTimeout(showCtNotice.timer);
       showCtNotice.timer = setTimeout(() => {
@@ -2403,19 +2431,19 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return currentIndex === targetIndex - 1;
     }
     function blockedStatusMessage(currentStatus, targetStatus) {
-      if (!targetStatus) return "Bloqueado: o status nao pode voltar para vazio. Siga a ordem: chegada, entrada, fila e saida.";
+      if (!targetStatus) return "O status nao pode ficar vazio. Siga o fluxo: chegada, entrada e saida.";
       if (requiredStepMessages[targetStatus]) return requiredStepMessages[targetStatus];
-      if (statusFlow.includes(targetStatus)) return "Bloqueado: o status nao pode voltar etapas. Siga a ordem: chegada, entrada, fila e saida.";
+      if (statusFlow.includes(targetStatus)) return "Nao e possivel voltar etapas. Siga o fluxo: chegada, entrada e saida.";
       const current = statusStepLabels[currentStatus] || "a etapa atual";
       const target = statusStepLabels[targetStatus] || "a proxima etapa";
-      return `Bloqueado: os status devem seguir a ordem. Depois de ${current}, use ${target}.`;
+      return `Fluxo de status invalido. Depois de ${current}, use ${target}.`;
     }
     function applyStatusSideEffects(row, targetStatus) {
       if (targetStatus === "Patio") {
         return { ...row, status: targetStatus, entrada: row.entrada || nowDateTimeLocal() };
       }
       if (targetStatus === "Fila de Carregamento") {
-        return { ...row, status: targetStatus };
+        return { ...row, status: targetStatus, chegada: row.chegada || nowDateTimeLocal() };
       }
       if (targetStatus === "Finalizado") {
         return { ...row, status: targetStatus, saida: row.saida || nowDateTimeLocal(), notaFiscal: row.notaFiscal || "Impresso" };
@@ -2460,9 +2488,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     function renderCounters() {
       const active = rows.map(cleanRow);
       const count = (freight, status) => active.filter((row) => row.tipoFrete === freight && row.status === status).length;
-      $("cifBase").textContent = count("CIF", "Aguardando Entrada");
+      $("cifBase").textContent = count("CIF", "Patio");
       $("cifFila").textContent = count("CIF", "Fila de Carregamento");
-      $("fobBase").textContent = count("FOB", "Aguardando Entrada");
+      $("fobBase").textContent = count("FOB", "Patio");
       $("fobFila").textContent = count("FOB", "Fila de Carregamento");
       $("finalizados").textContent = active.filter((row) => row.status === "Finalizado").length;
       $("patio").textContent = active.filter((row) => row.status === "Patio").length;
@@ -2518,7 +2546,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     function updateSelected(updater) {
       const indexes = selectedIndexes();
       if (!indexes.length) {
-        showCtNotice("Selecione uma linha para alterar o status.");
+        showCtNotice("Selecione ao menos uma linha para atualizar o status.");
         return;
       }
       indexes.forEach((index) => rows[index] = cleanRow(updater(rows[index])));
@@ -2527,7 +2555,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     function moveSelectedToStatus(targetStatus) {
       const indexes = selectedIndexes();
       if (!indexes.length) {
-        showCtNotice("Selecione uma linha para alterar o status.");
+        showCtNotice("Selecione ao menos uma linha para atualizar o status.");
         return;
       }
       const blocked = indexes.map((index) => cleanRow(rows[index])).find((row) => !canMoveStatus(row.status, targetStatus));
@@ -2542,7 +2570,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       syncFromTableIfReady();
       rows.unshift(cleanRow({
         data: todayDateLocal(),
-        status: "Aguardando Entrada",
+        status: "Fila de Carregamento",
         chegada: nowDateTimeLocal()
       }));
       $("searchFilter").value = "";
@@ -2551,7 +2579,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       render();
       document.querySelector('[data-key="motorista"]')?.focus();
     });
-    $("markQueue").addEventListener("click", () => moveSelectedToStatus("Fila de Carregamento"));
     $("editModeToggle").addEventListener("click", () => {
       if (editMode) {
         syncFromTableIfReady();
@@ -4244,7 +4271,7 @@ class Handler(BaseHTTPRequestHandler):
         if "ok" in params:
             message = '<div class="message auto-dismiss">Controle de CT salvo com sucesso.</div>'
         if "erro" in params:
-            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+            message = '<div class="message error auto-dismiss">Nao foi possivel salvar o Controle de CT: ' + html.escape(params["erro"][0]) + "</div>"
         rows = ct_control_rows()
         conductors = conductor_rows()
         page = (
