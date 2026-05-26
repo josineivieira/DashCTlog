@@ -2598,9 +2598,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     $("markExit").addEventListener("click", () => moveSelectedToStatusAndSave("Finalizado"));
     $("deleteRows").addEventListener("click", () => {
       const remove = new Set(selectedIndexes());
-      if (!remove.size) return;
+      if (!remove.size) {
+        showCtNotice("Selecione ao menos uma linha para excluir.");
+        return;
+      }
       rows = rows.filter((_, index) => !remove.has(index));
       render();
+      $("ctForm").requestSubmit();
     });
     $("selectAll").addEventListener("change", (event) => {
       document.querySelectorAll("#rows input[type='checkbox']").forEach((input) => input.checked = event.target.checked);
