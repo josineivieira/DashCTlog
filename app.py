@@ -3989,18 +3989,7 @@ def save_postgres_ct_control_rows(rows: list[dict[str, object]]) -> None:
 
 def ct_control_rows() -> list[dict[str, str]]:
     if build_dashboard.use_postgres():
-        rows = postgres_ct_control_rows()
-        if rows:
-            return rows
-        if CT_CONTROL_DATA.exists():
-            try:
-                local_rows = json.loads(CT_CONTROL_DATA.read_text(encoding="utf-8"))
-                if isinstance(local_rows, list):
-                    save_postgres_ct_control_rows(local_rows)
-                    return postgres_ct_control_rows()
-            except json.JSONDecodeError:
-                return []
-        return []
+        return postgres_ct_control_rows()
     if CT_CONTROL_DATA.exists():
         try:
             rows = json.loads(CT_CONTROL_DATA.read_text(encoding="utf-8"))
@@ -4041,17 +4030,7 @@ def postgres_conductor_rows() -> list[dict[str, str]]:
         with conn.cursor() as cur:
             cur.execute("SELECT nome, tipo_frete FROM condutores ORDER BY nome")
             conductors = sort_conductor_rows([{"nome": item[0], "tipoFrete": item[1]} for item in cur.fetchall()])
-    if conductors:
-        return conductors
-    if CONDUCTOR_DATA.exists():
-        try:
-            local_rows = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
-            if isinstance(local_rows, list):
-                save_postgres_conductor_rows(local_rows)
-                return postgres_conductor_rows()
-        except json.JSONDecodeError:
-            pass
-    return []
+    return conductors
 
 
 def save_postgres_conductor_rows(rows: list[object]) -> None:
@@ -4066,18 +4045,7 @@ def save_postgres_conductor_rows(rows: list[object]) -> None:
 
 def conductor_rows() -> list[dict[str, str]]:
     if build_dashboard.use_postgres():
-        conductors = postgres_conductor_rows()
-        if conductors:
-            merged = sort_conductor_rows([*conductors, *parse_conductor_base_rows()])
-            if merged != conductors:
-                save_postgres_conductor_rows(merged)
-            return merged
-        conductors = parse_conductor_base_rows()
-        if not conductors:
-            conductors = sort_conductor_rows([{"nome": row.get("motorista", ""), "tipoFrete": row.get("tipoFrete", "")} for row in postgres_ct_control_rows()])
-        if conductors:
-            save_postgres_conductor_rows(conductors)
-            return conductors
+        return postgres_conductor_rows()
     elif CONDUCTOR_DATA.exists():
         try:
             data = json.loads(CONDUCTOR_DATA.read_text(encoding="utf-8"))
@@ -4537,6 +4505,7 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     os.environ.pop("BUILDING_DASHBOARD", None)
     DATA_DIR.mkdir(exist_ok=True)
+    build_dashboard.ensure_database_storage()
     if build_dashboard.use_postgres():
         ensure_postgres_conductor_table()
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():

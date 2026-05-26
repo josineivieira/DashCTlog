@@ -113,8 +113,32 @@ def python_executable() -> str:
 def use_postgres() -> bool:
     return (
         bool(database_url())
-        and not os.environ.get("BUILDING_DASHBOARD")
         and postgres_driver_available()
+    )
+
+
+def database_required() -> bool:
+    return any(
+        os.environ.get(name)
+        for name in (
+            "DATABASE_REQUIRED",
+            "RENDER",
+            "RENDER_SERVICE_ID",
+            "RENDER_EXTERNAL_URL",
+        )
+    )
+
+
+def ensure_database_storage() -> None:
+    if use_postgres():
+        return
+    if not database_required():
+        return
+    if not database_url():
+        raise RuntimeError("DATABASE_URL nao esta configurada; abortando para nao usar JSON no deploy.")
+    raise RuntimeError(
+        "Banco configurado, mas driver Postgres indisponivel; abortando para nao usar JSON no deploy. "
+        + postgres_driver_error()
     )
 
 
@@ -544,10 +568,13 @@ def save_postgres_rows(rows: list[dict[str, object]]) -> None:
 
 
 def save_editable_data(rows: list[dict[str, object]]) -> None:
-    rows = apply_capacity_registry_to_rows(rows)
     if use_postgres():
+        if not rows:
+            raise ValueError("Base vazia: salvamento no banco cancelado para evitar perda de dados.")
+        rows = apply_capacity_registry_to_rows(rows)
         save_postgres_rows(rows)
         return
+    rows = apply_capacity_registry_to_rows(rows)
     if not rows:
         rows = editable_rows_from_sources()
     DATA_DIR.mkdir(exist_ok=True)
@@ -647,7 +674,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
         "dailyPlateRows": daily_plate_rows,
         "meta": {
             "ordersFile": "Base editável",
-            "detailFile": EDITABLE_DATA_PATH.name,
+            "detailFile": "Postgres" if use_postgres() else EDITABLE_DATA_PATH.name,
             "orderRows": len(rows),
             "detailRows": detail_line_count,
         },

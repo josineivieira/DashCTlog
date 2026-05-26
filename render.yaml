@@ -4,6 +4,9 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
+    envVars:
+      - key: DATABASE_REQUIRED
+        value: "1"
     disk:
       name: dashboard-data
       mountPath: /opt/render/project/src/data
