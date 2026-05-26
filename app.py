@@ -1053,10 +1053,26 @@ EDIT_HTML = """<!doctype html>
       return Object.fromEntries(columns.map(([key]) => [key, row[key] ?? ""]));
     }
 
+    function dateValue(value) {
+      const match = String(value || "").match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);
+      if (!match) return 0;
+      return Number(`${match[3]}${match[2].padStart(2, "0")}${match[1].padStart(2, "0")}`);
+    }
+
+    function maxRowDate(items) {
+      return Math.max(0, ...items.map((row) => dateValue(row?.data)));
+    }
+
     function loadDraft() {
       try {
         const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
-        return Array.isArray(draft) ? draft.map(cleanRow) : null;
+        if (!Array.isArray(draft)) return null;
+        const cleanDraft = draft.map(cleanRow);
+        if (serverRows.length > cleanDraft.length || maxRowDate(serverRows) > maxRowDate(cleanDraft)) {
+          localStorage.removeItem(draftKey);
+          return null;
+        }
+        return cleanDraft;
       } catch {
         return null;
       }
