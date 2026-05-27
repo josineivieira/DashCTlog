@@ -3760,8 +3760,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     * { box-sizing: border-box; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, Segoe UI, Roboto, Arial, sans-serif; }
     a { color:inherit; text-decoration:none; }
-    header { padding:24px clamp(16px,4vw,42px); background:linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f); color:#fff; }
-    .topbar { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
+    header { position:relative; overflow:hidden; padding:24px clamp(16px,4vw,42px) 30px; background:radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%), linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f); color:#fff; }
+    header::after { content:""; position:absolute; right:clamp(20px,6vw,76px); bottom:-88px; width:min(46vw,520px); aspect-ratio:1.8; background:url("{favicon_url}") center / contain no-repeat; opacity:.18; pointer-events:none; }
+    .topbar { position:relative; z-index:2; display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
     .brand-title { display:flex; align-items:center; gap:16px; }
     .brand-title img { width:90px; height:auto; filter:drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
     h1 { margin:0; font-size:clamp(28px,4vw,46px); line-height:1; letter-spacing:0; }
@@ -3801,7 +3802,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
     .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--blue)); }
     .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
-    .donut { width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
+    .donut { position:relative; width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
     .donut::before { content:""; width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
     .donut-label { position:absolute; display:grid; gap:3px; text-align:center; font-weight:950; }
     .donut-label span { color:var(--muted); font-size:11px; text-transform:uppercase; }
@@ -3823,6 +3824,14 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
+    .share-panel { margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden; }
+    .share-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); }
+    .share-head h2 { margin:0; font-size:18px; }
+    .share-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .share-actions button { background:var(--purple); border-color:transparent; color:#fff; }
+    .share-actions button.secondary { background:#f3f6f8; border-color:var(--line); color:var(--ink); }
+    .canvas-wrap { padding:18px; background:linear-gradient(90deg, rgba(52,16,79,.06), rgba(43,132,203,.07)), #f8fafb; overflow:auto; }
+    #noteShareCanvas { display:block; width:min(100%,760px); height:auto; margin:0 auto; border-radius:8px; box-shadow:0 18px 42px rgba(23,32,51,.18); background:#fff; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } }
     @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid, .status-card { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
@@ -3867,6 +3876,18 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="panel"><h2>Status</h2><div class="panel-body bars" id="statusBars"></div></div>
         <div class="panel"><h2>Entradas por dia</h2><div class="panel-body daily-chart" id="dailyChart"></div></div>
       </div>
+      <section class="share-panel">
+        <div class="share-head">
+          <h2>Imagem para WhatsApp</h2>
+          <div class="share-actions">
+            <button type="button" id="noteShareImage">Compartilhar</button>
+            <button type="button" id="noteDownloadImage" class="secondary">Baixar PNG</button>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="noteShareCanvas" width="1080" height="1350"></canvas>
+        </div>
+      </section>
     </section>
     <section id="data" class="tab-view" hidden>
       <section class="panel import-panel">
@@ -3931,6 +3952,203 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       if (!total) return "0%";
       return `${(ok / total * 100).toFixed(1).replace(".", ",")}%`;
     }
+    function roundRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+    function drawNoteCard(ctx, x, y, width, height, accent) {
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      roundRect(ctx, x, y, width, height, 18);
+      ctx.fill();
+      ctx.fillStyle = accent;
+      roundRect(ctx, x, y, width, 8, 18);
+      ctx.fill();
+      ctx.restore();
+    }
+    function selectedLabel() {
+      const date = $("dateFilter").value || "Todas as datas";
+      const status = $("statusFilter").selectedOptions[0]?.textContent || "Todos";
+      return `${date} | ${status}`;
+    }
+    function drawNoteBrand(ctx) {
+      ctx.save();
+      ctx.translate(58, 48);
+      ctx.fillStyle = "#2b84cb";
+      ctx.beginPath();
+      ctx.moveTo(0, 20);
+      ctx.quadraticCurveTo(36, 2, 82, 12);
+      ctx.quadraticCurveTo(78, 64, 34, 84);
+      ctx.quadraticCurveTo(8, 58, 0, 20);
+      ctx.fill();
+      ctx.fillStyle = "#e2263c";
+      ctx.globalAlpha = .82;
+      ctx.beginPath();
+      ctx.moveTo(44, 16);
+      ctx.quadraticCurveTo(88, 28, 76, 58);
+      ctx.quadraticCurveTo(56, 76, 34, 84);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 16px Arial";
+      ctx.fillText("GRUPO", 104, 24);
+      ctx.font = "900 22px Arial";
+      ctx.fillText("DISLUB", 104, 50);
+      ctx.fillText("EQUADOR", 104, 76);
+      ctx.restore();
+    }
+    function drawNoteShareImage() {
+      const data = filteredRows();
+      const ok = data.filter((row) => row.status === "ok").length;
+      const late = data.filter((row) => row.status === "late").length;
+      const entryHours = data.map((row) => Number(row.horasEntrada)).filter((value) => Number.isFinite(value));
+      const avgEntry = entryHours.length ? entryHours.reduce((total, value) => total + value, 0) / entryHours.length : null;
+      const canvas = $("noteShareCanvas");
+      canvas.width = 1080;
+      canvas.height = 1350;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#f2f5f8";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 330);
+      gradient.addColorStop(0, "#34104f");
+      gradient.addColorStop(.62, "#4c176d");
+      gradient.addColorStop(1, "#1b255f");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, 330);
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = "#2b84cb";
+      ctx.beginPath();
+      ctx.arc(900, 70, 220, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      drawNoteBrand(ctx);
+      ctx.fillStyle = "#fff";
+      ctx.font = "900 52px Arial";
+      ctx.fillText("Entrada de Notas", 58, 188);
+      ctx.font = "700 24px Arial";
+      ctx.fillStyle = "#d7e4ea";
+      ctx.fillText(selectedLabel(), 58, 234);
+
+      const kpiY = 292;
+      const kpiW = 184;
+      [
+        ["Notas", fmt.format(data.length), "#64248c"],
+        ["No prazo", fmt.format(ok), "#00856f"],
+        ["Fora", fmt.format(late), "#e2263c"],
+        ["% prazo", percentLabel(ok, data.length), "#2b84cb"],
+        ["Tempo med.", avgEntry === null ? "-" : durationLabel(avgEntry), "#00856f"]
+      ].forEach(([label, value, accent], idx) => {
+        const x = 54 + idx * (kpiW + 18);
+        drawNoteCard(ctx, x, kpiY, kpiW, 124, accent);
+        ctx.fillStyle = "#657282";
+        ctx.font = "900 18px Arial";
+        ctx.fillText(label.toUpperCase(), x + 18, kpiY + 42);
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 31px Arial";
+        ctx.fillText(value, x + 18, kpiY + 88);
+      });
+
+      let y = 466;
+      drawNoteCard(ctx, 54, y, 972, 258, "#00856f");
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 30px Arial";
+      ctx.fillText("Status geral", 82, y + 52);
+      const total = ok + late;
+      const okDeg = total ? ok / total * Math.PI * 2 : 0;
+      ctx.save();
+      ctx.translate(190, y + 150);
+      ctx.lineWidth = 34;
+      ctx.strokeStyle = "#e2263c";
+      ctx.beginPath();
+      ctx.arc(0, 0, 72, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "#00856f";
+      ctx.beginPath();
+      ctx.arc(0, 0, 72, -Math.PI / 2, -Math.PI / 2 + okDeg);
+      ctx.stroke();
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 28px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(percentLabel(ok, total), 0, 8);
+      ctx.restore();
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 26px Arial";
+      ctx.fillText(`${fmt.format(ok)} no prazo`, 330, y + 126);
+      ctx.fillText(`${fmt.format(late)} fora do prazo`, 330, y + 172);
+      ctx.fillStyle = "#657282";
+      ctx.font = "700 20px Arial";
+      ctx.fillText("Prazo acompanhado pela data de emissao e entrada da nota.", 330, y + 212);
+
+      y += 308;
+      drawNoteCard(ctx, 54, y, 972, 430, "#2b84cb");
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 30px Arial";
+      ctx.fillText("Entradas por dia", 82, y + 52);
+      const daily = new Map();
+      data.forEach((row) => {
+        const item = daily.get(row.emissao) || { total: 0, ok: 0, late: 0 };
+        item.total += 1;
+        if (row.status === "ok") item.ok += 1;
+        if (row.status === "late") item.late += 1;
+        daily.set(row.emissao, item);
+      });
+      const dailyEntries = [...daily.entries()].sort().reverse().slice(0, 10);
+      const max = Math.max(1, ...dailyEntries.map(([, item]) => item.total));
+      let rowY = y + 92;
+      dailyEntries.forEach(([date, item]) => {
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 19px Arial";
+        ctx.fillText(date, 82, rowY + 16);
+        const barX = 216;
+        const barW = Math.max(8, item.total / max * 650);
+        roundRect(ctx, barX, rowY, 650, 18, 9);
+        ctx.fillStyle = "#edf2f6";
+        ctx.fill();
+        ctx.fillStyle = "#00856f";
+        roundRect(ctx, barX, rowY, barW * (item.ok / Math.max(1, item.total)), 18, 9);
+        ctx.fill();
+        if (item.late) {
+          ctx.fillStyle = "#e2263c";
+          roundRect(ctx, barX + barW * (item.ok / Math.max(1, item.total)), rowY, Math.max(8, barW * (item.late / item.total)), 18, 9);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 18px Arial";
+        ctx.fillText(`${fmt.format(item.total)} notas`, 888, rowY + 16);
+        rowY += 32;
+      });
+      ctx.fillStyle = "#657282";
+      ctx.font = "700 18px Arial";
+      ctx.fillText("Dashboard Log - Grupo Dislub Equador", 54, canvas.height - 28);
+    }
+    function canvasToBlob(canvas) {
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/png", .95));
+    }
+    async function downloadNoteImage() {
+      drawNoteShareImage();
+      const link = document.createElement("a");
+      link.download = "relatorio-entrada-notas.png";
+      link.href = $("noteShareCanvas").toDataURL("image/png");
+      link.click();
+    }
+    async function shareNoteImage() {
+      drawNoteShareImage();
+      const blob = await canvasToBlob($("noteShareCanvas"));
+      if (!blob) return downloadNoteImage();
+      const file = new File([blob], "relatorio-entrada-notas.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Relatorio de entrada de notas" });
+      } else {
+        await downloadNoteImage();
+      }
+    }
     function renderDailyChart(data) {
       const map = new Map();
       data.forEach((row) => {
@@ -3966,6 +4184,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       $("kAvgEntry").textContent = avgEntry === null ? "-" : durationLabel(avgEntry);
       renderStatusPanel(ok, late);
       renderDailyChart(data);
+      drawNoteShareImage();
       $("rows").innerHTML = data.length ? data.map((row) => `
         <tr>
           <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
@@ -3977,6 +4196,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     }
     $("dateFilter").innerHTML = ['<option value="">Todas</option>', ...uniqueDates().map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)].join("");
     ["dateFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", render));
+    $("noteDownloadImage").addEventListener("click", downloadNoteImage);
+    $("noteShareImage").addEventListener("click", shareNoteImage);
     document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => {
       document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
       document.querySelectorAll(".tab-view").forEach((view) => view.hidden = view.id !== button.dataset.tab);
