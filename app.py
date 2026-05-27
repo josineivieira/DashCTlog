@@ -15,7 +15,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 import xml.etree.ElementTree as ET
 
 import build_dashboard
@@ -2119,6 +2119,24 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     .actions, .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .actions button { border-color: transparent; background: var(--purple); }
     .actions .secondary { background: #f3f6f8; color: var(--ink); border-color: var(--line); }
+    .export-link {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .export-link:hover {
+      color: var(--ink);
+      background: #eef3f7;
+    }
     .edit-toggle {
       gap: 7px;
     }
@@ -2265,9 +2283,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           <button type="button" id="markEntry" class="secondary">Marcar entrada</button>
           <button type="button" id="markExit" class="secondary">Marcar saida</button>
           <button type="button" id="deleteRows" class="secondary">Excluir</button>
-          <button type="submit">Salvar controle</button>
         </div>
         <div class="filters">
+          <a class="export-link" href="/controle-ct/exportar" title="Exportar dados para Excel">Exportar Excel</a>
           <input id="searchFilter" type="search" placeholder="Buscar motorista">
           <select id="statusFilter">
             <option value="">Todos os status</option>
@@ -3988,6 +4006,79 @@ def save_ct_control_rows(rows: list[dict[str, object]]) -> None:
     CT_CONTROL_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+CT_CONTROL_EXPORT_COLUMNS = [
+    ("data", "Data"),
+    ("motorista", "Motorista"),
+    ("tipoFrete", "Tipo de Frete"),
+    ("status", "Status"),
+    ("viagens", "Viagens"),
+    ("chegada", "Chegada"),
+    ("entrada", "Entrada"),
+    ("saida", "Saida"),
+    ("notaFiscal", "Nota Fiscal"),
+    ("observacao", "Observacao"),
+]
+
+
+def xlsx_cell_ref(row: int, column: int) -> str:
+    letters = ""
+    current = column
+    while current:
+        current, remainder = divmod(current - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return f"{letters}{row}"
+
+
+def xlsx_inline_cell(row: int, column: int, value: object) -> str:
+    text = html.escape(str(value if value is not None else ""), quote=False)
+    return f'<c r="{xlsx_cell_ref(row, column)}" t="inlineStr"><is><t>{text}</t></is></c>'
+
+
+def ct_control_export_xlsx(rows: list[dict[str, str]]) -> bytes:
+    sheet_rows = [[label for _, label in CT_CONTROL_EXPORT_COLUMNS]]
+    sheet_rows.extend([[clean_ct_control_row(row).get(key, "") for key, _ in CT_CONTROL_EXPORT_COLUMNS] for row in rows])
+    last_row = max(1, len(sheet_rows))
+    last_col = xlsx_cell_ref(1, len(CT_CONTROL_EXPORT_COLUMNS)).rstrip("1")
+    xml_rows = []
+    for row_idx, values in enumerate(sheet_rows, start=1):
+        cells = "".join(xlsx_inline_cell(row_idx, col_idx, value) for col_idx, value in enumerate(values, start=1))
+        xml_rows.append(f'<row r="{row_idx}">{cells}</row>')
+    worksheet = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <dimension ref="A1:{last_col}{last_row}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="15"/>
+  <sheetData>{''.join(xml_rows)}</sheetData>
+</worksheet>"""
+    workbook = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Controle de CT" sheetId="1" r:id="rId1"/></sheets>
+</workbook>"""
+    workbook_rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>"""
+    root_rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>"""
+    content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>"""
+    output = io.BytesIO()
+    with ZipFile(output, "w", ZIP_DEFLATED) as xlsx:
+        xlsx.writestr("[Content_Types].xml", content_types)
+        xlsx.writestr("_rels/.rels", root_rels)
+        xlsx.writestr("xl/workbook.xml", workbook)
+        xlsx.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        xlsx.writestr("xl/worksheets/sheet1.xml", worksheet)
+    return output.getvalue()
+
+
 def ensure_postgres_conductor_table() -> None:
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
@@ -4292,6 +4383,14 @@ class Handler(BaseHTTPRequestHandler):
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
+    def send_ct_control_export(self) -> None:
+        today = dt.datetime.now().strftime("%Y%m%d")
+        self.send_download(
+            ct_control_export_xlsx(ct_control_rows()),
+            f"controle_ct_{today}.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
     def send_db_status(self) -> None:
         status = database_status()
         ok = (
@@ -4380,6 +4479,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             self.send_ct_control()
+            return
+        if parsed.path == "/controle-ct/exportar":
+            if not self.require_login():
+                return
+            self.send_ct_control_export()
             return
         if parsed.path == "/db-status":
             if not self.require_login():
