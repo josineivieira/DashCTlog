@@ -2160,6 +2160,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       font-weight: 800;
       background: #fff;
     }
+    .custom-date-filter {
+      display: none;
+      gap: 6px;
+      align-items: center;
+    }
+    .custom-date-filter.is-visible { display: inline-flex; }
+    .custom-date-filter input { width: 136px; }
     .sheet-wrap {
       overflow: auto;
       max-height: calc(100vh - 310px);
@@ -2286,6 +2293,19 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         </div>
         <div class="filters">
           <a class="export-link" href="/controle-ct/exportar" title="Exportar dados para Excel">Exportar Excel</a>
+          <select id="dateRangeFilter" title="Filtrar por data">
+            <option value="">Todas as datas</option>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="week">Esta semana</option>
+            <option value="last7">Ultimos 7 dias</option>
+            <option value="month">Este mes</option>
+            <option value="custom">Periodo</option>
+          </select>
+          <span class="custom-date-filter" id="customDateFilter">
+            <input id="dateFromFilter" type="date" title="Data inicial">
+            <input id="dateToFilter" type="date" title="Data final">
+          </span>
           <input id="searchFilter" type="search" placeholder="Buscar motorista">
           <select id="statusFilter">
             <option value="">Todos os status</option>
@@ -2364,6 +2384,53 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (/^\\d{4}-\\d{2}-\\d{2}/.test(text)) return text.slice(0, 10);
       const match = text.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
       return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+    }
+    function localDate(value) {
+      const dateText = toDateInput(value);
+      if (!dateText) return null;
+      const [year, month, day] = dateText.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    function addDays(date, days) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return next;
+    }
+    function dateOnlyToday() {
+      return localDate(todayDateLocal());
+    }
+    function dateRangeBounds() {
+      const mode = $("dateRangeFilter").value;
+      const today = dateOnlyToday();
+      if (!mode || !today) return null;
+      if (mode === "today") return { start: today, end: today };
+      if (mode === "yesterday") {
+        const yesterday = addDays(today, -1);
+        return { start: yesterday, end: yesterday };
+      }
+      if (mode === "last7") return { start: addDays(today, -6), end: today };
+      if (mode === "week") {
+        const mondayOffset = (today.getDay() + 6) % 7;
+        return { start: addDays(today, -mondayOffset), end: addDays(today, 6 - mondayOffset) };
+      }
+      if (mode === "month") return { start: new Date(today.getFullYear(), today.getMonth(), 1), end: new Date(today.getFullYear(), today.getMonth() + 1, 0) };
+      if (mode === "custom") {
+        return {
+          start: localDate($("dateFromFilter").value),
+          end: localDate($("dateToFilter").value)
+        };
+      }
+      return null;
+    }
+    function matchesDateRange(row) {
+      const range = dateRangeBounds();
+      if (!range) return true;
+      const rowDate = localDate(row.data);
+      if (!rowDate) return false;
+      return (!range.start || rowDate >= range.start) && (!range.end || rowDate <= range.end);
+    }
+    function updateCustomDateFilter() {
+      $("customDateFilter").classList.toggle("is-visible", $("dateRangeFilter").value === "custom");
     }
     function toDateTimeInput(value) {
       const text = String(value || "").trim();
@@ -2500,7 +2567,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return rows.map((row, index) => ({ row: cleanRow(row), index })).filter(({ row }) => {
         return (!query || row.motorista.toLowerCase().includes(query))
           && (!status || row.status === status)
-          && (!freight || row.tipoFrete === freight);
+          && (!freight || row.tipoFrete === freight)
+          && matchesDateRange(row);
       });
     }
     function renderCounters() {
@@ -2597,9 +2665,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         status: "Fila de Carregamento",
         chegada: nowDateTimeLocal()
       }));
+      $("dateRangeFilter").value = "";
+      $("dateFromFilter").value = "";
+      $("dateToFilter").value = "";
       $("searchFilter").value = "";
       $("statusFilter").value = "";
       $("freightFilter").value = "";
+      updateCustomDateFilter();
       render();
       document.querySelector('[data-key="motorista"]')?.focus();
     });
@@ -2660,12 +2732,16 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       updateVisibleTrips();
       renderCounters();
     });
-    ["searchFilter", "statusFilter", "freightFilter"].forEach((id) => $(id).addEventListener("input", render));
+    ["dateRangeFilter", "dateFromFilter", "dateToFilter", "searchFilter", "statusFilter", "freightFilter"].forEach((id) => $(id).addEventListener("input", () => {
+      updateCustomDateFilter();
+      render();
+    }));
     $("ctForm").addEventListener("submit", () => {
       syncFromTableIfReady();
       recalculateTrips();
       $("rowsJson").value = JSON.stringify(rows);
     });
+    updateCustomDateFilter();
     render();
   </script>
 </body>
