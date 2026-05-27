@@ -3784,6 +3784,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .kpi:nth-child(2) { border-top-color:var(--green); }
     .kpi:nth-child(3) { border-top-color:var(--red); }
     .kpi:nth-child(4) { border-top-color:var(--blue); }
+    .kpi:nth-child(5) { border-top-color:var(--green); }
     .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
     .kpi strong { display:block; margin-top:10px; font-size:32px; line-height:1; }
     .tabs { display:flex; gap:8px; margin-bottom:14px; }
@@ -3797,6 +3798,11 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .bar-row { display:grid; grid-template-columns:150px 1fr auto; gap:10px; align-items:center; font-weight:850; font-size:13px; }
     .track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
     .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--blue)); }
+    .daily-chart { display:grid; gap:12px; }
+    .day-row { display:grid; grid-template-columns:90px 1fr auto; gap:10px; align-items:center; font-size:13px; font-weight:850; }
+    .day-track { height:16px; display:flex; border-radius:999px; background:#edf2f6; overflow:hidden; }
+    .day-ok { background:var(--green); }
+    .day-late { background:var(--red); }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
     th, td { padding:10px 11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:13px; }
@@ -3814,7 +3820,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     <div class="topbar">
       <div>
         <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de notas</h1></div>
-        <p class="subtitle">Notas fiscais com prazo de entrada de 48 horas, sem contar domingo.</p>
+        <p class="subtitle">Acompanhamento da entrada de notas fiscais.</p>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
@@ -3827,20 +3833,10 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   </header>
   <main>
     {message}
-    <section class="panel import-panel">
-      <div>
-        <strong>Importar planilha Gd_Edicao</strong>
-        <div class="meta">Colunas usadas: Nr.Documento, Dt.Documento e Dt.Inclusao.</div>
-      </div>
-      <form method="post" action="/relatorio-entrada-notas/importar" enctype="multipart/form-data">
-        <input type="file" name="note_file" accept=".xlsx" required>
-        <button type="submit">Importar notas</button>
-      </form>
-    </section>
     <div class="filters">
       <label>Data emissao <select id="dateFilter"></select></label>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
-      <label>Buscar nota <input id="searchFilter" type="search" placeholder="Nr.Documento"></label>
+      <label>Buscar nota <input id="searchFilter" type="search" placeholder="Numero da nota"></label>
     </div>
     <div class="tabs">
       <button type="button" class="active" data-tab="dashboard">Dashboard</button>
@@ -3852,17 +3848,28 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="kpi"><span>No prazo</span><strong id="kOk">0</strong></div>
         <div class="kpi"><span>Fora do prazo</span><strong id="kLate">0</strong></div>
         <div class="kpi"><span>% no prazo</span><strong id="kRate">0%</strong></div>
+        <div class="kpi"><span>Tempo medio entrada</span><strong id="kAvgEntry">-</strong></div>
       </div>
       <div class="grid">
         <div class="panel"><h2>Status</h2><div class="panel-body bars" id="statusBars"></div></div>
-        <div class="panel"><h2>Fora do prazo por emissao</h2><div class="panel-body bars" id="lateByDate"></div></div>
+        <div class="panel"><h2>Entradas por dia</h2><div class="panel-body daily-chart" id="dailyChart"></div></div>
       </div>
     </section>
     <section id="data" class="tab-view" hidden>
+      <section class="panel import-panel">
+        <div>
+          <strong>Importar notas fiscais</strong>
+          <div class="meta">Envie a planilha atualizada para renovar os indicadores.</div>
+        </div>
+        <form method="post" action="/relatorio-entrada-notas/importar" enctype="multipart/form-data">
+          <input type="file" name="note_file" accept=".xlsx" required>
+          <button type="submit">Importar notas</button>
+        </form>
+      </section>
       <div class="panel">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nota fiscal</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Horas fora</th></tr></thead>
+            <thead><tr><th>Nota fiscal</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
@@ -3887,25 +3894,60 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill" style="width:${Math.max(4, value / max * 100)}%; background:${color}"></div></div><strong>${fmt.format(value)}</strong></div>
       `).join("") : '<div class="empty">Sem dados para o filtro.</div>';
     }
+    function durationLabel(hours) {
+      if (!Number.isFinite(hours)) return "-";
+      const rounded = Math.max(0, Math.round(hours));
+      const days = Math.floor(rounded / 24);
+      const rest = rounded % 24;
+      return days ? `${days}d ${rest}h` : `${rest}h`;
+    }
+    function percentLabel(ok, total) {
+      if (!total) return "0%";
+      return `${(ok / total * 100).toFixed(1).replace(".", ",")}%`;
+    }
+    function renderDailyChart(data) {
+      const map = new Map();
+      data.forEach((row) => {
+        const item = map.get(row.emissao) || { total: 0, ok: 0, late: 0 };
+        item.total += 1;
+        if (row.status === "ok") item.ok += 1;
+        if (row.status === "late") item.late += 1;
+        map.set(row.emissao, item);
+      });
+      const entries = [...map.entries()].sort().reverse().slice(0, 14);
+      $("dailyChart").innerHTML = entries.length ? entries.map(([date, item]) => {
+        const okWidth = item.total ? item.ok / item.total * 100 : 0;
+        const lateWidth = item.total ? item.late / item.total * 100 : 0;
+        return `
+          <div class="day-row">
+            <span>${escapeHtml(date)}</span>
+            <div class="day-track"><div class="day-ok" style="width:${okWidth}%"></div><div class="day-late" style="width:${lateWidth}%"></div></div>
+            <strong>${fmt.format(item.total)} notas</strong>
+          </div>
+        `;
+      }).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+    }
     function render() {
       const data = filteredRows();
       const ok = data.filter((row) => row.status === "ok").length;
       const late = data.filter((row) => row.status === "late").length;
+      const entryHours = data.map((row) => Number(row.horasEntrada)).filter((value) => Number.isFinite(value));
+      const avgEntry = entryHours.length ? entryHours.reduce((total, value) => total + value, 0) / entryHours.length : null;
       $("kTotal").textContent = fmt.format(data.length);
       $("kOk").textContent = fmt.format(ok);
       $("kLate").textContent = fmt.format(late);
-      $("kRate").textContent = data.length ? `${Math.round(ok / data.length * 100)}%` : "0%";
+      $("kRate").textContent = percentLabel(ok, data.length);
+      $("kAvgEntry").textContent = avgEntry === null ? "-" : durationLabel(avgEntry);
       bars("statusBars", [["No prazo", ok], ["Fora do prazo", late]], "linear-gradient(90deg, var(--purple), var(--blue))");
-      const byDate = new Map();
-      data.filter((row) => row.status === "late").forEach((row) => byDate.set(row.emissao, (byDate.get(row.emissao) || 0) + 1));
-      bars("lateByDate", [...byDate.entries()].sort().reverse().slice(0, 12), "var(--red)");
+      renderDailyChart(data);
       $("rows").innerHTML = data.length ? data.map((row) => `
         <tr>
           <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
           <td><span class="badge ${row.status === "ok" ? "ok" : "bad"}">${row.status === "ok" ? "No prazo" : "Fora do prazo"}</span></td>
+          <td class="num">${durationLabel(Number(row.horasEntrada))}</td>
           <td class="num">${row.horasFora ? fmt.format(row.horasFora) : "-"}</td>
         </tr>
-      `).join("") : '<tr><td class="empty" colspan="6">Sem dados para os filtros atuais.</td></tr>';
+      `).join("") : '<tr><td class="empty" colspan="7">Sem dados para os filtros atuais.</td></tr>';
     }
     $("dateFilter").innerHTML = ['<option value="">Todas</option>', ...uniqueDates().map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)].join("");
     ["dateFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", render));
@@ -4588,10 +4630,12 @@ def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
             "entrada": "",
             "prazo": "",
             "status": "late",
+            "horasEntrada": None,
             "horasFora": 0,
         }
     prazo = note_entry_deadline(emissao)
     late = entrada > prazo
+    horas_entrada = max(0, int((entrada - emissao).total_seconds() // 3600))
     horas_fora = max(0, int((entrada - prazo).total_seconds() // 3600)) if late else 0
     return {
         "nota": row.get("nota", ""),
@@ -4599,6 +4643,7 @@ def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
         "entrada": format_note_datetime(entrada),
         "prazo": format_note_datetime(prazo),
         "status": "late" if late else "ok",
+        "horasEntrada": horas_entrada,
         "horasFora": horas_fora,
     }
 
