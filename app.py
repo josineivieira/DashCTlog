@@ -2962,7 +2962,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     .terminal strong { display: block; margin-top: 7px; font-size: 24px; }
     .wide { grid-column: 1 / -1; }
     .table-wrap { overflow: auto; max-height: calc(100vh - 420px); }
-    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1280px; }
     th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
     th {
       position: sticky;
@@ -2974,6 +2974,16 @@ DAILY_REPORT_HTML = """<!doctype html>
       text-transform: uppercase;
     }
     td.num, th.num { text-align: right; }
+    tr.needs-note td { background: #fffaf0; }
+    .observation-cell { min-width: 260px; }
+    .observation-cell textarea {
+      min-height: 56px;
+      font-size: 12px;
+    }
+    .observation-dash {
+      color: var(--muted);
+      font-weight: 850;
+    }
     .pill {
       display: inline-flex;
       min-height: 28px;
@@ -2982,57 +2992,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       border-radius: 999px;
       background: #edf2ff;
       color: var(--navy);
-      font-weight: 950;
-      white-space: nowrap;
-    }
-    .trip-gap {
-      display: grid;
-      gap: 12px;
-    }
-    .trip-gap .empty {
-      border: 1px dashed var(--line);
-      border-radius: 8px;
-      background: #f8fafb;
-    }
-    .trip-gap-row {
-      display: grid;
-      grid-template-columns: minmax(120px, .8fr) minmax(180px, 1fr) 90px minmax(260px, 1.4fr);
-      gap: 12px;
-      align-items: start;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #f8fafb;
-    }
-    .trip-gap-row.needs-note {
-      border-color: #f4c166;
-      background: #fffaf0;
-    }
-    .trip-gap-meta {
-      display: grid;
-      gap: 5px;
-      font-size: 13px;
-    }
-    .trip-gap-meta span {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-    .trip-gap-meta strong {
-      font-size: 15px;
-      line-height: 1.25;
-    }
-    .trip-gap-count {
-      display: inline-flex;
-      width: fit-content;
-      min-height: 30px;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #fff4de;
-      color: #92400e;
       font-weight: 950;
       white-space: nowrap;
     }
@@ -3092,7 +3051,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       .filters { justify-content: flex-start; }
       .kpis, .grid { grid-template-columns: 1fr; }
       .custom-date-filter { width: 100%; }
-      .trip-gap-row { grid-template-columns: 1fr; }
       .wide { grid-column: auto; }
     }
     @media print {
@@ -3171,11 +3129,12 @@ DAILY_REPORT_HTML = """<!doctype html>
         <div class="panel-body terminal-grid" id="terminalSummary"></div>
       </div>
       <div class="panel wide">
-        <h2>Detalhamento das viagens</h2>
+        <h2>Detalhamento das viagens <span class="save-state" id="observationSaveState"></span></h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
+                <th>Data</th>
                 <th>Placa</th>
                 <th>Motorista</th>
                 <th>Terminal</th>
@@ -3184,17 +3143,11 @@ DAILY_REPORT_HTML = """<!doctype html>
                 <th class="num">Volume</th>
                 <th class="num">Notas</th>
                 <th>Produtos</th>
+                <th>Observacao</th>
               </tr>
             </thead>
             <tbody id="reportRows"></tbody>
           </table>
-        </div>
-      </div>
-      <div class="panel wide">
-        <h2>Justificativas abaixo de 2 viagens <span class="panel-count" id="tripGapCount"></span></h2>
-        <div class="panel-body">
-          <div class="trip-gap" id="tripGapRows"></div>
-          <div class="save-state" id="observationSaveState"></div>
         </div>
       </div>
     </section>
@@ -3340,11 +3293,13 @@ DAILY_REPORT_HTML = """<!doctype html>
     function groupedRowsByPlate(data) {
       const terminalOrder = { Equador: 1, Ipiranga: 2 };
       const groups = new Map();
+      const terminalFilter = $("terminalSelect").value;
       data.forEach((row) => {
-        const key = row.placa;
+        const terminalKey = terminalFilter ? row.terminal : "todos";
+        const key = `${row.data}||${row.placa}||${terminalKey}`;
         const current = groups.get(key) || {
           ...row,
-          terminal: "",
+          terminal: terminalKey,
           terminalNome: "",
           terminalShort: "",
           viagens: 0,
@@ -3419,90 +3374,39 @@ DAILY_REPORT_HTML = """<!doctype html>
     function renderTable(data) {
       const detailData = groupedRowsByPlate(data);
       if (!detailData.length) {
-        $("reportRows").innerHTML = `<tr><td colspan="8" class="empty">Sem dados para o filtro.</td></tr>`;
+        $("reportRows").innerHTML = `<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>`;
         return;
       }
       $("reportRows").innerHTML = detailData
         .slice()
-        .sort((a, b) => b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa))
-        .map((row) => `
-          <tr>
-            <td><span class="pill">${row.placa}</span></td>
-            <td>${row.motorista || "-"}</td>
-            <td>${row.terminalNome}</td>
+        .sort((a, b) => parseDate(b.data) - parseDate(a.data) || b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa))
+        .map((row) => {
+          const key = observationKey(row);
+          const needsNote = row.viagens < 2;
+          const note = observations[key] || "";
+          return `
+          <tr class="${needsNote && !note ? "needs-note" : ""}">
+            <td>${escapeHtml(row.data)}</td>
+            <td><span class="pill">${escapeHtml(row.placa)}</span></td>
+            <td>${escapeHtml(row.motorista || "-")}</td>
+            <td>${escapeHtml(row.terminalNome)}</td>
             <td class="num">${fmt.format(row.viagens)}</td>
             <td class="num">${volume(row.capacidade)}</td>
             <td class="num">${volume(row.quantidade)}</td>
             <td class="num">${fmt.format(row.notas)}</td>
-            <td>${row.mixProdutos}</td>
+            <td>${escapeHtml(row.mixProdutos)}</td>
+            <td class="observation-cell">${
+              needsNote
+                ? `<textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(note)}</textarea>`
+                : '<span class="observation-dash">-</span>'
+            }</td>
           </tr>
-        `).join("");
+        `;
+        }).join("");
     }
 
     function observationKey(row) {
       return [row.data, row.placa, row.terminal || "todos"].join("||");
-    }
-
-    function lowTripRows(data) {
-      const groups = new Map();
-      const terminalFilter = $("terminalSelect").value;
-      data.forEach((row) => {
-        const key = [row.data, row.placa, terminalFilter ? row.terminal : "todos"].join("||");
-        const current = groups.get(key) || {
-          data: row.data,
-          placa: row.placa,
-          terminal: terminalFilter ? row.terminal : "todos",
-          terminals: [],
-          viagens: 0,
-          quantidade: 0,
-          motoristas: []
-        };
-        current.viagens += Number(row.viagens) || 0;
-        current.quantidade += Number(row.quantidade) || 0;
-        if (row.motorista) current.motoristas.push(row.motorista);
-        if (row.terminalNome) current.terminals.push(row.terminalNome);
-        groups.set(key, current);
-      });
-      return [...groups.values()]
-        .map((row) => ({
-          ...row,
-          terminalNome: [...new Set(row.terminals)].sort((a, b) => a.localeCompare(b, "pt-BR")).join(" / "),
-          motorista: [...new Set(row.motoristas.flatMap((name) => String(name).split("/")).map((name) => name.trim()).filter(Boolean))]
-            .sort((a, b) => a.localeCompare(b, "pt-BR"))
-            .join(" / ")
-        }))
-        .filter((row) => row.viagens < 2)
-        .sort((a, b) => parseDate(b.data) - parseDate(a.data) || a.placa.localeCompare(b.placa));
-    }
-
-    function renderTripGaps(data) {
-      const gaps = lowTripRows(data);
-      $("tripGapCount").textContent = gaps.length ? `(${fmt.format(gaps.length)})` : "";
-      if (!gaps.length) {
-        $("tripGapRows").innerHTML = '<div class="empty">Todas as placas do filtro atingiram 2 viagens por dia.</div>';
-        return;
-      }
-      $("tripGapRows").innerHTML = gaps.map((row) => {
-        const key = observationKey(row);
-        const note = observations[key] || "";
-        return `
-          <div class="trip-gap-row ${note ? "" : "needs-note"}" data-key="${escapeAttr(key)}">
-            <div class="trip-gap-meta">
-              <span>Data / Placa</span>
-              <strong>${escapeHtml(row.data)} - ${escapeHtml(row.placa)}</strong>
-            </div>
-            <div class="trip-gap-meta">
-              <span>Motorista / Terminal</span>
-              <strong>${escapeHtml(row.motorista || "-")}<br>${escapeHtml(row.terminalNome || "-")}</strong>
-            </div>
-            <div class="trip-gap-meta">
-              <span>Viagens</span>
-              <strong class="trip-gap-count">${fmt.format(row.viagens)} de 2</strong>
-            </div>
-            <textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(note)}</textarea>
-          </div>
-        `;
-      }).join("");
     }
 
     async function saveObservations() {
@@ -3787,7 +3691,6 @@ DAILY_REPORT_HTML = """<!doctype html>
       $("kNotes").textContent = fmt.format(notes);
       renderTerminals(data);
       renderTable(data);
-      renderTripGaps(data);
       drawShareImage();
     }
 
@@ -3798,11 +3701,11 @@ DAILY_REPORT_HTML = """<!doctype html>
     $("dateEnd").value = dates.length ? inputDate(dates[0]) : "";
     ["dateModeSelect", "dateSelect", "dateStart", "dateEnd"].forEach((id) => $(id).addEventListener("change", render));
     $("terminalSelect").addEventListener("change", render);
-    $("tripGapRows").addEventListener("input", (event) => {
+    $("reportRows").addEventListener("input", (event) => {
       const key = event.target?.dataset?.observationKey;
       if (!key) return;
       observations[key] = event.target.value;
-      event.target.closest(".trip-gap-row")?.classList.toggle("needs-note", !event.target.value.trim());
+      event.target.closest("tr")?.classList.toggle("needs-note", !event.target.value.trim());
       queueObservationSave();
     });
     $("generateImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Gerando...", drawShareImage));
