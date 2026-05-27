@@ -2864,6 +2864,12 @@ DAILY_REPORT_HTML = """<!doctype html>
       justify-content: flex-end;
       align-items: end;
     }
+    .custom-date-filter {
+      display: none;
+      gap: 10px;
+      align-items: end;
+    }
+    .custom-date-filter.is-visible { display: flex; }
     label { display: grid; gap: 7px; color: #d7e4ea; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     select, input {
       min-height: 42px;
@@ -2875,6 +2881,23 @@ DAILY_REPORT_HTML = """<!doctype html>
       color: var(--ink);
       font: inherit;
       font-weight: 800;
+    }
+    textarea {
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    textarea:focus, select:focus, input:focus {
+      outline: 2px solid rgba(43,132,203,.38);
+      outline-offset: 1px;
     }
     main { padding: 22px clamp(16px, 4vw, 42px) 40px; }
     .kpis {
@@ -2956,6 +2979,55 @@ DAILY_REPORT_HTML = """<!doctype html>
       font-weight: 950;
       white-space: nowrap;
     }
+    .trip-gap {
+      display: grid;
+      gap: 12px;
+    }
+    .trip-gap-row {
+      display: grid;
+      grid-template-columns: minmax(120px, .8fr) minmax(180px, 1fr) 90px minmax(260px, 1.4fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafb;
+    }
+    .trip-gap-meta {
+      display: grid;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .trip-gap-meta span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .trip-gap-meta strong {
+      font-size: 15px;
+      line-height: 1.25;
+    }
+    .trip-gap-count {
+      display: inline-flex;
+      width: fit-content;
+      min-height: 30px;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #fff4de;
+      color: #92400e;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+    .save-state {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+    }
     .empty { padding: 26px; color: var(--muted); font-weight: 800; text-align: center; }
     .share-panel {
       margin-top: 14px;
@@ -3004,6 +3076,8 @@ DAILY_REPORT_HTML = """<!doctype html>
       .topbar, .hero-grid { grid-template-columns: 1fr; flex-direction: column; }
       .filters { justify-content: flex-start; }
       .kpis, .grid { grid-template-columns: 1fr; }
+      .custom-date-filter { width: 100%; }
+      .trip-gap-row { grid-template-columns: 1fr; }
       .wide { grid-column: auto; }
     }
     @media print {
@@ -3036,9 +3110,28 @@ DAILY_REPORT_HTML = """<!doctype html>
     <div class="hero-grid">
       <div class="report-date" id="reportDate">-</div>
       <div class="filters">
+        <label>Filtro
+          <select id="dateModeSelect">
+            <option value="selected">Data selecionada</option>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="week">Esta semana</option>
+            <option value="last7">Ultimos 7 dias</option>
+            <option value="month">Este mes</option>
+            <option value="custom">Periodo</option>
+          </select>
+        </label>
         <label>Data
           <select id="dateSelect"></select>
         </label>
+        <span class="custom-date-filter" id="customDateFilter">
+          <label>Inicio
+            <input id="dateStart" type="date">
+          </label>
+          <label>Fim
+            <input id="dateEnd" type="date">
+          </label>
+        </span>
         <label>Terminal
           <select id="terminalSelect">
             <option value="">Todos</option>
@@ -3082,6 +3175,13 @@ DAILY_REPORT_HTML = """<!doctype html>
           </table>
         </div>
       </div>
+      <div class="panel wide">
+        <h2>Observacoes para menos de 2 viagens</h2>
+        <div class="panel-body">
+          <div class="trip-gap" id="tripGapRows"></div>
+          <div class="save-state" id="observationSaveState"></div>
+        </div>
+      </div>
     </section>
     <section class="share-panel">
       <div class="share-head">
@@ -3099,10 +3199,12 @@ DAILY_REPORT_HTML = """<!doctype html>
   <script>
     const dataset = __DATA__;
     const rows = dataset.dailyPlateRows || [];
+    const observations = dataset.dailyObservations || {};
     const fmt = new Intl.NumberFormat("pt-BR");
     const volume = (value) => `${fmt.format(Math.round(value / 1000))} mil`;
     const $ = (id) => document.getElementById(id);
     const logoUrl = "{favicon_url}";
+    let saveObservationTimer = null;
 
     async function withButtonLoading(button, text, action) {
       if (!button) return action();
@@ -3124,6 +3226,28 @@ DAILY_REPORT_HTML = """<!doctype html>
       return new Date(Number(year), Number(month) - 1, Number(day));
     }
 
+    function inputDate(value) {
+      if (!value) return "";
+      const date = parseDate(value);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function fromInputDate(value) {
+      if (!value) return null;
+      const [year, month, day] = value.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    }
+
+    function addDays(date, days) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return next;
+    }
+
     function dateLabel(value) {
       return parseDate(value).toLocaleDateString("pt-BR", {
         weekday: "long",
@@ -3138,10 +3262,56 @@ DAILY_REPORT_HTML = """<!doctype html>
         .sort((a, b) => parseDate(b) - parseDate(a));
     }
 
+    function selectedDateRange() {
+      const mode = $("dateModeSelect").value;
+      const selected = $("dateSelect").value;
+      const latest = selected ? parseDate(selected) : new Date();
+      if (mode === "selected") return { start: selected ? parseDate(selected) : null, end: selected ? parseDate(selected) : null };
+      if (mode === "today") {
+        const today = new Date();
+        return { start: new Date(today.getFullYear(), today.getMonth(), today.getDate()), end: new Date(today.getFullYear(), today.getMonth(), today.getDate()) };
+      }
+      if (mode === "yesterday") {
+        const yesterday = addDays(new Date(), -1);
+        const day = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        return { start: day, end: day };
+      }
+      if (mode === "last7") return { start: addDays(latest, -6), end: latest };
+      if (mode === "week") {
+        const mondayOffset = (latest.getDay() + 6) % 7;
+        return { start: addDays(latest, -mondayOffset), end: addDays(latest, 6 - mondayOffset) };
+      }
+      if (mode === "month") return { start: new Date(latest.getFullYear(), latest.getMonth(), 1), end: new Date(latest.getFullYear(), latest.getMonth() + 1, 0) };
+      if (mode === "custom") return { start: fromInputDate($("dateStart").value), end: fromInputDate($("dateEnd").value) };
+      return { start: null, end: null };
+    }
+
+    function matchesDateRange(row) {
+      const range = selectedDateRange();
+      const date = parseDate(row.data);
+      return (!range.start || date >= range.start) && (!range.end || date <= range.end);
+    }
+
+    function updateDateInputs() {
+      const custom = $("dateModeSelect").value === "custom";
+      $("customDateFilter").classList.toggle("is-visible", custom);
+      $("dateSelect").disabled = !["selected", "week", "last7", "month"].includes($("dateModeSelect").value);
+    }
+
+    function reportDateLabel() {
+      const mode = $("dateModeSelect").value;
+      const range = selectedDateRange();
+      if (mode === "selected") return $("dateSelect").value ? dateLabel($("dateSelect").value) : "-";
+      if (range.start && range.end && formatDate(range.start) === formatDate(range.end)) return dateLabel(formatDate(range.start));
+      if (range.start && range.end) return `${formatDate(range.start)} ate ${formatDate(range.end)}`;
+      if (range.start) return `A partir de ${formatDate(range.start)}`;
+      if (range.end) return `Ate ${formatDate(range.end)}`;
+      return "Todas as datas";
+    }
+
     function filteredRows() {
-      const date = $("dateSelect").value;
       const terminal = $("terminalSelect").value;
-      return rows.filter((row) => row.data === date && (!terminal || row.terminal === terminal));
+      return rows.filter((row) => matchesDateRange(row) && (!terminal || row.terminal === terminal));
     }
 
     function groupedRowsByPlate(data) {
@@ -3244,6 +3414,97 @@ DAILY_REPORT_HTML = """<!doctype html>
             <td>${row.mixProdutos}</td>
           </tr>
         `).join("");
+    }
+
+    function observationKey(row) {
+      return [row.data, row.placa, row.terminal || "todos"].join("||");
+    }
+
+    function lowTripRows(data) {
+      const groups = new Map();
+      const terminalFilter = $("terminalSelect").value;
+      data.forEach((row) => {
+        const key = [row.data, row.placa, terminalFilter ? row.terminal : "todos"].join("||");
+        const current = groups.get(key) || {
+          data: row.data,
+          placa: row.placa,
+          terminal: terminalFilter ? row.terminal : "todos",
+          terminals: [],
+          viagens: 0,
+          quantidade: 0,
+          motoristas: []
+        };
+        current.viagens += Number(row.viagens) || 0;
+        current.quantidade += Number(row.quantidade) || 0;
+        if (row.motorista) current.motoristas.push(row.motorista);
+        if (row.terminalNome) current.terminals.push(row.terminalNome);
+        groups.set(key, current);
+      });
+      return [...groups.values()]
+        .map((row) => ({
+          ...row,
+          terminalNome: [...new Set(row.terminals)].sort((a, b) => a.localeCompare(b, "pt-BR")).join(" / "),
+          motorista: [...new Set(row.motoristas.flatMap((name) => String(name).split("/")).map((name) => name.trim()).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, "pt-BR"))
+            .join(" / ")
+        }))
+        .filter((row) => row.viagens < 2)
+        .sort((a, b) => parseDate(b.data) - parseDate(a.data) || a.placa.localeCompare(b.placa));
+    }
+
+    function renderTripGaps(data) {
+      const gaps = lowTripRows(data);
+      if (!gaps.length) {
+        $("tripGapRows").innerHTML = '<div class="empty">Todas as placas do filtro atingiram 2 viagens no dia.</div>';
+        return;
+      }
+      $("tripGapRows").innerHTML = gaps.map((row) => {
+        const key = observationKey(row);
+        return `
+          <div class="trip-gap-row" data-key="${escapeAttr(key)}">
+            <div class="trip-gap-meta">
+              <span>Data / Placa</span>
+              <strong>${escapeHtml(row.data)} - ${escapeHtml(row.placa)}</strong>
+            </div>
+            <div class="trip-gap-meta">
+              <span>Motorista / Terminal</span>
+              <strong>${escapeHtml(row.motorista || "-")}<br>${escapeHtml(row.terminalNome || "-")}</strong>
+            </div>
+            <div class="trip-gap-meta">
+              <span>Viagens</span>
+              <strong class="trip-gap-count">${fmt.format(row.viagens)} de 2</strong>
+            </div>
+            <textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(observations[key] || "")}</textarea>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/"/g, "&quot;");
+    }
+
+    async function saveObservations() {
+      $("observationSaveState").textContent = "Salvando observacoes...";
+      const response = await fetch("/relatorio-diario/observacoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ observations })
+      });
+      if (!response.ok) throw new Error("Falha ao salvar");
+      $("observationSaveState").textContent = "Observacoes salvas.";
+      window.setTimeout(() => {
+        if ($("observationSaveState").textContent === "Observacoes salvas.") $("observationSaveState").textContent = "";
+      }, 2600);
+    }
+
+    function queueObservationSave() {
+      clearTimeout(saveObservationTimer);
+      saveObservationTimer = window.setTimeout(() => {
+        saveObservations().catch(() => {
+          $("observationSaveState").textContent = "Nao foi possivel salvar as observacoes.";
+        });
+      }, 650);
     }
 
     function wrapText(ctx, text, maxWidth) {
@@ -3475,7 +3736,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       await drawShareImage();
       const canvas = $("shareCanvas");
       const link = document.createElement("a");
-      link.download = `relatorio-diario-${$("dateSelect").value.replaceAll("/", "-")}.png`;
+      link.download = `relatorio-diario-${reportDateLabel().replaceAll("/", "-").replaceAll(" ", "-")}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     }
@@ -3484,7 +3745,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       await drawShareImage();
       const blob = await canvasToBlob($("shareCanvas"));
       if (!blob) return downloadImage();
-      const file = new File([blob], `relatorio-diario-${$("dateSelect").value.replaceAll("/", "-")}.png`, { type: "image/png" });
+      const file = new File([blob], `relatorio-diario-${reportDateLabel().replaceAll("/", "-").replaceAll(" ", "-")}.png`, { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "Relatorio diario" });
       } else {
@@ -3497,21 +3758,31 @@ DAILY_REPORT_HTML = """<!doctype html>
       const trips = data.reduce((total, row) => total + row.viagens, 0);
       const qty = data.reduce((total, row) => total + row.quantidade, 0);
       const notes = data.reduce((total, row) => total + row.notas, 0);
-      $("reportDate").textContent = $("dateSelect").value ? dateLabel($("dateSelect").value) : "-";
+      updateDateInputs();
+      $("reportDate").textContent = reportDateLabel();
       $("kTrips").textContent = fmt.format(trips);
       $("kVolume").textContent = volume(qty);
       $("kPlates").textContent = fmt.format(new Set(data.map((row) => row.placa)).size);
       $("kNotes").textContent = fmt.format(notes);
       renderTerminals(data);
       renderTable(data);
+      renderTripGaps(data);
       drawShareImage();
     }
 
     const dates = uniqueDates();
     $("dateSelect").innerHTML = dates.map((date) => `<option value="${date}">${date}</option>`).join("");
     $("dateSelect").value = dates[0] || "";
-    $("dateSelect").addEventListener("change", render);
+    $("dateStart").value = dates.length ? inputDate(dates[dates.length - 1]) : "";
+    $("dateEnd").value = dates.length ? inputDate(dates[0]) : "";
+    ["dateModeSelect", "dateSelect", "dateStart", "dateEnd"].forEach((id) => $(id).addEventListener("change", render));
     $("terminalSelect").addEventListener("change", render);
+    $("tripGapRows").addEventListener("input", (event) => {
+      const key = event.target?.dataset?.observationKey;
+      if (!key) return;
+      observations[key] = event.target.value;
+      queueObservationSave();
+    });
     $("generateImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Gerando...", drawShareImage));
     $("downloadImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Baixando...", downloadImage));
     $("shareImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Compartilhando...", shareImage));
@@ -4082,6 +4353,62 @@ def save_ct_control_rows(rows: list[dict[str, object]]) -> None:
     CT_CONTROL_DATA.write_text(json.dumps(clean_rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def ensure_postgres_daily_observation_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS relatorio_diario_observacoes (
+                    observation_key TEXT PRIMARY KEY,
+                    observacao TEXT NOT NULL DEFAULT '',
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def daily_report_observations() -> dict[str, str]:
+    if not build_dashboard.use_postgres():
+        return {}
+    ensure_postgres_daily_observation_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT observation_key, observacao
+                FROM relatorio_diario_observacoes
+                ORDER BY observation_key
+                """
+            )
+            return {str(key): str(value or "") for key, value in cur.fetchall()}
+
+
+def save_daily_report_observations(observations: dict[str, object]) -> None:
+    if not build_dashboard.use_postgres():
+        raise RuntimeError("Banco de dados nao configurado para salvar observacoes.")
+    ensure_postgres_daily_observation_table()
+    clean = {
+        str(key): str(value or "").strip()
+        for key, value in observations.items()
+        if str(key).strip()
+    }
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            for key, value in clean.items():
+                if not value:
+                    cur.execute("DELETE FROM relatorio_diario_observacoes WHERE observation_key = %s", (key,))
+                    continue
+                cur.execute(
+                    """
+                    INSERT INTO relatorio_diario_observacoes (observation_key, observacao, updated_at)
+                    VALUES (%s, %s, now())
+                    ON CONFLICT (observation_key)
+                    DO UPDATE SET observacao = EXCLUDED.observacao, updated_at = now()
+                    """,
+                    (key, value),
+                )
+
+
 CT_CONTROL_EXPORT_COLUMNS = [
     ("data", "Data"),
     ("motorista", "Motorista"),
@@ -4436,6 +4763,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_daily_report(self) -> None:
         data = build_dashboard.build_data()
+        data["dailyObservations"] = daily_report_observations()
         page = (
             DAILY_REPORT_HTML.replace("{favicon_url}", FAVICON_URL)
             .replace("__DATA__", json_for_script(data))
@@ -4631,6 +4959,26 @@ class Handler(BaseHTTPRequestHandler):
             self.redirect("/capacidades?ok=1")
             return
 
+        if parsed.path == "/relatorio-diario/observacoes":
+            if not self.require_login():
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8", errors="ignore") or "{}")
+                observations = payload.get("observations", {})
+                if not isinstance(observations, dict):
+                    raise ValueError("Observacoes invalidas")
+                save_daily_report_observations(observations)
+            except Exception as exc:
+                self.send_bytes(
+                    json.dumps({"ok": False, "error": str(exc)}).encode("utf-8"),
+                    "application/json; charset=utf-8",
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return
+            self.send_bytes(json.dumps({"ok": True}).encode("utf-8"), "application/json; charset=utf-8")
+            return
+
         if parsed.path == "/controle-ct":
             if not self.require_login():
                 return
@@ -4671,6 +5019,7 @@ def main() -> None:
     build_dashboard.ensure_database_storage()
     if build_dashboard.use_postgres():
         ensure_postgres_conductor_table()
+        ensure_postgres_daily_observation_table()
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()
     port = int(os.environ.get("PORT", "8000"))
