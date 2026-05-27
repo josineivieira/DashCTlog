@@ -3515,14 +3515,17 @@ DAILY_REPORT_HTML = """<!doctype html>
     async function drawShareImage() {
       const report = selectedReport();
       const canvas = $("shareCanvas");
-      canvas.width = 1080;
+      const imageWidth = 1440;
+      const margin = 64;
+      const contentWidth = imageWidth - margin * 2;
+      canvas.width = imageWidth;
       let ctx = canvas.getContext("2d");
       ctx.font = "700 17px Arial";
-      const productWidth = 288;
-      const observationWidth = 320;
+      const productWidth = 352;
+      const observationWidth = 390;
       const rowMetrics = report.detailData.map((row) => {
         const productLines = wrapText(ctx, row.mixProdutos, productWidth).slice(0, 2);
-        const driverLines = wrapText(ctx, row.motorista || "-", 210).slice(0, 2);
+        const driverLines = wrapText(ctx, row.motorista || "-", 300).slice(0, 2);
         const note = row.viagens < 2 ? (observations[observationKey(row)] || "Sem observacao informada") : "-";
         const noteLines = wrapText(ctx, note, observationWidth).slice(0, 3);
         return {
@@ -3543,7 +3546,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillStyle = "#f2f5f8";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 330);
+      const gradient = ctx.createLinearGradient(0, 0, imageWidth, 330);
       gradient.addColorStop(0, "#34104f");
       gradient.addColorStop(.62, "#4c176d");
       gradient.addColorStop(1, "#1b255f");
@@ -3553,7 +3556,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.globalAlpha = .18;
       ctx.fillStyle = "#2b84cb";
       ctx.beginPath();
-      ctx.arc(910, 90, 230, 0, Math.PI * 2);
+      ctx.arc(1220, 90, 250, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
 
@@ -3569,7 +3572,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillText(`Terminal: ${terminalLabel}`, 58, 298);
 
       const kpiY = 302;
-      const kpiW = 228;
+      const kpiW = 302;
       const kpis = [
         ["Viagens", fmt.format(report.trips), "#64248c"],
         ["Volume", volume(report.qty), "#2b84cb"],
@@ -3577,7 +3580,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         ["Notas", fmt.format(report.notes), "#1b255f"]
       ];
       kpis.forEach(([label, value, accent], idx) => {
-        const x = 54 + idx * (kpiW + 18);
+        const x = margin + idx * (kpiW + 18);
         drawCard(ctx, x, kpiY, kpiW, 142, accent);
         ctx.fillStyle = "#657282";
         ctx.font = "900 22px Arial";
@@ -3588,10 +3591,10 @@ DAILY_REPORT_HTML = """<!doctype html>
       });
 
       let y = 492;
-      drawCard(ctx, 54, y, 972, 188, "#2b84cb");
+      drawCard(ctx, margin, y, contentWidth, 188, "#2b84cb");
       ctx.fillStyle = "#16212d";
       ctx.font = "900 30px Arial";
-      ctx.fillText("Resumo por terminal", 82, y + 52);
+      ctx.fillText("Resumo por terminal", margin + 28, y + 52);
       const terminalTotals = new Map();
       report.data.forEach((row) => {
         const item = terminalTotals.get(row.terminalNome) || { viagens: 0, quantidade: 0 };
@@ -3599,7 +3602,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         item.quantidade += row.quantidade;
         terminalTotals.set(row.terminalNome, item);
       });
-      [["Equador", 84], ["Ipiranga", 560]].forEach(([name, x]) => {
+      [["Equador", margin + 30], ["Ipiranga", margin + 650]].forEach(([name, x]) => {
         const item = terminalTotals.get(name) || { viagens: 0, quantidade: 0 };
         ctx.fillStyle = "#657282";
         ctx.font = "900 20px Arial";
@@ -3613,61 +3616,66 @@ DAILY_REPORT_HTML = """<!doctype html>
       });
 
       y += 228;
-      drawCard(ctx, 54, y, 972, canvas.height - y - 54, "#e2263c");
+      drawCard(ctx, margin, y, contentWidth, canvas.height - y - 54, "#e2263c");
       ctx.fillStyle = "#16212d";
       ctx.font = "900 30px Arial";
-      ctx.fillText("Detalhamento", 82, y + 52);
+      ctx.fillText("Detalhamento", margin + 28, y + 52);
       ctx.font = "900 18px Arial";
       ctx.fillStyle = "#657282";
-      ctx.fillText("DATA", 82, y + 94);
-      ctx.fillText("PLACA", 184, y + 94);
-      ctx.fillText("MOTORISTA", 306, y + 94);
-      ctx.fillText("VIAG.", 536, y + 94);
-      ctx.fillText("VOL.", 614, y + 94);
-      ctx.fillText("PRODUTOS", 700, y + 94);
+      const col = {
+        data: margin + 28,
+        placa: margin + 130,
+        motorista: margin + 275,
+        viagens: margin + 598,
+        volume: margin + 682,
+        produtos: margin + 790,
+        obs: margin + 1088
+      };
+      ctx.fillText("DATA", col.data, y + 94);
+      ctx.fillText("PLACA", col.placa, y + 94);
+      ctx.fillText("MOTORISTA", col.motorista, y + 94);
+      ctx.fillText("VIAG.", col.viagens, y + 94);
+      ctx.fillText("VOL.", col.volume, y + 94);
+      ctx.fillText("PRODUTOS", col.produtos, y + 94);
+      ctx.fillText("OBSERVACAO", col.obs, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
-      ctx.moveTo(82, y + 112);
-      ctx.lineTo(998, y + 112);
+      ctx.moveTo(margin + 28, y + 112);
+      ctx.lineTo(margin + contentWidth - 28, y + 112);
       ctx.stroke();
 
       let tableY = y + 140;
       rowMetrics.forEach(({ row, productLines, driverLines, noteLines, height }, idx) => {
         if (idx % 2 === 0) {
           ctx.fillStyle = "#f8fafb";
-          roundRect(ctx, 78, tableY, 916, height - 8, 8);
-          ctx.fill();
-        }
-        if (row.viagens < 2) {
-          ctx.fillStyle = "rgba(255,244,222,.82)";
-          roundRect(ctx, 78, tableY, 916, height - 8, 8);
+          roundRect(ctx, margin + 24, tableY, contentWidth - 48, height - 8, 8);
           ctx.fill();
         }
         ctx.fillStyle = "#16212d";
         ctx.font = "850 18px Arial";
-        ctx.fillText(row.data.slice(0, 5), 88, tableY + 28);
+        ctx.fillText(row.data.slice(0, 5), col.data, tableY + 28);
         ctx.font = "900 20px Arial";
-        ctx.fillText(row.placa, 184, tableY + 28);
+        ctx.fillText(row.placa, col.placa, tableY + 28);
         ctx.font = "800 19px Arial";
         driverLines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 306, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, col.motorista, tableY + 20 + lineIdx * 20);
         });
-        ctx.fillText(fmt.format(row.viagens), 550, tableY + 28);
-        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 614, tableY + 28);
+        ctx.fillText(fmt.format(row.viagens), col.viagens + 14, tableY + 28);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), col.volume, tableY + 28);
         ctx.fillStyle = "#657282";
         ctx.font = "800 16px Arial";
-        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 184, tableY + 52);
+        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), col.placa, tableY + 52);
         ctx.font = "700 16px Arial";
         productLines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 700, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, col.produtos, tableY + 20 + lineIdx * 20);
         });
         if (row.viagens < 2 || noteLines.some((line) => line !== "-")) {
-          ctx.fillStyle = row.viagens < 2 ? "#92400e" : "#657282";
+          ctx.fillStyle = row.viagens < 2 ? "#b45309" : "#657282";
           ctx.font = "900 15px Arial";
-          ctx.fillText("OBS:", 306, tableY + 58);
+          ctx.fillText("OBS:", col.obs, tableY + 20);
           ctx.font = "700 16px Arial";
           noteLines.forEach((line, lineIdx) => {
-            ctx.fillText(line, 352, tableY + 58 + lineIdx * 20);
+            ctx.fillText(line, col.obs, tableY + 42 + lineIdx * 20);
           });
         }
         tableY += height;
