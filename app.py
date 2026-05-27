@@ -2572,7 +2572,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       });
     }
     function renderCounters() {
-      const active = rows.map(cleanRow);
+      const active = visibleRows().map(({ row }) => row);
       const count = (freight, status) => active.filter((row) => row.tipoFrete === freight && row.status === status).length;
       $("cifBase").textContent = count("CIF", "Patio");
       $("cifFila").textContent = count("CIF", "Fila de Carregamento");
