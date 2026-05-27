@@ -3619,12 +3619,11 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillText("Detalhamento", 82, y + 52);
       ctx.font = "900 18px Arial";
       ctx.fillStyle = "#657282";
-      ctx.fillText("DATA", 82, y + 94);
-      ctx.fillText("PLACA", 184, y + 94);
-      ctx.fillText("MOTORISTA", 306, y + 94);
-      ctx.fillText("VIAG.", 536, y + 94);
-      ctx.fillText("VOL.", 614, y + 94);
-      ctx.fillText("PRODUTOS", 700, y + 94);
+      ctx.fillText("PLACA", 82, y + 94);
+      ctx.fillText("MOTORISTA", 224, y + 94);
+      ctx.fillText("VIAG.", 500, y + 94);
+      ctx.fillText("VOL.", 584, y + 94);
+      ctx.fillText("PRODUTOS", 690, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
       ctx.moveTo(82, y + 112);
@@ -3638,36 +3637,29 @@ DAILY_REPORT_HTML = """<!doctype html>
           roundRect(ctx, 78, tableY, 916, height - 8, 8);
           ctx.fill();
         }
-        if (row.viagens < 2) {
-          ctx.fillStyle = "rgba(255,244,222,.82)";
-          roundRect(ctx, 78, tableY, 916, height - 8, 8);
-          ctx.fill();
-        }
         ctx.fillStyle = "#16212d";
-        ctx.font = "850 18px Arial";
-        ctx.fillText(row.data.slice(0, 5), 88, tableY + 28);
         ctx.font = "900 20px Arial";
-        ctx.fillText(row.placa, 184, tableY + 28);
+        ctx.fillText(row.placa, 88, tableY + 28);
         ctx.font = "800 19px Arial";
         driverLines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 306, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, 224, tableY + 20 + lineIdx * 20);
         });
-        ctx.fillText(fmt.format(row.viagens), 550, tableY + 28);
-        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 614, tableY + 28);
+        ctx.fillText(fmt.format(row.viagens), 516, tableY + 28);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 584, tableY + 28);
         ctx.fillStyle = "#657282";
         ctx.font = "800 16px Arial";
-        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 184, tableY + 52);
+        ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 88, tableY + 52);
         ctx.font = "700 16px Arial";
         productLines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 700, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, 690, tableY + 20 + lineIdx * 20);
         });
         if (row.viagens < 2 || noteLines.some((line) => line !== "-")) {
           ctx.fillStyle = row.viagens < 2 ? "#92400e" : "#657282";
           ctx.font = "900 15px Arial";
-          ctx.fillText("OBS:", 306, tableY + 58);
+          ctx.fillText("OBS:", 224, tableY + 58);
           ctx.font = "700 16px Arial";
           noteLines.forEach((line, lineIdx) => {
-            ctx.fillText(line, 352, tableY + 58 + lineIdx * 20);
+            ctx.fillText(line, 270, tableY + 58 + lineIdx * 20);
           });
         }
         tableY += height;
