@@ -2665,7 +2665,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         status: "Fila de Carregamento",
         chegada: nowDateTimeLocal()
       }));
-      $("dateRangeFilter").value = "";
+      $("dateRangeFilter").value = "today";
       $("dateFromFilter").value = "";
       $("dateToFilter").value = "";
       $("searchFilter").value = "";
@@ -2741,6 +2741,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       recalculateTrips();
       $("rowsJson").value = JSON.stringify(rows);
     });
+    $("dateRangeFilter").value = "today";
     updateCustomDateFilter();
     render();
   </script>
