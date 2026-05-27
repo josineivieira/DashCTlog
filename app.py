@@ -2933,6 +2933,12 @@ DAILY_REPORT_HTML = """<!doctype html>
       padding: 16px 18px 0;
       font-size: 18px;
     }
+    .panel h2 .panel-count {
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+    }
     .panel-body { padding: 14px 18px 18px; }
     .bars { display: grid; gap: 10px; }
     .bar-row {
@@ -2983,6 +2989,11 @@ DAILY_REPORT_HTML = """<!doctype html>
       display: grid;
       gap: 12px;
     }
+    .trip-gap .empty {
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #f8fafb;
+    }
     .trip-gap-row {
       display: grid;
       grid-template-columns: minmax(120px, .8fr) minmax(180px, 1fr) 90px minmax(260px, 1.4fr);
@@ -2992,6 +3003,10 @@ DAILY_REPORT_HTML = """<!doctype html>
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #f8fafb;
+    }
+    .trip-gap-row.needs-note {
+      border-color: #f4c166;
+      background: #fffaf0;
     }
     .trip-gap-meta {
       display: grid;
@@ -3176,7 +3191,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         </div>
       </div>
       <div class="panel wide">
-        <h2>Observacoes para menos de 2 viagens</h2>
+        <h2>Justificativas abaixo de 2 viagens <span class="panel-count" id="tripGapCount"></span></h2>
         <div class="panel-body">
           <div class="trip-gap" id="tripGapRows"></div>
           <div class="save-state" id="observationSaveState"></div>
@@ -3246,6 +3261,14 @@ DAILY_REPORT_HTML = """<!doctype html>
       const next = new Date(date);
       next.setDate(next.getDate() + days);
       return next;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/"/g, "&quot;");
     }
 
     function dateLabel(value) {
@@ -3454,14 +3477,16 @@ DAILY_REPORT_HTML = """<!doctype html>
 
     function renderTripGaps(data) {
       const gaps = lowTripRows(data);
+      $("tripGapCount").textContent = gaps.length ? `(${fmt.format(gaps.length)})` : "";
       if (!gaps.length) {
-        $("tripGapRows").innerHTML = '<div class="empty">Todas as placas do filtro atingiram 2 viagens no dia.</div>';
+        $("tripGapRows").innerHTML = '<div class="empty">Todas as placas do filtro atingiram 2 viagens por dia.</div>';
         return;
       }
       $("tripGapRows").innerHTML = gaps.map((row) => {
         const key = observationKey(row);
+        const note = observations[key] || "";
         return `
-          <div class="trip-gap-row" data-key="${escapeAttr(key)}">
+          <div class="trip-gap-row ${note ? "" : "needs-note"}" data-key="${escapeAttr(key)}">
             <div class="trip-gap-meta">
               <span>Data / Placa</span>
               <strong>${escapeHtml(row.data)} - ${escapeHtml(row.placa)}</strong>
@@ -3474,14 +3499,10 @@ DAILY_REPORT_HTML = """<!doctype html>
               <span>Viagens</span>
               <strong class="trip-gap-count">${fmt.format(row.viagens)} de 2</strong>
             </div>
-            <textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(observations[key] || "")}</textarea>
+            <textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(note)}</textarea>
           </div>
         `;
       }).join("");
-    }
-
-    function escapeAttr(value) {
-      return escapeHtml(value).replace(/"/g, "&quot;");
     }
 
     async function saveObservations() {
@@ -3781,6 +3802,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       const key = event.target?.dataset?.observationKey;
       if (!key) return;
       observations[key] = event.target.value;
+      event.target.closest(".trip-gap-row")?.classList.toggle("needs-note", !event.target.value.trim());
       queueObservationSave();
     });
     $("generateImage").addEventListener("click", (event) => withButtonLoading(event.currentTarget, "Gerando...", drawShareImage));
