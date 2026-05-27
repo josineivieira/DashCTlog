@@ -3779,30 +3779,42 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .meta { color:var(--muted); font-size:13px; font-weight:800; }
     .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
     label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
-    .kpis { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
-    .kpi { min-height:104px; padding:16px; border-top:5px solid var(--purple); }
-    .kpi:nth-child(2) { border-top-color:var(--green); }
-    .kpi:nth-child(3) { border-top-color:var(--red); }
-    .kpi:nth-child(4) { border-top-color:var(--blue); }
-    .kpi:nth-child(5) { border-top-color:var(--green); }
+    .kpis { display:grid; grid-template-columns:repeat(5,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
+    .kpi { min-height:118px; padding:16px; position:relative; overflow:hidden; border:0; }
+    .kpi::before { content:""; position:absolute; inset:0 auto 0 0; width:5px; background:var(--purple); }
+    .kpi::after { content:""; position:absolute; right:-28px; bottom:-36px; width:112px; height:112px; border-radius:50%; background:rgba(100,36,140,.08); }
+    .kpi:nth-child(2)::before { background:var(--green); }
+    .kpi:nth-child(3)::before { background:var(--red); }
+    .kpi:nth-child(4)::before { background:var(--blue); }
+    .kpi:nth-child(5)::before { background:var(--green); }
     .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
-    .kpi strong { display:block; margin-top:10px; font-size:32px; line-height:1; }
+    .kpi strong { display:block; margin-top:12px; font-size:34px; line-height:1; position:relative; z-index:1; }
     .tabs { display:flex; gap:8px; margin-bottom:14px; }
     .tabs button { background:#f3f6f8; border:1px solid var(--line); color:var(--ink); }
     .tabs button.active { background:var(--purple); color:#fff; border-color:transparent; }
     .tab-view[hidden] { display:none; }
-    .grid { display:grid; grid-template-columns:.85fr 1.15fr; gap:14px; }
+    .grid { display:grid; grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr); gap:14px; }
     .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
     .panel-body { padding:14px 18px 18px; }
     .bars { display:grid; gap:10px; }
     .bar-row { display:grid; grid-template-columns:150px 1fr auto; gap:10px; align-items:center; font-weight:850; font-size:13px; }
     .track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
     .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--blue)); }
-    .daily-chart { display:grid; gap:12px; }
-    .day-row { display:grid; grid-template-columns:90px 1fr auto; gap:10px; align-items:center; font-size:13px; font-weight:850; }
-    .day-track { height:16px; display:flex; border-radius:999px; background:#edf2f6; overflow:hidden; }
+    .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
+    .donut { width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
+    .donut::before { content:""; width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+    .donut-label { position:absolute; display:grid; gap:3px; text-align:center; font-weight:950; }
+    .donut-label span { color:var(--muted); font-size:11px; text-transform:uppercase; }
+    .status-legend { display:grid; gap:12px; }
+    .legend-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; font-size:13px; font-weight:900; }
+    .legend-dot { width:12px; height:12px; border-radius:50%; background:var(--green); }
+    .legend-dot.late { background:var(--red); }
+    .daily-chart { display:grid; gap:11px; }
+    .day-row { display:grid; grid-template-columns:90px 1fr 76px; gap:10px; align-items:center; font-size:13px; font-weight:850; }
+    .day-track { height:18px; display:flex; border-radius:999px; background:#edf2f6; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.03); }
     .day-ok { background:var(--green); }
     .day-late { background:var(--red); }
+    .day-row strong { text-align:right; }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
     th, td { padding:10px 11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:13px; }
@@ -3812,7 +3824,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
-    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
+    @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } }
+    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid, .status-card { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
   </style>
 </head>
 <body>
@@ -3894,6 +3907,19 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill" style="width:${Math.max(4, value / max * 100)}%; background:${color}"></div></div><strong>${fmt.format(value)}</strong></div>
       `).join("") : '<div class="empty">Sem dados para o filtro.</div>';
     }
+    function renderStatusPanel(ok, late) {
+      const total = ok + late;
+      const okDeg = total ? ok / total * 360 : 0;
+      $("statusBars").innerHTML = `
+        <div class="status-card">
+          <div class="donut" style="--okDeg:${okDeg}deg"><div class="donut-label"><strong>${percentLabel(ok, total)}</strong><span>no prazo</span></div></div>
+          <div class="status-legend">
+            <div class="legend-row"><span class="legend-dot"></span><span>No prazo</span><strong>${fmt.format(ok)}</strong></div>
+            <div class="legend-row"><span class="legend-dot late"></span><span>Fora do prazo</span><strong>${fmt.format(late)}</strong></div>
+          </div>
+        </div>
+      `;
+    }
     function durationLabel(hours) {
       if (!Number.isFinite(hours)) return "-";
       const rounded = Math.max(0, Math.round(hours));
@@ -3938,7 +3964,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       $("kLate").textContent = fmt.format(late);
       $("kRate").textContent = percentLabel(ok, data.length);
       $("kAvgEntry").textContent = avgEntry === null ? "-" : durationLabel(avgEntry);
-      bars("statusBars", [["No prazo", ok], ["Fora do prazo", late]], "linear-gradient(90deg, var(--purple), var(--blue))");
+      renderStatusPanel(ok, late);
       renderDailyChart(data);
       $("rows").innerHTML = data.length ? data.map((row) => `
         <tr>
