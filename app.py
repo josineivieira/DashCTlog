@@ -677,6 +677,7 @@ HOME_HTML = """<!doctype html>
         <a class="side-link" href="/editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg>Editar dados</a>
         <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Capacidades</a>
         <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Relatorio diario</a>
+        <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Entrada de notas</a>
         <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
       </nav>
       <div class="sidebar-footer">Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
@@ -691,7 +692,7 @@ HOME_HTML = """<!doctype html>
       </header>
       <main>
         <section class="summary">
-          <div class="metric"><span>Modulos ativos</span><strong>5</strong></div>
+          <div class="metric"><span>Modulos ativos</span><strong>6</strong></div>
           <div class="metric"><span>Base operacional</span><strong>CT</strong></div>
           <div class="metric"><span>Terminais</span><strong>2</strong></div>
           <div class="metric"><span>Status</span><strong>Online</strong></div>
@@ -731,6 +732,13 @@ HOME_HTML = """<!doctype html>
             <strong>Controle de CT</strong>
             <p>Acompanhe chegada, patio, fila, saida e notas fiscais.</p>
             <div class="button">Abrir controle</div>
+          </a>
+          <a class="card" href="/relatorio-entrada-notas">
+            <span>Notas</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg></div>
+            <strong>Entrada de notas</strong>
+            <p>Confira se as notas fiscais foram dadas entrada dentro do prazo de 48 horas.</p>
+            <div class="button">Abrir relatorio</div>
           </a>
         </section>
       </main>
@@ -980,6 +988,7 @@ EDIT_HTML = """<!doctype html>
       <a class="top-link" href="/dashboard">Dashboard</a>
       <a class="top-link" href="/controle-ct">Controle de CT</a>
       <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+      <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
       <a class="top-link" href="/capacidades">Capacidades</a>
       <a class="top-link" href="/logout">Sair</a>
     </nav>
@@ -1401,6 +1410,7 @@ CAPACITY_HTML = """<!doctype html>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
         <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/logout">Sair</a>
     </nav>
@@ -2255,6 +2265,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/capacidades">Capacidades</a>
         <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/logout">Sair</a>
       </nav>
     </div>
@@ -3078,6 +3089,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/capacidades">Capacidades</a>
+        <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/logout">Sair</a>
       </nav>
     </div>
@@ -3736,6 +3748,178 @@ DAILY_REPORT_HTML = """<!doctype html>
 """
 
 
+NOTE_ENTRY_REPORT_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Relatorio de entrada de notas - Dashboard</title>
+  <style>
+    :root { --bg:#eef2f5; --top:#34104f; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --shadow:0 18px 42px rgba(23,32,51,.10); }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, Segoe UI, Roboto, Arial, sans-serif; }
+    a { color:inherit; text-decoration:none; }
+    header { padding:24px clamp(16px,4vw,42px); background:linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f); color:#fff; }
+    .topbar { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
+    .brand-title { display:flex; align-items:center; gap:16px; }
+    .brand-title img { width:90px; height:auto; filter:drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
+    h1 { margin:0; font-size:clamp(28px,4vw,46px); line-height:1; letter-spacing:0; }
+    .subtitle { margin:8px 0 0; color:#d7e4ea; }
+    .nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:9px; }
+    .top-link, button, .button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border:1px solid rgba(255,255,255,.30); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
+    main { padding:22px clamp(16px,4vw,42px) 40px; }
+    .panel, .kpi { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .message { margin-bottom:14px; padding:12px 14px; border-radius:8px; border:1px solid #b8e6c8; background:#f0fff5; color:#166534; font-weight:850; }
+    .message.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .import-panel { margin-bottom:14px; padding:14px; display:flex; flex-wrap:wrap; gap:12px; align-items:end; justify-content:space-between; }
+    .import-panel form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+    .import-panel input, select { min-height:38px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-weight:800; background:#fff; color:var(--ink); }
+    .import-panel button, .tabs button { background:var(--purple); border-color:transparent; color:#fff; }
+    .meta { color:var(--muted); font-size:13px; font-weight:800; }
+    .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
+    .kpi { min-height:104px; padding:16px; border-top:5px solid var(--purple); }
+    .kpi:nth-child(2) { border-top-color:var(--green); }
+    .kpi:nth-child(3) { border-top-color:var(--red); }
+    .kpi:nth-child(4) { border-top-color:var(--blue); }
+    .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
+    .kpi strong { display:block; margin-top:10px; font-size:32px; line-height:1; }
+    .tabs { display:flex; gap:8px; margin-bottom:14px; }
+    .tabs button { background:#f3f6f8; border:1px solid var(--line); color:var(--ink); }
+    .tabs button.active { background:var(--purple); color:#fff; border-color:transparent; }
+    .tab-view[hidden] { display:none; }
+    .grid { display:grid; grid-template-columns:.85fr 1.15fr; gap:14px; }
+    .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
+    .panel-body { padding:14px 18px 18px; }
+    .bars { display:grid; gap:10px; }
+    .bar-row { display:grid; grid-template-columns:150px 1fr auto; gap:10px; align-items:center; font-weight:850; font-size:13px; }
+    .track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
+    .fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--blue)); }
+    .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
+    table { width:100%; min-width:980px; border-collapse:collapse; }
+    th, td { padding:10px 11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:13px; }
+    th { position:sticky; top:0; z-index:2; background:#eef3f6; color:#506071; font-size:12px; text-transform:uppercase; white-space:nowrap; }
+    td.num, th.num { text-align:right; }
+    .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
+    .badge.ok { background:#e7f7ee; color:#166534; }
+    .badge.bad { background:#fff1f2; color:#991b1b; }
+    .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
+    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de notas</h1></div>
+        <p class="subtitle">Notas fiscais com prazo de entrada de 48 horas, sem contar domingo.</p>
+      </div>
+      <nav class="nav">
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/controle-ct">Controle de CT</a>
+        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/logout">Sair</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {message}
+    <section class="panel import-panel">
+      <div>
+        <strong>Importar planilha Gd_Edicao</strong>
+        <div class="meta">Colunas usadas: Nr.Documento, Dt.Documento e Dt.Inclusao.</div>
+      </div>
+      <form method="post" action="/relatorio-entrada-notas/importar" enctype="multipart/form-data">
+        <input type="file" name="note_file" accept=".xlsx" required>
+        <button type="submit">Importar notas</button>
+      </form>
+    </section>
+    <div class="filters">
+      <label>Data emissao <select id="dateFilter"></select></label>
+      <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
+      <label>Buscar nota <input id="searchFilter" type="search" placeholder="Nr.Documento"></label>
+    </div>
+    <div class="tabs">
+      <button type="button" class="active" data-tab="dashboard">Dashboard</button>
+      <button type="button" data-tab="data">Dados</button>
+    </div>
+    <section id="dashboard" class="tab-view">
+      <div class="kpis">
+        <div class="kpi"><span>Notas</span><strong id="kTotal">0</strong></div>
+        <div class="kpi"><span>No prazo</span><strong id="kOk">0</strong></div>
+        <div class="kpi"><span>Fora do prazo</span><strong id="kLate">0</strong></div>
+        <div class="kpi"><span>% no prazo</span><strong id="kRate">0%</strong></div>
+      </div>
+      <div class="grid">
+        <div class="panel"><h2>Status</h2><div class="panel-body bars" id="statusBars"></div></div>
+        <div class="panel"><h2>Fora do prazo por emissao</h2><div class="panel-body bars" id="lateByDate"></div></div>
+      </div>
+    </section>
+    <section id="data" class="tab-view" hidden>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nota fiscal</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Horas fora</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const rows = __ROWS__;
+    const fmt = new Intl.NumberFormat("pt-BR");
+    const $ = (id) => document.getElementById(id);
+    function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function uniqueDates() { return [...new Set(rows.map((row) => row.emissao).filter(Boolean))].sort().reverse(); }
+    function filteredRows() {
+      const date = $("dateFilter").value;
+      const status = $("statusFilter").value;
+      const query = $("searchFilter").value.trim().toLowerCase();
+      return rows.filter((row) => (!date || row.emissao === date) && (!status || row.status === status) && (!query || row.nota.toLowerCase().includes(query)));
+    }
+    function bars(id, entries, color) {
+      const max = Math.max(1, ...entries.map(([, value]) => value));
+      $(id).innerHTML = entries.length ? entries.map(([label, value]) => `
+        <div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill" style="width:${Math.max(4, value / max * 100)}%; background:${color}"></div></div><strong>${fmt.format(value)}</strong></div>
+      `).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+    }
+    function render() {
+      const data = filteredRows();
+      const ok = data.filter((row) => row.status === "ok").length;
+      const late = data.filter((row) => row.status === "late").length;
+      $("kTotal").textContent = fmt.format(data.length);
+      $("kOk").textContent = fmt.format(ok);
+      $("kLate").textContent = fmt.format(late);
+      $("kRate").textContent = data.length ? `${Math.round(ok / data.length * 100)}%` : "0%";
+      bars("statusBars", [["No prazo", ok], ["Fora do prazo", late]], "linear-gradient(90deg, var(--purple), var(--blue))");
+      const byDate = new Map();
+      data.filter((row) => row.status === "late").forEach((row) => byDate.set(row.emissao, (byDate.get(row.emissao) || 0) + 1));
+      bars("lateByDate", [...byDate.entries()].sort().reverse().slice(0, 12), "var(--red)");
+      $("rows").innerHTML = data.length ? data.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
+          <td><span class="badge ${row.status === "ok" ? "ok" : "bad"}">${row.status === "ok" ? "No prazo" : "Fora do prazo"}</span></td>
+          <td class="num">${row.horasFora ? fmt.format(row.horasFora) : "-"}</td>
+        </tr>
+      `).join("") : '<tr><td class="empty" colspan="6">Sem dados para os filtros atuais.</td></tr>';
+    }
+    $("dateFilter").innerHTML = ['<option value="">Todas</option>', ...uniqueDates().map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)].join("");
+    ["dateFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", render));
+    document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => {
+      document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".tab-view").forEach((view) => view.hidden = view.id !== button.dataset.tab);
+    }));
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
 def current_file_label(path: Path, fallback: str) -> str:
     if path.exists():
         return f"{path.name} atualizado"
@@ -4045,6 +4229,10 @@ def xlsx_rows(path: Path, sheet_name: str) -> list[list[str]]:
     if not path.exists():
         return []
     with ZipFile(path) as xlsx:
+        return xlsx_rows_from_zip(xlsx, sheet_name)
+
+
+def xlsx_rows_from_zip(xlsx: ZipFile, sheet_name: str) -> list[list[str]]:
         shared_strings: list[str] = []
         if "xl/sharedStrings.xml" in xlsx.namelist():
             shared_root = ET.fromstring(xlsx.read("xl/sharedStrings.xml"))
@@ -4078,6 +4266,11 @@ def xlsx_rows(path: Path, sheet_name: str) -> list[list[str]]:
                 last_column = column
             rows.append(values)
         return rows
+
+
+def xlsx_rows_from_bytes(content: bytes, sheet_name: str) -> list[list[str]]:
+    with ZipFile(io.BytesIO(content)) as xlsx:
+        return xlsx_rows_from_zip(xlsx, sheet_name)
 
 
 def excel_number(value: object) -> float | None:
@@ -4350,6 +4543,155 @@ def save_daily_report_observations(observations: dict[str, object]) -> None:
                     """,
                     (key, value),
                 )
+
+
+def parse_note_entry_datetime(value: object) -> dt.datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    number = excel_number(text)
+    if number is not None:
+        return dt.datetime(1899, 12, 30) + dt.timedelta(days=number)
+    for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M", "%d/%m/%Y", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return dt.datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def note_entry_deadline(emissao: dt.datetime) -> dt.datetime:
+    current = emissao.replace(microsecond=0)
+    remaining = 48
+    while remaining > 0:
+        current += dt.timedelta(hours=1)
+        if current.weekday() != 6:
+            remaining -= 1
+    return current
+
+
+def format_note_date(value: dt.datetime) -> str:
+    return value.strftime("%d/%m/%Y")
+
+
+def format_note_datetime(value: dt.datetime) -> str:
+    return value.strftime("%d/%m/%Y %H:%M")
+
+
+def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
+    emissao = parse_note_entry_datetime(row.get("emissao_iso", ""))
+    entrada = parse_note_entry_datetime(row.get("entrada_iso", ""))
+    if not emissao or not entrada:
+        return {
+            "nota": row.get("nota", ""),
+            "emissao": "",
+            "entrada": "",
+            "prazo": "",
+            "status": "late",
+            "horasFora": 0,
+        }
+    prazo = note_entry_deadline(emissao)
+    late = entrada > prazo
+    horas_fora = max(0, int((entrada - prazo).total_seconds() // 3600)) if late else 0
+    return {
+        "nota": row.get("nota", ""),
+        "emissao": format_note_date(emissao),
+        "entrada": format_note_datetime(entrada),
+        "prazo": format_note_datetime(prazo),
+        "status": "late" if late else "ok",
+        "horasFora": horas_fora,
+    }
+
+
+def clean_note_entry_import_row(nota: object, emissao: object, entrada: object) -> dict[str, str] | None:
+    note = str(nota or "").strip()
+    doc_date = parse_note_entry_datetime(emissao)
+    entry_date = parse_note_entry_datetime(entrada)
+    if not note or not doc_date or not entry_date:
+        return None
+    return {
+        "nota": note,
+        "emissao_iso": doc_date.isoformat(timespec="minutes"),
+        "entrada_iso": entry_date.isoformat(timespec="minutes"),
+    }
+
+
+def parse_note_entry_file(content: bytes) -> list[dict[str, str]]:
+    rows = xlsx_rows_from_bytes(content, "Gd_Edicao")
+    if not rows:
+        raise ValueError("Aba Gd_Edicao nao encontrada na planilha")
+    headers = [normalize_header(item) for item in rows[0]]
+    required = {"nrdocumento": "Nr.Documento", "dtdocumento": "Dt.Documento", "dtinclusao": "Dt.Inclusao"}
+    indexes: dict[str, int] = {}
+    for key, label in required.items():
+        if key not in headers:
+            raise ValueError(f"Coluna obrigatoria nao encontrada: {label}")
+        indexes[key] = headers.index(key)
+    imported: list[dict[str, str]] = []
+    for raw in rows[1:]:
+        values = raw + [""] * (len(headers) + 1)
+        item = clean_note_entry_import_row(
+            values[indexes["nrdocumento"]],
+            values[indexes["dtdocumento"]],
+            values[indexes["dtinclusao"]],
+        )
+        if item:
+            imported.append(item)
+    return imported
+
+
+def ensure_postgres_note_entry_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS entrada_notas (
+                    id SERIAL PRIMARY KEY,
+                    row_order INTEGER NOT NULL DEFAULT 0,
+                    nota_fiscal TEXT NOT NULL DEFAULT '',
+                    emissao_iso TEXT NOT NULL DEFAULT '',
+                    entrada_iso TEXT NOT NULL DEFAULT '',
+                    imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
+    if not build_dashboard.use_postgres():
+        raise RuntimeError("Banco de dados nao configurado para salvar entrada de notas.")
+    ensure_postgres_note_entry_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE entrada_notas RESTART IDENTITY")
+            for idx, row in enumerate(rows, start=1):
+                cur.execute(
+                    """
+                    INSERT INTO entrada_notas (row_order, nota_fiscal, emissao_iso, entrada_iso)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (idx, row["nota"], row["emissao_iso"], row["entrada_iso"]),
+                )
+
+
+def note_entry_rows() -> list[dict[str, object]]:
+    if not build_dashboard.use_postgres():
+        return []
+    ensure_postgres_note_entry_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT nota_fiscal, emissao_iso, entrada_iso
+                FROM entrada_notas
+                ORDER BY row_order, id
+                """
+            )
+            rows = [
+                {"nota": item[0], "emissao_iso": item[1], "entrada_iso": item[2]}
+                for item in cur.fetchall()
+            ]
+    return [note_entry_view_row(row) for row in rows]
 
 
 CT_CONTROL_EXPORT_COLUMNS = [
@@ -4660,6 +5002,7 @@ class Handler(BaseHTTPRequestHandler):
     <a class="top-link" href="/editar">Editar dados</a>
     <a class="top-link" href="/controle-ct">Controle de CT</a>
     <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+    <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
     <a class="top-link" href="/logout">Sair</a>
   </nav>"""
@@ -4710,6 +5053,20 @@ class Handler(BaseHTTPRequestHandler):
         page = (
             DAILY_REPORT_HTML.replace("{favicon_url}", FAVICON_URL)
             .replace("__DATA__", json_for_script(data))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_note_entry_report(self) -> None:
+        params = parse_qs(urlparse(self.path).query)
+        message = ""
+        if "ok" in params:
+            message = '<div class="message">Planilha importada com sucesso.</div>'
+        if "erro" in params:
+            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        page = (
+            NOTE_ENTRY_REPORT_HTML.replace("{message}", message)
+            .replace("{favicon_url}", FAVICON_URL)
+            .replace("__ROWS__", json_for_script(note_entry_rows()))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -4822,6 +5179,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_daily_report()
             return
+        if parsed.path == "/relatorio-entrada-notas":
+            if not self.require_login():
+                return
+            self.send_note_entry_report()
+            return
         if parsed.path == "/controle-ct":
             if not self.require_login():
                 return
@@ -4922,6 +5284,30 @@ class Handler(BaseHTTPRequestHandler):
             self.send_bytes(json.dumps({"ok": True}).encode("utf-8"), "application/json; charset=utf-8")
             return
 
+        if parsed.path == "/relatorio-entrada-notas/importar":
+            if not self.require_login():
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > MAX_UPLOAD_BYTES:
+                    raise ValueError("Arquivo muito grande")
+                body = self.rfile.read(length)
+                files = parse_multipart(self.headers.get("Content-Type", ""), body)
+                filename, content = files.get("note_file", ("", b""))
+                if not filename or not content:
+                    raise ValueError("Selecione um arquivo XLSX")
+                if Path(filename).suffix.lower() != ".xlsx":
+                    raise ValueError("Importe apenas arquivo XLSX")
+                imported_rows = parse_note_entry_file(content)
+                if not imported_rows:
+                    raise ValueError("Nenhuma nota encontrada na planilha")
+                save_note_entry_rows(imported_rows)
+            except Exception as exc:
+                self.redirect("/relatorio-entrada-notas?erro=" + quote(str(exc)))
+                return
+            self.redirect("/relatorio-entrada-notas?ok=1")
+            return
+
         if parsed.path == "/controle-ct":
             if not self.require_login():
                 return
@@ -4963,6 +5349,7 @@ def main() -> None:
     if build_dashboard.use_postgres():
         ensure_postgres_conductor_table()
         ensure_postgres_daily_observation_table()
+        ensure_postgres_note_entry_table()
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()
     port = int(os.environ.get("PORT", "8000"))
