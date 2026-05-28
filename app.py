@@ -1021,7 +1021,7 @@ EDIT_HTML = """<!doctype html>
             <tbody>__TBODY__</tbody>
           </table>
         </div>
-        <div class="hint">Colunas usadas pelo dashboard: data, placa, terminal, viagens, capacidade, nota fiscal, produto, cliente e quantidade. Terminal deve ser 10 para Equador ou 19 para Ipiranga.</div>
+        <div class="hint">Colunas usadas pelo dashboard: data, placa, terminal, viagens, capacidade, nota fiscal, produto, cliente, municipio destino e quantidade. Terminal deve ser 10 para Equador ou 19 para Ipiranga.</div>
       </form>
     </section>
   </main>
@@ -1036,6 +1036,7 @@ EDIT_HTML = """<!doctype html>
       ["notaFiscal", "Nota fiscal"],
       ["produto", "Produto"],
       ["cliente", "Cliente"],
+      ["municipioDestino", "Municipio destino"],
       ["quantidade", "Quantidade"]
     ];
     const serverRows = __ROWS__;
@@ -3783,21 +3784,53 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .custom-date-filter { display:none; gap:10px; align-items:end; }
     .custom-date-filter.is-visible { display:flex; }
     label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
-    .kpis { display:grid; grid-template-columns:repeat(5,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
-    .kpi { min-height:118px; padding:16px; position:relative; overflow:hidden; border:0; }
-    .kpi::before { content:""; position:absolute; inset:0 auto 0 0; width:5px; background:var(--purple); }
-    .kpi::after { content:""; position:absolute; right:-28px; bottom:-36px; width:112px; height:112px; border-radius:50%; background:rgba(100,36,140,.08); }
-    .kpi:nth-child(2)::before { background:var(--green); }
-    .kpi:nth-child(3)::before { background:var(--red); }
-    .kpi:nth-child(4)::before { background:var(--blue); }
-    .kpi:nth-child(5)::before { background:var(--green); }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
+    .kpi { min-height:112px; padding:18px; display:grid; grid-template-columns:52px 1fr; gap:14px; align-items:center; border:0; }
+    .kpi-icon { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; color:#fff; background:#3f48cc; font-size:22px; font-weight:950; }
+    .kpi:nth-child(2) .kpi-icon { background:#0b66d8; }
+    .kpi:nth-child(3) .kpi-icon { background:var(--red); }
+    .kpi:nth-child(4) .kpi-icon { background:var(--green); }
     .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
-    .kpi strong { display:block; margin-top:12px; font-size:34px; line-height:1; position:relative; z-index:1; }
+    .kpi strong { display:block; margin-top:6px; font-size:30px; line-height:1; }
+    .kpi small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; }
     .tabs { display:flex; gap:8px; margin-bottom:14px; }
     .tabs button { background:#f3f6f8; border:1px solid var(--line); color:var(--ink); }
     .tabs button.active { background:var(--purple); color:#fff; border-color:transparent; }
     .tab-view[hidden] { display:none; }
-    .grid { display:grid; grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr); gap:14px; }
+    .branch-grid { display:grid; grid-template-columns:repeat(3,minmax(260px,1fr)); gap:14px; margin-bottom:14px; }
+    .branch-card { padding:16px; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .branch-title { display:flex; align-items:center; gap:8px; margin:0 0 12px; color:#17377d; font-size:16px; font-weight:950; }
+    .branch-title::before { content:""; width:22px; height:22px; border-radius:6px; border:2px solid #0b66d8; box-shadow:inset 6px 0 0 rgba(11,102,216,.15); }
+    .branch-main { display:grid; grid-template-columns:128px 1fr; gap:14px; align-items:center; }
+    .city-ring { position:relative; width:118px; height:118px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#0b66d8 0deg, #0b66d8 var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
+    .city-ring::before { content:""; width:74px; height:74px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+    .city-ring-label { position:absolute; text-align:center; font-weight:950; }
+    .city-ring-label strong { display:block; font-size:21px; }
+    .city-ring-label span { color:var(--muted); font-size:11px; }
+    .city-metrics { display:grid; gap:10px; font-size:13px; font-weight:900; }
+    .city-metric { display:grid; grid-template-columns:10px auto 1fr; gap:8px; align-items:center; }
+    .city-metric::before { content:""; width:9px; height:9px; border-radius:50%; background:#0b66d8; }
+    .city-metric.late::before { background:var(--red); }
+    .city-total { padding-top:8px; color:var(--muted); font-weight:950; text-align:right; }
+    .late-notes { margin-top:16px; padding-top:12px; border-top:1px solid #edf1f5; }
+    .late-notes h3 { margin:0 0 8px; color:var(--red); font-size:13px; }
+    .mini-table { width:100%; min-width:0; border-collapse:collapse; }
+    .mini-table th, .mini-table td { padding:7px 0; border-bottom:1px solid #edf1f5; font-size:12px; }
+    .mini-table th { position:static; background:transparent; color:var(--muted); }
+    .mini-table td:last-child, .mini-table th:last-child { text-align:right; }
+    .view-late { margin:10px auto 0; display:flex; width:max-content; border:0; background:transparent; color:#0b66d8; padding:4px; min-height:auto; font-size:12px; }
+    .branch-summary { padding:16px 18px 18px; }
+    .summary-legend { display:flex; justify-content:center; gap:22px; margin:4px 0 16px; color:var(--muted); font-size:12px; font-weight:900; }
+    .summary-legend span { display:inline-flex; gap:7px; align-items:center; }
+    .summary-legend span::before { content:""; width:12px; height:12px; border-radius:3px; background:#0b66d8; }
+    .summary-legend span.late::before { background:var(--red); }
+    .summary-chart { display:grid; grid-template-columns:64px 1fr; gap:10px 16px; align-items:center; }
+    .summary-name { color:var(--ink); font-size:13px; font-weight:950; text-align:right; }
+    .summary-bars { height:52px; display:flex; align-items:end; gap:8px; border-bottom:1px solid var(--line); }
+    .summary-bar-wrap { flex:0 0 42px; height:100%; display:flex; align-items:end; justify-content:center; }
+    .summary-bar { width:34px; min-height:2px; border-radius:5px 5px 0 0; background:#0b66d8; position:relative; cursor:pointer; }
+    .summary-bar.late { background:var(--red); }
+    .summary-bar span { position:absolute; left:50%; bottom:calc(100% + 3px); transform:translateX(-50%); color:var(--ink); font-size:12px; font-weight:950; }
     .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
     .panel-body { padding:14px 18px 18px; }
     .bars { display:grid; gap:10px; }
@@ -3839,6 +3872,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .drill-item strong { font-size:15px; }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
+    .mini-table { min-width:0; }
     th, td { padding:10px 11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:13px; }
     th { position:sticky; top:0; z-index:2; background:#eef3f6; color:#506071; font-size:12px; text-transform:uppercase; white-space:nowrap; }
     td.num, th.num { text-align:right; }
@@ -3854,8 +3888,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .canvas-wrap { padding:18px; background:linear-gradient(90deg, rgba(52,16,79,.06), rgba(43,132,203,.07)), #f8fafb; overflow:auto; }
     #noteShareCanvas { display:block; width:min(100%,760px); height:auto; margin:0 auto; border-radius:8px; box-shadow:0 18px 42px rgba(23,32,51,.18); background:#fff; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
-    @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } }
-    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid, .status-card, .drill-item { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
+    @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .branch-grid { grid-template-columns:repeat(2,minmax(260px,1fr)); } }
+    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .branch-grid, .status-card, .drill-item { grid-template-columns:1fr; } .nav { justify-content:flex-start; } .branch-main { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -3891,15 +3925,16 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     </div>
     <section id="dashboard" class="tab-view">
       <div class="kpis">
-        <div class="kpi"><span>Notas</span><strong id="kTotal">0</strong></div>
-        <div class="kpi"><span>No prazo</span><strong id="kOk">0</strong></div>
-        <div class="kpi"><span>Fora do prazo</span><strong id="kLate">0</strong></div>
-        <div class="kpi"><span>% no prazo</span><strong id="kRate">0%</strong></div>
-        <div class="kpi"><span>Tempo medio entrada</span><strong id="kAvgEntry">-</strong></div>
+        <div class="kpi"><div class="kpi-icon">N</div><div><span>Total de notas</span><strong id="kTotal">0</strong><small id="kTotalHint">Todas as cidades</small></div></div>
+        <div class="kpi"><div class="kpi-icon">✓</div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon">X</div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon">T</div><div><span>Tempo medio</span><strong id="kAvgEntry">-</strong><small>Tempo medio geral</small></div></div>
       </div>
-      <div class="grid">
-        <div class="panel"><h2>Status</h2><div class="panel-body bars" id="statusBars"></div></div>
-        <div class="panel"><h2>Entradas por dia</h2><div class="panel-body daily-chart" id="dailyChart"></div></div>
+      <div class="branch-grid" id="cityCards"></div>
+      <div class="panel branch-summary">
+        <h2>Resumo por filial</h2>
+        <div class="summary-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div>
+        <div class="summary-chart" id="citySummary"></div>
       </div>
       <div class="panel drilldown" id="drilldownPanel" hidden></div>
       <section class="share-panel">
@@ -4240,40 +4275,82 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         await downloadNoteImage();
       }
     }
-    function renderDailyChart(data) {
+    function cityName(row) {
+      return row.cidade || "Sem cidade";
+    }
+    function cityOrder(name) {
+      const order = { "BOA VISTA": 1, "MANAUS": 2, "ITACOATIARA": 3 };
+      return order[name] || 99;
+    }
+    function cityStats(data) {
       const map = new Map();
       data.forEach((row) => {
-        const item = map.get(row.emissao) || { total: 0, ok: 0, late: 0 };
+        const city = cityName(row);
+        const item = map.get(city) || { city, total: 0, ok: 0, late: 0, lateRows: [], okRows: [] };
         item.total += 1;
-        if (row.status === "ok") item.ok += 1;
-        if (row.status === "late") item.late += 1;
-        map.set(row.emissao, item);
+        if (row.status === "ok") {
+          item.ok += 1;
+          item.okRows.push(row);
+        }
+        if (row.status === "late") {
+          item.late += 1;
+          item.lateRows.push(row);
+        }
+        map.set(city, item);
       });
-      const entries = [...map.entries()].sort().reverse().slice(0, 14);
-      const maxTotal = Math.max(1, ...entries.map(([, item]) => item.total));
-      $("dailyChart").innerHTML = entries.length ? `
-        <div class="chart-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div>
-        ${entries.map(([date, item]) => {
-        const okWidth = item.total ? item.ok / item.total * 100 : 0;
-        const lateWidth = item.total ? item.late / item.total * 100 : 0;
-        const totalWidth = Math.max(4, item.total / maxTotal * 100);
+      return [...map.values()].sort((a, b) => cityOrder(a.city) - cityOrder(b.city) || a.city.localeCompare(b.city));
+    }
+    function renderCityCards(data) {
+      const stats = cityStats(data);
+      $("cityCards").innerHTML = stats.length ? stats.map((item) => {
+        const okDeg = item.total ? item.ok / item.total * 360 : 0;
+        const lateRows = item.lateRows.slice().sort((a, b) => b.horasFora - a.horasFora).slice(0, 5);
         return `
-          <div class="day-row">
-            <span>${escapeHtml(date)}</span>
-            <div class="day-track" title="Clique para ver as notas">
-              <div class="day-stack" style="width:${totalWidth}%">
-                ${item.ok ? `<div class="day-ok" data-drill-date="${escapeHtml(date)}" data-drill-status="ok" style="width:${okWidth}%"></div>` : ""}
-                ${item.late ? `<div class="day-late" data-drill-date="${escapeHtml(date)}" data-drill-status="late" style="width:${lateWidth}%"></div>` : ""}
+          <section class="branch-card">
+            <h2 class="branch-title">${escapeHtml(item.city)}</h2>
+            <div class="branch-main">
+              <div class="city-ring" style="--okDeg:${okDeg}deg">
+                <div class="city-ring-label"><strong>${percentLabel(item.ok, item.total)}</strong><span>No prazo</span></div>
+              </div>
+              <div class="city-metrics">
+                <div class="city-metric"><strong>${fmt.format(item.ok)}</strong><span>No prazo</span></div>
+                <div class="city-metric late"><strong>${fmt.format(item.late)}</strong><span>Fora do prazo</span></div>
+                <div class="city-total">Total: ${fmt.format(item.total)}</div>
               </div>
             </div>
-            <strong class="day-counts"><span class="mini-pill">${fmt.format(item.ok)}</span><span class="mini-pill late">${fmt.format(item.late)}</span></strong>
-          </div>
+            <div class="late-notes">
+              <h3>Notas fora do prazo</h3>
+              ${lateRows.length ? `
+                <table class="mini-table">
+                  <thead><tr><th>Nota</th><th>Dia da entrada</th></tr></thead>
+                  <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(String(row.entrada).split(" ")[0] || "-")}</td></tr>`).join("")}</tbody>
+                </table>
+                <button type="button" class="view-late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late">Ver todas (${fmt.format(item.late)})</button>
+              ` : '<div class="empty">Sem notas fora do prazo.</div>'}
+            </div>
+          </section>
         `;
-      }).join("")}` : '<div class="empty">Sem dados para o filtro.</div>';
-      $("dailyChart").onclick = (event) => {
-        const segment = event.target.closest("[data-drill-date]");
-        if (segment) {
-          activeDrilldown = { date: segment.dataset.drillDate, status: segment.dataset.drillStatus };
+      }).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+      document.querySelectorAll("[data-drill-city]").forEach((button) => button.addEventListener("click", () => {
+        activeDrilldown = { city: button.dataset.drillCity, status: button.dataset.drillStatus };
+        render();
+        $("drilldownPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }));
+    }
+    function renderCitySummary(data) {
+      const stats = cityStats(data);
+      const max = Math.max(1, ...stats.map((item) => Math.max(item.ok, item.late)));
+      $("citySummary").innerHTML = stats.length ? stats.map((item) => `
+        <div class="summary-name">${escapeHtml(item.city)}</div>
+        <div class="summary-bars">
+          <div class="summary-bar-wrap"><div class="summary-bar" data-drill-city="${escapeHtml(item.city)}" data-drill-status="ok" style="height:${Math.max(2, item.ok / max * 100)}%"><span>${fmt.format(item.ok)}</span></div></div>
+          <div class="summary-bar-wrap"><div class="summary-bar late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late" style="height:${Math.max(2, item.late / max * 100)}%"><span>${fmt.format(item.late)}</span></div></div>
+        </div>
+      `).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+      $("citySummary").onclick = (event) => {
+        const bar = event.target.closest("[data-drill-city]");
+        if (bar) {
+          activeDrilldown = { city: bar.dataset.drillCity, status: bar.dataset.drillStatus };
           render();
           $("drilldownPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
           return;
@@ -4292,7 +4369,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         return;
       }
       const statusLabel = activeDrilldown.status === "late" ? "fora do prazo" : "no prazo";
-      const selected = data.filter((row) => row.emissao === activeDrilldown.date && row.status === activeDrilldown.status);
+      const selected = data.filter((row) => cityName(row) === activeDrilldown.city && row.status === activeDrilldown.status);
       if (!selected.length) {
         panel.hidden = true;
         panel.innerHTML = "";
@@ -4301,7 +4378,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       panel.hidden = false;
       panel.innerHTML = `
         <div class="drilldown-head">
-          <h2>${fmt.format(selected.length)} notas ${statusLabel} em ${escapeHtml(activeDrilldown.date)}</h2>
+          <h2>${fmt.format(selected.length)} notas ${statusLabel} em ${escapeHtml(activeDrilldown.city)}</h2>
           <button type="button" id="clearDrilldown">Fechar</button>
         </div>
         <div class="drill-list">
@@ -4330,10 +4407,12 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       $("kTotal").textContent = fmt.format(data.length);
       $("kOk").textContent = fmt.format(ok);
       $("kLate").textContent = fmt.format(late);
-      $("kRate").textContent = percentLabel(ok, data.length);
+      $("kTotalHint").textContent = $("cityFilter").value || "Todas as cidades";
+      $("kOkHint").textContent = `${percentLabel(ok, data.length)} do total`;
+      $("kLateHint").textContent = `${percentLabel(late, data.length)} do total`;
       $("kAvgEntry").textContent = avgEntry === null ? "-" : durationLabel(avgEntry);
-      renderStatusPanel(ok, late);
-      renderDailyChart(data);
+      renderCityCards(data);
+      renderCitySummary(data);
       renderDrilldown(data);
       drawNoteShareImage();
       $("rows").innerHTML = data.length ? data.map((row) => `
@@ -4518,6 +4597,10 @@ HEADER_ALIASES = {
     "nomefantasiacliente": "cliente",
     "razaosocialcliente": "cliente",
     "nomecliente": "cliente",
+    "municipiodestino": "municipioDestino",
+    "nomemunicipiodestino": "municipioDestino",
+    "municipiodedestino": "municipioDestino",
+    "cidadedestino": "municipioDestino",
     "quantidade": "quantidade",
     "qtd": "quantidade",
     "cfop": "cfopDescricao",
@@ -4631,10 +4714,11 @@ def template_csv() -> bytes:
             "notaFiscal",
             "produto",
             "cliente",
+            "municipioDestino",
             "quantidade",
         ]
     )
-    writer.writerow(["16/03/2026", "ABC1D23", "10", "1", "30000", "MOTORISTA EXEMPLO", "123456", "DIESEL S10", "CLIENTE EXEMPLO", "5000"])
+    writer.writerow(["16/03/2026", "ABC1D23", "10", "1", "30000", "MOTORISTA EXEMPLO", "123456", "DIESEL S10", "CLIENTE EXEMPLO", "MANAUS", "5000"])
     return output.getvalue().encode("utf-8-sig")
 
 
@@ -5419,6 +5503,7 @@ def render_sheet_parts(rows: list[dict[str, object]]) -> tuple[str, str]:
         ("notaFiscal", "Nota fiscal"),
         ("produto", "Produto"),
         ("cliente", "Cliente"),
+        ("municipioDestino", "Municipio destino"),
         ("quantidade", "Quantidade"),
     ]
     thead = (

@@ -38,6 +38,7 @@ EDITABLE_COLUMNS = [
     "notaFiscal",
     "produto",
     "cliente",
+    "municipioDestino",
     "quantidade",
     "cfopDescricao",
 ]
@@ -317,6 +318,7 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
                 "notaFiscal": row[dh["nf"]].strip(),
                 "produto": clean_product(row[dh["product"]]),
                 "cliente": row[dh["client"]].strip(),
+                "municipioDestino": "",
                 "quantidade": quantity,
             }
         )
@@ -333,6 +335,7 @@ def editable_rows_from_sources() -> list[dict[str, object]]:
                 "notaFiscal": "",
                 "produto": "",
                 "cliente": "",
+                "municipioDestino": "",
                 "quantidade": 0,
             }
         )
@@ -497,6 +500,7 @@ def ensure_postgres_table() -> None:
                     nota_fiscal TEXT NOT NULL DEFAULT '',
                     produto TEXT NOT NULL DEFAULT '',
                     cliente TEXT NOT NULL DEFAULT '',
+                    municipio_destino TEXT NOT NULL DEFAULT '',
                     quantidade TEXT NOT NULL DEFAULT '',
                     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -504,6 +508,7 @@ def ensure_postgres_table() -> None:
                 """
             )
             cur.execute("ALTER TABLE dashboard_base ADD COLUMN IF NOT EXISTS motorista_1 TEXT NOT NULL DEFAULT ''")
+            cur.execute("ALTER TABLE dashboard_base ADD COLUMN IF NOT EXISTS municipio_destino TEXT NOT NULL DEFAULT ''")
 
 
 def postgres_rows() -> list[dict[str, object]]:
@@ -513,7 +518,7 @@ def postgres_rows() -> list[dict[str, object]]:
             cur.execute(
                 """
                 SELECT data, placa, terminal, viagens, capacidade,
-                       motorista_1, nota_fiscal, produto, cliente, quantidade
+                       motorista_1, nota_fiscal, produto, cliente, municipio_destino, quantidade
                 FROM dashboard_base
                 ORDER BY row_order, id
                 """
@@ -531,7 +536,8 @@ def postgres_rows() -> list[dict[str, object]]:
                         "notaFiscal": item[6],
                         "produto": item[7],
                         "cliente": item[8],
-                        "quantidade": item[9],
+                        "municipioDestino": item[9],
+                        "quantidade": item[10],
                     }
                 )
             return rows
@@ -547,9 +553,9 @@ def save_postgres_rows(rows: list[dict[str, object]]) -> None:
                     """
                     INSERT INTO dashboard_base (
                         row_order, data, placa, terminal, viagens, capacidade,
-                        motorista_1, nota_fiscal, produto, cliente, quantidade
+                        motorista_1, nota_fiscal, produto, cliente, municipio_destino, quantidade
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         idx,
@@ -562,6 +568,7 @@ def save_postgres_rows(rows: list[dict[str, object]]) -> None:
                         str(row.get("notaFiscal", "")),
                         str(row.get("produto", "")),
                         str(row.get("cliente", "")),
+                        str(row.get("municipioDestino", "")),
                         str(row.get("quantidade", "")),
                     ),
                 )
