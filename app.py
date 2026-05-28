@@ -103,12 +103,14 @@ def find_user_record(username: str) -> dict[str, object] | None:
 
 
 def is_master_user(username: str) -> bool:
-    return clean_username(username) == app_user()
+    return clean_username(username) == clean_username(app_user())
 
 
 def authenticate_user(username: str, password: str) -> bool:
-    username = clean_username(username)
-    if username == app_user() and password == app_password():
+    raw_username = username.strip()
+    username = clean_username(raw_username)
+    master_matches = raw_username == app_user() or username == clean_username(app_user())
+    if master_matches and password == app_password():
         return True
     record = find_user_record(username)
     if not record or not record.get("active"):
@@ -5146,7 +5148,7 @@ def save_postgres_user_records(records: list[dict[str, object]]) -> None:
     for record in records:
         item = clean_user_record(record)
         username = str(item["username"])
-        if not username or username in seen or username == app_user():
+        if not username or username in seen or username == clean_username(app_user()):
             continue
         seen.add(username)
         clean_records.append(item)
@@ -5169,6 +5171,61 @@ def save_postgres_user_records(records: list[dict[str, object]]) -> None:
                         json.dumps(item["permissions"], ensure_ascii=False),
                     ),
                 )
+
+
+def ensure_postgres_audit_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sistema_auditoria (
+                    id SERIAL PRIMARY KEY,
+                    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    username TEXT NOT NULL DEFAULT '',
+                    action TEXT NOT NULL DEFAULT '',
+                    target TEXT NOT NULL DEFAULT '',
+                    details JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    ip TEXT NOT NULL DEFAULT '',
+                    ok BOOLEAN NOT NULL DEFAULT TRUE
+                )
+                """
+            )
+
+
+def audit_log(username: str, action: str, target: str = "", details: dict[str, object] | None = None, ip: str = "", ok: bool = True) -> None:
+    safe_details = details or {}
+    event = {
+        "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "user": clean_username(username) or "-",
+        "action": action,
+        "target": target,
+        "details": safe_details,
+        "ip": ip,
+        "ok": ok,
+    }
+    print("AUDIT_LOG " + json.dumps(event, ensure_ascii=False, default=str), flush=True)
+    if not build_dashboard.use_postgres():
+        return
+    try:
+        ensure_postgres_audit_table()
+        with build_dashboard.postgres_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO sistema_auditoria (username, action, target, details, ip, ok)
+                    VALUES (%s, %s, %s, %s::jsonb, %s, %s)
+                    """,
+                    (
+                        event["user"],
+                        action,
+                        target,
+                        json.dumps(safe_details, ensure_ascii=False, default=str),
+                        ip,
+                        ok,
+                    ),
+                )
+    except Exception as exc:
+        print("AUDIT_LOG_ERROR " + json.dumps({"error": str(exc)}, ensure_ascii=False), flush=True)
 
 
 XLSX_NS = {
@@ -5969,6 +6026,16 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"{self.address_string()} - {fmt % args}")
 
+    def audit(self, action: str, target: str = "", details: dict[str, object] | None = None, ok: bool = True, username: str | None = None) -> None:
+        audit_log(
+            username if username is not None else self.current_user(),
+            action,
+            target,
+            details,
+            self.client_address[0] if self.client_address else "",
+            ok,
+        )
+
     def filter_access_links(self, page: str) -> str:
         if not self.is_logged_in():
             return page
@@ -6384,11 +6451,13 @@ class Handler(BaseHTTPRequestHandler):
             user = params.get("user", [""])[0].strip()
             password = params.get("password", [""])[0].strip()
             if authenticate_user(user, password):
+                self.audit("login_sucesso", "auth", {"usuario": clean_username(user)}, username=clean_username(user))
                 self.send_response(HTTPStatus.SEE_OTHER)
                 self.send_header("Location", "/home")
                 self.set_session_cookie(clean_username(user))
                 self.end_headers()
                 return
+            self.audit("login_falha", "auth", {"usuario": clean_username(user)}, ok=False, username=clean_username(user))
             self.send_login('<div class="error">Usuario ou senha invalidos.</div>')
             return
 
@@ -6410,8 +6479,10 @@ class Handler(BaseHTTPRequestHandler):
                 save_editable_rows(merge_import_rows(editable_rows(), imported_rows))
                 rebuild_dashboard()
             except Exception as exc:
+                self.audit("importar_base_falha", "base_editavel", {"erro": str(exc)}, ok=False)
                 self.redirect("/editar?erro=" + quote(str(exc)))
                 return
+            self.audit("importar_base", "base_editavel", {"arquivo": filename, "linhas_importadas": len(imported_rows)})
             self.redirect("/editar?ok=1")
             return
 
@@ -6430,8 +6501,10 @@ class Handler(BaseHTTPRequestHandler):
                 save_conductor_rows(conductors)
                 rebuild_dashboard()
             except Exception as exc:
+                self.audit("salvar_capacidades_falha", "capacidades", {"erro": str(exc)}, ok=False)
                 self.redirect("/capacidades?erro=" + quote(str(exc)))
                 return
+            self.audit("salvar_capacidades", "capacidades", {"placas": len(rows), "motoristas": len(conductors)})
             self.redirect("/capacidades?ok=1")
             return
 
@@ -6446,12 +6519,14 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("Observacoes invalidas")
                 save_daily_report_observations(observations)
             except Exception as exc:
+                self.audit("salvar_observacoes_falha", "relatorio_diario", {"erro": str(exc)}, ok=False)
                 self.send_bytes(
                     json.dumps({"ok": False, "error": str(exc)}).encode("utf-8"),
                     "application/json; charset=utf-8",
                     HTTPStatus.BAD_REQUEST,
                 )
                 return
+            self.audit("salvar_observacoes", "relatorio_diario", {"observacoes": len(observations)})
             self.send_bytes(json.dumps({"ok": True}).encode("utf-8"), "application/json; charset=utf-8")
             return
 
@@ -6474,8 +6549,10 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("Nenhuma nota encontrada na planilha")
                 save_note_entry_rows(imported_rows)
             except Exception as exc:
+                self.audit("importar_notas_falha", "entrada_notas", {"erro": str(exc)}, ok=False)
                 self.redirect("/relatorio-entrada-notas?erro=" + quote(str(exc)))
                 return
+            self.audit("importar_notas", "entrada_notas", {"arquivo": filename, "notas": len(imported_rows)})
             self.redirect("/relatorio-entrada-notas?ok=1")
             return
 
@@ -6489,14 +6566,20 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("Controle invalido")
                 save_ct_control_rows(rows)
             except Exception as exc:
+                self.audit("salvar_controle_ct_falha", "controle_ct", {"erro": str(exc)}, ok=False)
                 self.redirect("/controle-ct?erro=" + quote(str(exc)))
                 return
+            self.audit("salvar_controle_ct", "controle_ct", {"linhas": len(rows)})
             self.redirect("/controle-ct?ok=1")
             return
 
         if parsed.path == "/usuarios":
             if not self.require_master():
                 return
+            username = ""
+            original_username = ""
+            permissions: list[str] = []
+            password = ""
             try:
                 params = self.body_params()
                 action = params.get("action", ["save"])[0]
@@ -6504,23 +6587,27 @@ class Handler(BaseHTTPRequestHandler):
                 username = clean_username(params.get("username", [""])[0])
                 if action == "delete":
                     save_user_records([item for item in records if item.get("username") != username])
+                    self.audit("excluir_usuario", "usuarios", {"usuario_alvo": username})
                     self.redirect("/usuarios?removido=1")
                     return
                 if action == "toggle":
                     changed = False
+                    new_active = False
                     for item in records:
                         if item.get("username") == username:
                             item["active"] = not bool(item.get("active", True))
+                            new_active = bool(item["active"])
                             changed = True
                     if not changed:
                         raise ValueError("Usuario nao encontrado")
                     save_user_records(records)
+                    self.audit("alterar_status_usuario", "usuarios", {"usuario_alvo": username, "ativo": new_active})
                     self.redirect("/usuarios?ok=1")
                     return
                 original_username = clean_username(params.get("original_username", [""])[0])
                 if not username:
                     raise ValueError("Informe o usuario")
-                if username == app_user():
+                if username == clean_username(app_user()):
                     raise ValueError("O usuario master principal e controlado pelas variaveis do sistema")
                 permissions = sorted({key for key in params.get("permissions", []) if key in ALL_PERMISSION_KEYS})
                 password = params.get("password", [""])[0]
@@ -6543,8 +6630,20 @@ class Handler(BaseHTTPRequestHandler):
                 records.append(user_record)
                 save_user_records(records)
             except Exception as exc:
+                self.audit("salvar_usuario_falha", "usuarios", {"usuario_alvo": username, "erro": str(exc)}, ok=False)
                 self.redirect("/usuarios?erro=" + quote(str(exc)))
                 return
+            self.audit(
+                "salvar_usuario",
+                "usuarios",
+                {
+                    "usuario_alvo": username,
+                    "usuario_anterior": original_username,
+                    "ativo": "active" in params,
+                    "permissoes": permissions,
+                    "senha_alterada": bool(password),
+                },
+            )
             self.redirect("/usuarios?ok=1")
             return
 
@@ -6562,8 +6661,10 @@ class Handler(BaseHTTPRequestHandler):
             save_editable_rows(rows)
             rebuild_dashboard()
         except Exception as exc:
+            self.audit("salvar_base_falha", "base_editavel", {"erro": str(exc)}, ok=False)
             self.redirect("/editar?erro=" + quote(str(exc)))
             return
+        self.audit("salvar_base", "base_editavel", {"linhas": len(rows)})
         self.redirect("/editar?ok=1")
 
 
@@ -6572,6 +6673,7 @@ def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
     build_dashboard.ensure_database_storage()
     if build_dashboard.use_postgres():
+        ensure_postgres_audit_table()
         ensure_postgres_user_table()
         ensure_postgres_conductor_table()
         ensure_postgres_daily_observation_table()
