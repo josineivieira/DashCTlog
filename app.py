@@ -3813,6 +3813,10 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .legend-dot { width:12px; height:12px; border-radius:50%; background:var(--green); }
     .legend-dot.late { background:var(--red); }
     .daily-chart { display:grid; gap:11px; }
+    .chart-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:16px; margin:-4px 0 4px; color:var(--muted); font-size:12px; font-weight:950; text-transform:uppercase; }
+    .chart-legend span { display:inline-flex; align-items:center; gap:6px; }
+    .chart-legend span::before { content:""; width:10px; height:10px; border-radius:50%; background:var(--green); }
+    .chart-legend span.late::before { background:var(--red); }
     .day-row { display:grid; grid-template-columns:90px 1fr 150px; gap:10px; align-items:center; font-size:13px; font-weight:850; }
     .day-track { height:18px; display:flex; border-radius:999px; background:#edf2f6; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.03); }
     .day-stack { height:100%; display:flex; min-width:10px; border-radius:inherit; overflow:hidden; }
@@ -4245,7 +4249,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       });
       const entries = [...map.entries()].sort().reverse().slice(0, 14);
       const maxTotal = Math.max(1, ...entries.map(([, item]) => item.total));
-      $("dailyChart").innerHTML = entries.length ? entries.map(([date, item]) => {
+      $("dailyChart").innerHTML = entries.length ? `
+        <div class="chart-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div>
+        ${entries.map(([date, item]) => {
         const okWidth = item.total ? item.ok / item.total * 100 : 0;
         const lateWidth = item.total ? item.late / item.total * 100 : 0;
         const totalWidth = Math.max(4, item.total / maxTotal * 100);
@@ -4261,12 +4267,20 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
             <strong class="day-counts"><span class="mini-pill">${fmt.format(item.ok)}</span><span class="mini-pill late">${fmt.format(item.late)}</span></strong>
           </div>
         `;
-      }).join("") : '<div class="empty">Sem dados para o filtro.</div>';
-      document.querySelectorAll("[data-drill-date]").forEach((item) => item.addEventListener("click", () => {
-        activeDrilldown = { date: item.dataset.drillDate, status: item.dataset.drillStatus };
-        render();
-        $("drilldownPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }));
+      }).join("")}` : '<div class="empty">Sem dados para o filtro.</div>';
+      $("dailyChart").onclick = (event) => {
+        const segment = event.target.closest("[data-drill-date]");
+        if (segment) {
+          activeDrilldown = { date: segment.dataset.drillDate, status: segment.dataset.drillStatus };
+          render();
+          $("drilldownPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+          return;
+        }
+        if (activeDrilldown) {
+          activeDrilldown = null;
+          render();
+        }
+      };
     }
     function renderDrilldown(data) {
       const panel = $("drilldownPanel");
