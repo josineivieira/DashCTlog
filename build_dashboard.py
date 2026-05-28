@@ -1006,7 +1006,7 @@ HTML_TEMPLATE = """<!doctype html>
     }
     .side-stack { display:grid; gap:15px; }
     .panel { padding: 18px; overflow: hidden; }
-    .hero-board, .grid { display:none; }
+    .hero-board, .grid { display:none !important; }
     .wide { grid-column: 1 / -1; }
     h2 { margin: 0 0 13px; font-size: 17px; color: #1f2f3d; }
     .bars { display: grid; gap: 10px; }
@@ -1156,7 +1156,7 @@ HTML_TEMPLATE = """<!doctype html>
     }
     .product-card .product-list { gap:9px; }
     .product-card .product-row {
-      grid-template-columns:14px minmax(0,1fr) 90px 44px;
+      grid-template-columns:14px minmax(96px,1fr) minmax(78px,auto) 40px;
       gap:10px;
       padding-bottom:8px;
     }
@@ -1170,9 +1170,9 @@ HTML_TEMPLATE = """<!doctype html>
       padding-bottom: 10px;
       border-bottom: 1px solid var(--line);
     }
-    .product-name { font-weight: 800; color: #253545; }
+    .product-name { font-weight: 800; color: #253545; line-height: 1.18; overflow-wrap: anywhere; }
     .product-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
-    .product-value { color: var(--ink); text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .product-value { color: var(--ink); text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .line-chart { min-height: clamp(300px, 38vh, 440px); }
     .chart-toolbar {
       display: flex;
@@ -1281,7 +1281,7 @@ HTML_TEMPLATE = """<!doctype html>
     .side-icon svg { width:25px; height:25px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
     .side-metric span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
     .side-metric strong { display:block; margin-top:7px; font-size:30px; }
-    .side-metric small { display:block; margin-top:8px; color:#16a34a; font-size:12px; font-weight:850; }
+    .side-metric small { display:block; margin-top:8px; color:var(--muted); font-size:12px; font-weight:850; }
     .performance-card { min-height:200px; }
     .performance-body { display:grid; grid-template-columns:150px 1fr; gap:18px; align-items:center; }
     .perf-ring { position:relative; width:138px; height:138px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#20a86b 0deg, #20a86b var(--perfDeg), #edf1f5 var(--perfDeg), #edf1f5 360deg); }
@@ -1295,10 +1295,31 @@ HTML_TEMPLATE = """<!doctype html>
     .perf-row:nth-child(3)::before { background:#f59e0b; }
     .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
     .empty { color: var(--muted); padding: 22px; text-align: center; }
+    @media (max-width: 1440px) {
+      main { padding-inline: 20px; }
+      .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+      .kpi { min-height: 104px; padding: 16px; grid-template-columns: 48px 1fr; gap: 12px; }
+      .kpi-icon { width: 44px; height: 44px; border-radius: 10px; }
+      .kpi-icon svg { width: 22px; height: 22px; }
+      .kpi strong { font-size: 28px; }
+      .dashboard-grid, .lower-grid { grid-template-columns: minmax(0, 1.4fr) minmax(300px, .6fr); }
+      .product-viz { grid-template-columns: minmax(170px, 210px) minmax(0, 1fr); gap: 14px; }
+      .donut-wrap { min-height: 190px; }
+      .donut-wrap svg { width: 190px; height: 190px; }
+      .product-card .product-row { grid-template-columns:12px minmax(86px,1fr) minmax(72px,auto) 36px; gap:8px; }
+    }
+    @media (max-width: 1180px) {
+      .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .dashboard-grid, .lower-grid { grid-template-columns: 1fr; }
+      .side-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .performance-card { grid-column: 1 / -1; }
+    }
     @media (max-width: 980px) {
-      .filters, .kpis, .dashboard-grid, .lower-grid { grid-template-columns: 1fr 1fr; }
+      .filters, .kpis { grid-template-columns: 1fr 1fr; }
+      .dashboard-grid, .lower-grid { grid-template-columns: 1fr; }
       .wide { grid-column: 1 / -1; }
       .product-viz { grid-template-columns: 1fr; }
+      .side-stack { grid-template-columns: 1fr; }
     }
     @media (max-width: 650px) {
       header { flex-direction: column; }
@@ -1324,11 +1345,11 @@ HTML_TEMPLATE = """<!doctype html>
   </header>
   <main>
     <section class="kpis">
-      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div><div><span>Viagens</span><strong id="kTrips">0</strong><small><span class="up">+12%</span> no periodo filtrado</small></div></div>
-      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16V9"></path><path d="M12 16V5"></path><path d="M17 16v-7"></path><path d="M9 9h6"></path></svg></div><div><span>Volume carregado</span><strong id="kQty">0</strong><small><span class="up">+8%</span> no periodo filtrado</small></div></div>
-      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M3 11h18"></path><path d="M5 7h14v10H5z"></path><circle cx="8" cy="17" r="2"></circle><circle cx="16" cy="17" r="2"></circle></svg></div><div><span>Placas ativas</span><strong id="kPlates">0</strong><small><span class="up">+4%</span> no periodo filtrado</small></div></div>
-      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg></div><div><span>Notas fiscais</span><strong id="kNotes">0</strong><small><span class="up">+15%</span> no periodo filtrado</small></div></div>
-      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="m8 16 2-2"></path></svg></div><div><span>Capacidade media</span><strong id="kUtilization">0%</strong><small><span class="down">-3%</span> no periodo filtrado</small></div></div>
+      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div><div><span>Viagens</span><strong id="kTrips">0</strong><small>Total no filtro</small></div></div>
+      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16V9"></path><path d="M12 16V5"></path><path d="M17 16v-7"></path><path d="M9 9h6"></path></svg></div><div><span>Volume carregado</span><strong id="kQty">0</strong><small>Litros carregados no filtro</small></div></div>
+      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M3 11h18"></path><path d="M5 7h14v10H5z"></path><circle cx="8" cy="17" r="2"></circle><circle cx="16" cy="17" r="2"></circle></svg></div><div><span>Placas ativas</span><strong id="kPlates">0</strong><small>Placas unicas no filtro</small></div></div>
+      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg></div><div><span>Notas fiscais</span><strong id="kNotes">0</strong><small>Notas informadas no filtro</small></div></div>
+      <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path><path d="m8 16 2-2"></path></svg></div><div><span>Capacidade media</span><strong id="kUtilization">0%</strong><small>Carregado / capacidade prevista</small></div></div>
     </section>
 
     <section class="filters">
@@ -1403,17 +1424,17 @@ HTML_TEMPLATE = """<!doctype html>
         <div class="panel mini-card terminal-card"><span>Terminais</span><div id="terminalSummaryTop" class="bars"></div></div>
         <div class="panel side-metric">
           <div class="side-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-          <div><span>Motoristas ativos</span><strong id="kDrivers">0</strong><small>+2 no periodo</small></div>
+          <div><span>Motoristas ativos</span><strong id="kDrivers">0</strong><small>Motoristas com viagens no filtro</small></div>
         </div>
         <div class="panel performance-card">
-          <h2>Performance geral</h2>
+          <h2>Uso de capacidade</h2>
           <div class="performance-body">
-            <div id="perfRing" class="perf-ring" style="--perfDeg:0deg"><div class="perf-ring-label"><strong id="kPerformance">0%</strong><span>Eficiencia Operacional</span></div></div>
+            <div id="capacityRing" class="perf-ring" style="--perfDeg:0deg"><div class="perf-ring-label"><strong id="kCapacityUsed">0%</strong><span>Carregado / previsto</span></div></div>
             <div class="perf-list">
-              <div class="perf-row"><span>Pontualidade</span><strong id="perfPunctuality">0%</strong></div>
-              <div class="perf-row"><span>Utilizacao da Frota</span><strong id="perfFleet">0%</strong></div>
-              <div class="perf-row"><span>Produtividade</span><strong id="perfProductivity">0%</strong></div>
-              <div class="perf-row"><span>Conformidade</span><strong id="perfCompliance">92%</strong></div>
+              <div class="perf-row"><span>Volume carregado</span><strong id="capacityVolume">0</strong></div>
+              <div class="perf-row"><span>Capacidade prevista</span><strong id="capacityTotal">0</strong></div>
+              <div class="perf-row"><span>Viagens consideradas</span><strong id="capacityTrips">0</strong></div>
+              <div class="perf-row"><span>Placas ativas</span><strong id="capacityPlates">0</strong></div>
             </div>
           </div>
         </div>
@@ -1743,30 +1764,28 @@ HTML_TEMPLATE = """<!doctype html>
       const trips = data.reduce((total, row) => total + row.viagens, 0);
       const qty = data.reduce((total, row) => total + row.quantidade, 0);
       const notes = data.reduce((total, row) => total + row.notas, 0);
+      const activePlates = new Set(data.map((row) => row.placa)).size;
       const plateTrips = sumBy(data, "placa", "viagens");
       const plateQty = sumBy(data, "placa", "quantidade");
       const products = productTotals(data);
       const capacityTotal = data.reduce((total, row) => total + ((row.capacidade || 0) * Math.max(1, row.viagens || 0)), 0);
       const utilization = capacityTotal ? Math.round(qty / capacityTotal * 100) : 0;
-      const punctuality = Math.min(99, Math.max(0, Math.round(88 + utilization / 10)));
-      const fleet = Math.min(99, Math.max(0, Math.round(new Set(data.map((row) => row.placa)).size / Math.max(1, unique("placa").length) * 100)));
-      const productivity = Math.min(99, Math.max(0, Math.round(trips / Math.max(1, new Set(data.map((row) => row.placa)).size) * 30)));
-      const performance = Math.round((punctuality + fleet + productivity + 92) / 4);
 
       $("kTrips").textContent = fmt.format(trips);
       $("kQty").textContent = volume(qty);
-      $("kPlates").textContent = fmt.format(new Set(data.map((row) => row.placa)).size);
+      $("kPlates").textContent = fmt.format(activePlates);
       $("kNotes").textContent = fmt.format(notes);
       $("kUtilization").textContent = `${fmt.format(utilization)}%`;
       $("kTopProduct").textContent = products[0]?.[0]?.split(" ").slice(0, 2).join(" ") || "-";
       $("kDrivers").textContent = fmt.format(new Set(data.flatMap((row) => String(row.motorista || "").split("/").map((item) => item.trim()).filter(Boolean))).size);
       const bestDay = dailyTotals(data).sort((a, b) => b.viagens - a.viagens)[0];
       $("kBestDay").textContent = bestDay ? bestDay.data.slice(0, 5) : "-";
-      $("kPerformance").textContent = `${fmt.format(performance)}%`;
-      $("perfRing").style.setProperty("--perfDeg", `${performance / 100 * 360}deg`);
-      $("perfPunctuality").textContent = `${fmt.format(punctuality)}%`;
-      $("perfFleet").textContent = `${fmt.format(fleet)}%`;
-      $("perfProductivity").textContent = `${fmt.format(productivity)}%`;
+      $("kCapacityUsed").textContent = `${fmt.format(utilization)}%`;
+      $("capacityRing").style.setProperty("--perfDeg", `${Math.min(100, utilization) / 100 * 360}deg`);
+      $("capacityVolume").textContent = volume(qty);
+      $("capacityTotal").textContent = volume(capacityTotal);
+      $("capacityTrips").textContent = fmt.format(trips);
+      $("capacityPlates").textContent = fmt.format(activePlates);
 
       bars("terminalSummaryTop", terminalTotals(data), 2, "var(--blue)");
       productList("productList", products, 8);
