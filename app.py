@@ -4133,15 +4133,51 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       ctx.fillText("EQUADOR", 104, 76);
       ctx.restore();
     }
+    function drawCanvasCircleIcon(ctx, x, y, color, text) {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 20px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x, y + 1);
+      ctx.restore();
+    }
+    function drawCanvasRing(ctx, x, y, radius, ok, total) {
+      const okRad = total ? ok / total * Math.PI * 2 : 0;
+      ctx.save();
+      ctx.lineWidth = 28;
+      ctx.strokeStyle = "#e2263c";
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "#0b66d8";
+      ctx.beginPath();
+      ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + okRad);
+      ctx.stroke();
+      ctx.fillStyle = "#16212d";
+      ctx.font = "900 26px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(percentLabel(ok, total), x, y - 4);
+      ctx.fillStyle = "#657282";
+      ctx.font = "800 13px Arial";
+      ctx.fillText("No prazo", x, y + 24);
+      ctx.restore();
+    }
     function drawNoteShareImage() {
       const data = filteredRows();
       const ok = data.filter((row) => row.status === "ok").length;
       const late = data.filter((row) => row.status === "late").length;
       const entryHours = data.map((row) => Number(row.horasEntrada)).filter((value) => Number.isFinite(value));
       const avgEntry = entryHours.length ? entryHours.reduce((total, value) => total + value, 0) / entryHours.length : null;
+      const stats = cityStats(data);
       const canvas = $("noteShareCanvas");
       canvas.width = 1080;
-      canvas.height = 1350;
+      canvas.height = 1560;
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#f2f5f8";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -4166,92 +4202,117 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       ctx.fillText(selectedLabel(), 58, 234);
 
       const kpiY = 292;
-      const kpiW = 184;
+      const kpiW = 224;
       [
-        ["Notas", fmt.format(data.length), "#64248c"],
-        ["No prazo", fmt.format(ok), "#00856f"],
-        ["Fora", fmt.format(late), "#e2263c"],
-        ["% prazo", percentLabel(ok, data.length), "#2b84cb"],
-        ["Tempo med.", avgEntry === null ? "-" : durationLabel(avgEntry), "#00856f"]
-      ].forEach(([label, value, accent], idx) => {
+        ["Total de notas", fmt.format(data.length), "#3f48cc", "N"],
+        ["No prazo", fmt.format(ok), "#0b66d8", "OK"],
+        ["Fora do prazo", fmt.format(late), "#e2263c", "X"],
+        ["Tempo medio", avgEntry === null ? "-" : durationLabel(avgEntry), "#00856f", "T"]
+      ].forEach(([label, value, accent, icon], idx) => {
         const x = 54 + idx * (kpiW + 18);
         drawNoteCard(ctx, x, kpiY, kpiW, 124, accent);
+        drawCanvasCircleIcon(ctx, x + 34, kpiY + 64, accent, icon);
         ctx.fillStyle = "#657282";
         ctx.font = "900 18px Arial";
-        ctx.fillText(label.toUpperCase(), x + 18, kpiY + 42);
+        ctx.fillText(label.toUpperCase(), x + 68, kpiY + 42);
         ctx.fillStyle = "#16212d";
         ctx.font = "900 31px Arial";
-        ctx.fillText(value, x + 18, kpiY + 88);
+        ctx.fillText(value, x + 68, kpiY + 88);
       });
 
-      let y = 466;
-      drawNoteCard(ctx, 54, y, 972, 258, "#00856f");
+      const cardY = 466;
+      const cardW = 312;
+      stats.slice(0, 3).forEach((item, idx) => {
+        const x = 54 + idx * (cardW + 18);
+        drawNoteCard(ctx, x, cardY, cardW, 410, "#0b66d8");
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 24px Arial";
+        ctx.fillText(item.city, x + 22, cardY + 46);
+        drawCanvasRing(ctx, x + 84, cardY + 150, 58, item.ok, item.total);
+        drawCanvasCircleIcon(ctx, x + 178, cardY + 112, "#0b66d8", "");
+        drawCanvasCircleIcon(ctx, x + 178, cardY + 164, "#e2263c", "");
+        ctx.fillStyle = "#16212d";
+        ctx.font = "900 20px Arial";
+        ctx.fillText(`${fmt.format(item.ok)} no prazo`, x + 206, cardY + 118);
+        ctx.fillText(`${fmt.format(item.late)} fora`, x + 206, cardY + 170);
+        ctx.fillStyle = "#657282";
+        ctx.font = "900 17px Arial";
+        ctx.fillText(`Total: ${fmt.format(item.total)}`, x + 206, cardY + 224);
+        ctx.strokeStyle = "#e3e9ef";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 22, cardY + 250);
+        ctx.lineTo(x + cardW - 22, cardY + 250);
+        ctx.stroke();
+        ctx.fillStyle = "#e2263c";
+        ctx.font = "900 16px Arial";
+        ctx.fillText("Notas fora do prazo", x + 22, cardY + 282);
+        ctx.fillStyle = "#657282";
+        ctx.font = "900 13px Arial";
+        ctx.fillText("NOTA", x + 22, cardY + 310);
+        ctx.fillText("ENTRADA", x + 190, cardY + 310);
+        ctx.fillStyle = "#16212d";
+        ctx.font = "800 15px Arial";
+        item.lateRows.slice(0, 4).forEach((row, rowIdx) => {
+          const lineY = cardY + 338 + rowIdx * 24;
+          ctx.fillText(row.nota, x + 22, lineY);
+          ctx.fillText(String(row.entrada).split(" ")[0] || "-", x + 190, lineY);
+        });
+      });
+
+      const y = 936;
+      drawNoteCard(ctx, 54, y, 972, 420, "#0b66d8");
       ctx.fillStyle = "#16212d";
       ctx.font = "900 30px Arial";
-      ctx.fillText("Status geral", 82, y + 52);
-      const total = ok + late;
-      const okDeg = total ? ok / total * Math.PI * 2 : 0;
-      ctx.save();
-      ctx.translate(190, y + 150);
-      ctx.lineWidth = 34;
-      ctx.strokeStyle = "#e2263c";
-      ctx.beginPath();
-      ctx.arc(0, 0, 72, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = "#00856f";
-      ctx.beginPath();
-      ctx.arc(0, 0, 72, -Math.PI / 2, -Math.PI / 2 + okDeg);
-      ctx.stroke();
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 28px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(percentLabel(ok, total), 0, 8);
-      ctx.restore();
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 26px Arial";
-      ctx.fillText(`${fmt.format(ok)} no prazo`, 330, y + 126);
-      ctx.fillText(`${fmt.format(late)} fora do prazo`, 330, y + 172);
+      ctx.fillText("Resumo por filial", 82, y + 54);
+      drawCanvasCircleIcon(ctx, 420, y + 48, "#0b66d8", "");
+      drawCanvasCircleIcon(ctx, 600, y + 48, "#e2263c", "");
       ctx.fillStyle = "#657282";
-      ctx.font = "700 20px Arial";
-      ctx.fillText("Prazo acompanhado pela data de emissao e entrada da nota.", 330, y + 212);
-
-      y += 308;
-      drawNoteCard(ctx, 54, y, 972, 430, "#2b84cb");
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 30px Arial";
-      ctx.fillText("Entradas por dia", 82, y + 52);
-      const daily = new Map();
-      data.forEach((row) => {
-        const item = daily.get(row.emissao) || { total: 0, ok: 0, late: 0 };
-        item.total += 1;
-        if (row.status === "ok") item.ok += 1;
-        if (row.status === "late") item.late += 1;
-        daily.set(row.emissao, item);
+      ctx.font = "900 16px Arial";
+      ctx.fillText("No prazo", 448, y + 54);
+      ctx.fillText("Fora do prazo", 628, y + 54);
+      const max = Math.max(1, ...stats.map((item) => Math.max(item.ok, item.late)));
+      const axisMax = Math.max(4, Math.ceil(max / 4) * 4);
+      const plotX = 130;
+      const plotY = y + 98;
+      const plotW = 840;
+      const plotH = 250;
+      ctx.strokeStyle = "#d7e0e8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(plotX, plotY);
+      ctx.lineTo(plotX, plotY + plotH);
+      ctx.lineTo(plotX + plotW, plotY + plotH);
+      ctx.stroke();
+      ctx.fillStyle = "#657282";
+      ctx.font = "800 14px Arial";
+      [4, 3, 2, 1, 0].forEach((tick) => {
+        const value = axisMax / 4 * tick;
+        const ty = plotY + plotH - (plotH * tick / 4);
+        ctx.fillText(fmt.format(value), 76, ty + 4);
+        ctx.strokeStyle = "#edf1f5";
+        ctx.beginPath();
+        ctx.moveTo(plotX, ty);
+        ctx.lineTo(plotX + plotW, ty);
+        ctx.stroke();
       });
-      const dailyEntries = [...daily.entries()].sort().reverse().slice(0, 10);
-      const max = Math.max(1, ...dailyEntries.map(([, item]) => item.total));
-      let rowY = y + 92;
-      dailyEntries.forEach(([date, item]) => {
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 19px Arial";
-        ctx.fillText(date, 82, rowY + 16);
-        const barX = 216;
-        const barW = Math.max(8, item.total / max * 650);
-        roundRect(ctx, barX, rowY, 650, 18, 9);
-        ctx.fillStyle = "#edf2f6";
+      stats.slice(0, 3).forEach((item, idx) => {
+        const groupX = plotX + 120 + idx * 250;
+        const okH = Math.max(3, item.ok / axisMax * plotH);
+        const lateH = Math.max(3, item.late / axisMax * plotH);
+        ctx.fillStyle = "#0b66d8";
+        roundRect(ctx, groupX, plotY + plotH - okH, 56, okH, 8);
         ctx.fill();
-        ctx.fillStyle = "#00856f";
-        roundRect(ctx, barX, rowY, barW * (item.ok / Math.max(1, item.total)), 18, 9);
+        ctx.fillStyle = "#e2263c";
+        roundRect(ctx, groupX + 70, plotY + plotH - lateH, 56, lateH, 8);
         ctx.fill();
-        if (item.late) {
-          ctx.fillStyle = "#e2263c";
-          roundRect(ctx, barX + barW * (item.ok / Math.max(1, item.total)), rowY, Math.max(8, barW * (item.late / item.total)), 18, 9);
-          ctx.fill();
-        }
         ctx.fillStyle = "#16212d";
-        ctx.font = "900 18px Arial";
-        ctx.fillText(`${fmt.format(item.total)} notas`, 888, rowY + 16);
-        rowY += 32;
+        ctx.font = "900 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(fmt.format(item.ok), groupX + 28, plotY + plotH - okH - 10);
+        ctx.fillText(fmt.format(item.late), groupX + 98, plotY + plotH - lateH - 10);
+        ctx.fillText(item.city, groupX + 64, plotY + plotH + 34);
+        ctx.textAlign = "left";
       });
       ctx.fillStyle = "#657282";
       ctx.font = "700 18px Arial";
