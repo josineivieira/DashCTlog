@@ -6,5 +6,6 @@ venv/
 env/
 .env
 .env.*
+data/usuarios.json
 .DS_Store
 Thumbs.db

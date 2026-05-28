@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import secrets
 import unicodedata
 from http import HTTPStatus
 from http.cookies import SimpleCookie
@@ -33,6 +34,17 @@ MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 SESSION_COOKIE = "dashboard_log_session"
 FAVICON_URL = "https://pages.greatpages.com.br/www.dislubequador.com.br/1777495651/imagens/mobile/3562683_1_177616861364933621_m.svg"
 
+PERMISSIONS = [
+    ("dashboard", "Dashboard", "Visualizar painel principal"),
+    ("editar", "Editar dados", "Importar e editar base operacional"),
+    ("capacidades", "Capacidades", "Cadastrar placas, capacidades e motoristas"),
+    ("controle_ct", "Controle de CT", "Acompanhar fila, patio e saidas"),
+    ("relatorio_diario", "Relatorio diario", "Visualizar relatorio operacional diario"),
+    ("entrada_notas", "Entrada de notas", "Importar e acompanhar prazo das notas"),
+    ("exportar_ct", "Exportar CT", "Baixar planilha do Controle de CT"),
+]
+ALL_PERMISSION_KEYS = {key for key, _, _ in PERMISSIONS}
+
 
 def app_user() -> str:
     return os.environ.get("DASH_USER", "admin").strip()
@@ -44,6 +56,77 @@ def app_password() -> str:
 
 def app_secret() -> str:
     return os.environ.get("DASH_SECRET", "dashboard-log-secret")
+
+
+def password_hash(password: str) -> str:
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 180000)
+    return f"pbkdf2_sha256$180000${salt}${digest.hex()}"
+
+
+def check_password(password: str, stored_hash: str) -> bool:
+    parts = stored_hash.split("$")
+    if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+        return False
+    _, rounds_text, salt, digest_hex = parts
+    try:
+        rounds = int(rounds_text)
+    except ValueError:
+        return False
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), rounds).hex()
+    return hmac.compare_digest(digest, digest_hex)
+
+
+def clean_username(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "", value.strip())
+
+
+def load_user_records() -> list[dict[str, object]]:
+    if build_dashboard.use_postgres():
+        return postgres_user_records()
+    return []
+
+
+def save_user_records(records: list[dict[str, object]]) -> None:
+    if build_dashboard.use_postgres():
+        save_postgres_user_records(records)
+        return
+    raise RuntimeError("Cadastro de usuarios exige banco de dados Postgres configurado.")
+
+
+def find_user_record(username: str) -> dict[str, object] | None:
+    username = clean_username(username)
+    for item in load_user_records():
+        if item.get("username") == username:
+            return item
+    return None
+
+
+def is_master_user(username: str) -> bool:
+    return clean_username(username) == app_user()
+
+
+def authenticate_user(username: str, password: str) -> bool:
+    username = clean_username(username)
+    if username == app_user() and password == app_password():
+        return True
+    record = find_user_record(username)
+    if not record or not record.get("active"):
+        return False
+    stored_hash = str(record.get("password_hash", ""))
+    return bool(stored_hash and check_password(password, stored_hash))
+
+
+def user_permissions(username: str) -> set[str]:
+    if is_master_user(username):
+        return set(ALL_PERMISSION_KEYS)
+    record = find_user_record(username)
+    if not record or not record.get("active"):
+        return set()
+    permissions = record.get("permissions", [])
+    if not isinstance(permissions, list):
+        return set()
+    return {str(key) for key in permissions if str(key) in ALL_PERMISSION_KEYS}
 
 
 def signed_session(user: str) -> str:
@@ -679,6 +762,7 @@ HOME_HTML = """<!doctype html>
         <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Relatorio diario</a>
         <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Entrada de notas</a>
         <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
+        __USER_LINK__
       </nav>
       <div class="sidebar-footer">Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
     </aside>
@@ -692,7 +776,7 @@ HOME_HTML = """<!doctype html>
       </header>
       <main>
         <section class="summary">
-          <div class="metric"><span>Modulos ativos</span><strong>6</strong></div>
+          <div class="metric"><span>Modulos ativos</span><strong>__MODULE_COUNT__</strong></div>
           <div class="metric"><span>Base operacional</span><strong>CT</strong></div>
           <div class="metric"><span>Terminais</span><strong>2</strong></div>
           <div class="metric"><span>Status</span><strong>Online</strong></div>
@@ -740,10 +824,143 @@ HOME_HTML = """<!doctype html>
             <p>Confira se as notas fiscais foram dadas entrada dentro do prazo de 48 horas.</p>
             <div class="button">Abrir relatorio</div>
           </a>
+          __USER_CARD__
         </section>
       </main>
     </div>
   </div>
+</body>
+</html>
+"""
+
+
+USERS_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Cadastro de usuarios - Dashboard</title>
+  <style>
+    :root {
+      --purple: #64248c;
+      --purple-dark: #34104f;
+      --blue: #2b84cb;
+      --green: #20a86b;
+      --red: #e2263c;
+      --bg: #eef3f6;
+      --panel: #fff;
+      --ink: #16212d;
+      --muted: #657282;
+      --line: #d3dee8;
+      --shadow: 0 18px 42px rgba(23,32,51,.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:Inter, Segoe UI, Roboto, Arial, sans-serif; }
+    header { position:relative; overflow:hidden; padding:24px clamp(16px,4vw,42px) 30px; background:radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%), linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f); color:#fff; }
+    header::after { content:""; position:absolute; right:clamp(20px,6vw,76px); bottom:-88px; width:min(46vw,520px); aspect-ratio:1.8; background:url("{favicon_url}") center / contain no-repeat; opacity:.18; pointer-events:none; }
+    .topbar { position:relative; z-index:2; display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
+    .brand-title { display:flex; align-items:center; gap:16px; }
+    .brand-title img { width:98px; height:auto; object-fit:contain; filter:drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
+    h1 { margin:0; font-size:clamp(28px,4vw,48px); line-height:1; letter-spacing:0; }
+    .subtitle { margin:9px 0 0; color:#d7e4ea; font-size:15px; }
+    .nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:9px; }
+    a { color:inherit; text-decoration:none; }
+    .top-link, button, .button { min-height:36px; display:inline-flex; align-items:center; justify-content:center; padding:8px 11px; border:1px solid rgba(255,255,255,.32); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
+    main { padding:22px clamp(16px,4vw,42px) 42px; }
+    .message { margin-bottom:14px; padding:13px 15px; border-radius:8px; border:1px solid #bbf7d0; background:#f0fdf4; color:#14532d; font-weight:900; }
+    .message.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .layout { display:grid; grid-template-columns:minmax(320px, 420px) 1fr; gap:16px; align-items:start; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; }
+    .panel-head { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .panel-head h2 { margin:0; font-size:18px; }
+    .panel-body { padding:18px; }
+    .form-grid { display:grid; gap:13px; }
+    label { display:grid; gap:6px; color:#506071; font-size:13px; font-weight:800; }
+    input[type="text"], input[type="password"] { width:100%; border:1px solid var(--line); border-radius:8px; padding:10px 11px; background:#f8fafb; color:var(--ink); font:inherit; }
+    .check-line { display:flex; gap:9px; align-items:center; color:var(--ink); font-weight:850; }
+    .permissions { display:grid; gap:8px; margin-top:4px; }
+    .permission { display:grid; grid-template-columns:22px 1fr; gap:9px; align-items:flex-start; padding:10px; border:1px solid var(--line); border-radius:8px; background:#f8fafb; }
+    .permission strong { display:block; font-size:13px; }
+    .permission span { display:block; margin-top:3px; color:var(--muted); font-size:12px; line-height:1.35; }
+    .actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:4px; }
+    .primary { background:var(--purple); border-color:var(--purple); }
+    .secondary { color:var(--ink); background:#fff; border-color:var(--line); }
+    .danger { background:var(--red); border-color:var(--red); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:12px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#f3f6f8; color:#506071; text-transform:uppercase; font-size:12px; }
+    .user-pill { display:inline-flex; padding:5px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:900; }
+    .status { display:inline-flex; padding:5px 8px; border-radius:999px; font-weight:900; font-size:12px; background:#dcfce7; color:#166534; }
+    .status.off { background:#fee2e2; color:#991b1b; }
+    .perm-list { display:flex; flex-wrap:wrap; gap:5px; }
+    .perm-tag { display:inline-flex; padding:4px 7px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:12px; font-weight:800; }
+    .row-actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .row-actions button { min-height:30px; padding:6px 8px; font-size:12px; }
+    .hint { color:var(--muted); font-size:12px; line-height:1.45; }
+    @media (max-width:980px) {
+      .topbar, header { display:block; }
+      .nav { justify-content:flex-start; margin-top:16px; }
+      .layout { grid-template-columns:1fr; }
+      .panel { overflow:auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Cadastro de usuarios</h1><p class="subtitle">Controle quem acessa cada tela e funcao do sistema.</p></div></div>
+      <nav class="nav">
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/editar">Editar dados</a>
+        <a class="top-link" href="/controle-ct">Controle de CT</a>
+        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
+        <a class="top-link" href="/capacidades">Capacidades</a>
+        <a class="top-link" href="/logout">Sair</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {message}
+    <section class="layout">
+      <form class="panel" method="post" action="/usuarios">
+        <div class="panel-head"><h2>{form_title}</h2><span class="hint">Somente master</span></div>
+        <div class="panel-body form-grid">
+          <input type="hidden" name="original_username" value="{original_username}">
+          <label>Usuario
+            <input name="username" type="text" value="{username}" autocomplete="off" required>
+          </label>
+          <label>Nome
+            <input name="name" type="text" value="{name}" autocomplete="off">
+          </label>
+          <label>Senha
+            <input name="password" type="password" autocomplete="new-password" {password_required}>
+            <span class="hint">{password_hint}</span>
+          </label>
+          <label class="check-line"><input type="checkbox" name="active" value="1" {active_checked}> Usuario ativo</label>
+          <div>
+            <label>Permissoes</label>
+            <div class="permissions">{permission_checks}</div>
+          </div>
+          <div class="actions">
+            <button class="primary" type="submit">Salvar usuario</button>
+            <a class="button secondary" href="/usuarios">Limpar</a>
+          </div>
+        </div>
+      </form>
+      <section class="panel">
+        <div class="panel-head"><h2>Usuarios cadastrados</h2><span class="hint">{user_count} usuarios</span></div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>Usuario</th><th>Status</th><th>Acessos</th><th>Acoes</th></tr></thead>
+            <tbody>{user_rows}</tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
 </body>
 </html>
 """
@@ -4806,6 +5023,154 @@ def html_escape(value: object) -> str:
     return html.escape(str(value if value is not None else ""), quote=False)
 
 
+def permission_label(key: str) -> str:
+    for perm_key, label, _description in PERMISSIONS:
+        if perm_key == key:
+            return label
+    return key
+
+
+def render_permission_checks(selected: set[str]) -> str:
+    return "".join(
+        f"""<label class="permission"><input type="checkbox" name="permissions" value="{html.escape(key)}" {"checked" if key in selected else ""}><span><strong>{html.escape(label)}</strong><span>{html.escape(description)}</span></span></label>"""
+        for key, label, description in PERMISSIONS
+    )
+
+
+def render_user_rows(records: list[dict[str, object]]) -> str:
+    if not records:
+        return '<tr><td colspan="4" class="hint">Nenhum usuario cadastrado ainda.</td></tr>'
+    rows = []
+    for record in sorted(records, key=lambda item: str(item.get("username", "")).lower()):
+        username = str(record.get("username", ""))
+        name = str(record.get("name", "")).strip()
+        active = bool(record.get("active", True))
+        permissions = record.get("permissions", [])
+        if not isinstance(permissions, list):
+            permissions = []
+        perm_tags = "".join(
+            f'<span class="perm-tag">{html.escape(permission_label(str(key)))}</span>'
+            for key in permissions
+        ) or '<span class="hint">Sem acessos</span>'
+        status_class = " off" if not active else ""
+        status_text = "Ativo" if active else "Inativo"
+        toggle_text = "Desativar" if active else "Ativar"
+        rows.append(f"""
+          <tr>
+            <td><span class="user-pill">{html.escape(username)}</span><div class="hint">{html.escape(name or "-")}</div></td>
+            <td><span class="status{status_class}">{status_text}</span></td>
+            <td><div class="perm-list">{perm_tags}</div></td>
+            <td>
+              <div class="row-actions">
+                <a class="button secondary" href="/usuarios?editar={quote(username)}">Editar</a>
+                <form method="post" action="/usuarios" style="display:inline">
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="username" value="{html.escape(username)}">
+                  <button class="secondary" type="submit">{toggle_text}</button>
+                </form>
+                <form method="post" action="/usuarios" style="display:inline" onsubmit="return confirm('Excluir este usuario?')">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="username" value="{html.escape(username)}">
+                  <button class="danger" type="submit">Excluir</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        """)
+    return "".join(rows)
+
+
+def clean_user_record(record: dict[str, object]) -> dict[str, object]:
+    username = clean_username(str(record.get("username", "")))
+    permissions = record.get("permissions", [])
+    if not isinstance(permissions, list):
+        permissions = []
+    return {
+        "username": username,
+        "name": str(record.get("name", "")).strip(),
+        "password_hash": str(record.get("password_hash", "")),
+        "active": bool(record.get("active", True)),
+        "permissions": sorted({str(key) for key in permissions if str(key) in ALL_PERMISSION_KEYS}),
+    }
+
+
+def ensure_postgres_user_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sistema_usuarios (
+                    username TEXT PRIMARY KEY,
+                    name TEXT NOT NULL DEFAULT '',
+                    password_hash TEXT NOT NULL,
+                    active BOOLEAN NOT NULL DEFAULT TRUE,
+                    permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+
+
+def postgres_user_records() -> list[dict[str, object]]:
+    ensure_postgres_user_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT username, name, password_hash, active, permissions::text
+                FROM sistema_usuarios
+                ORDER BY username
+                """
+            )
+            records = []
+            for username, name, stored_hash, active, permissions_text in cur.fetchall():
+                try:
+                    permissions = json.loads(permissions_text or "[]")
+                except json.JSONDecodeError:
+                    permissions = []
+                records.append(clean_user_record({
+                    "username": username,
+                    "name": name,
+                    "password_hash": stored_hash,
+                    "active": active,
+                    "permissions": permissions,
+                }))
+            return records
+
+
+def save_postgres_user_records(records: list[dict[str, object]]) -> None:
+    ensure_postgres_user_table()
+    clean_records = []
+    seen = set()
+    for record in records:
+        item = clean_user_record(record)
+        username = str(item["username"])
+        if not username or username in seen or username == app_user():
+            continue
+        seen.add(username)
+        clean_records.append(item)
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM sistema_usuarios")
+            for item in clean_records:
+                cur.execute(
+                    """
+                    INSERT INTO sistema_usuarios (
+                        username, name, password_hash, active, permissions, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s::jsonb, now())
+                    """,
+                    (
+                        item["username"],
+                        item["name"],
+                        item["password_hash"],
+                        item["active"],
+                        json.dumps(item["permissions"], ensure_ascii=False),
+                    ),
+                )
+
+
 XLSX_NS = {
     "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
@@ -5604,7 +5969,33 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"{self.address_string()} - {fmt % args}")
 
+    def filter_access_links(self, page: str) -> str:
+        if not self.is_logged_in():
+            return page
+        permissions = user_permissions(self.current_user())
+        href_permissions = {
+            "/dashboard": "dashboard",
+            "/editar": "editar",
+            "/capacidades": "capacidades",
+            "/controle-ct": "controle_ct",
+            "/controle-ct/exportar": "exportar_ct",
+            "/relatorio-diario": "relatorio_diario",
+            "/relatorio-entrada-notas": "entrada_notas",
+        }
+        for href, permission in href_permissions.items():
+            if permission in permissions:
+                continue
+            page = re.sub(rf'\s*<a\b[^>]*class="[^"]*(?:top-link|side-link|card|export-link)[^"]*"[^>]*href="{re.escape(href)}"[\s\S]*?</a>', "", page)
+        if not is_master_user(self.current_user()):
+            page = re.sub(r'\s*<a\b[^>]*class="[^"]*(?:top-link|side-link|card|export-link)[^"]*"[^>]*href="/usuarios"[\s\S]*?</a>', "", page)
+        return page
+
     def send_bytes(self, content: bytes, content_type: str, status: int = 200) -> None:
+        if status == 200 and content_type.startswith("text/html"):
+            try:
+                content = self.filter_access_links(content.decode("utf-8")).encode("utf-8")
+            except UnicodeDecodeError:
+                pass
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         if content_type.startswith("text/html"):
@@ -5639,14 +6030,40 @@ class Handler(BaseHTTPRequestHandler):
             return ""
         return cookie[SESSION_COOKIE].value
 
+    def current_user(self) -> str:
+        value = self.session_value()
+        cookie_user, separator, _signature = value.partition(":")
+        if not separator:
+            return ""
+        return clean_username(unquote(cookie_user))
+
     def is_logged_in(self) -> bool:
         value = self.session_value()
-        return bool(value and valid_session(value))
+        if not (value and valid_session(value)):
+            return False
+        username = self.current_user()
+        return is_master_user(username) or bool(find_user_record(username) and user_permissions(username))
 
     def require_login(self) -> bool:
         if self.is_logged_in():
             return True
         self.redirect("/login")
+        return False
+
+    def require_permission(self, permission: str) -> bool:
+        if not self.require_login():
+            return False
+        if permission in user_permissions(self.current_user()):
+            return True
+        self.send_error(HTTPStatus.FORBIDDEN, "Acesso nao autorizado")
+        return False
+
+    def require_master(self) -> bool:
+        if not self.require_login():
+            return False
+        if is_master_user(self.current_user()):
+            return True
+        self.send_error(HTTPStatus.FORBIDDEN, "Apenas o usuario master pode acessar esta tela")
         return False
 
     def set_session_cookie(self, user: str) -> None:
@@ -5665,6 +6082,81 @@ class Handler(BaseHTTPRequestHandler):
         page = LOGIN_HTML.replace("{message}", message).replace("{favicon_url}", FAVICON_URL)
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
+    def send_home(self) -> None:
+        is_master = is_master_user(self.current_user())
+        visible_modules = ["dashboard", "editar", "capacidades", "relatorio_diario", "entrada_notas", "controle_ct"]
+        allowed = user_permissions(self.current_user())
+        user_link = ""
+        user_card = ""
+        module_count = str(sum(1 for key in visible_modules if key in allowed))
+        if is_master:
+            module_count = str(int(module_count) + 1)
+            user_link = '<a class="side-link" href="/usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg>Usuarios</a>'
+            user_card = """
+          <a class="card" href="/usuarios">
+            <span>Acesso</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg></div>
+            <strong>Usuarios</strong>
+            <p>Cadastre usuarios e defina quais telas e funcoes cada um pode acessar.</p>
+            <div class="button">Gerenciar acessos</div>
+          </a>"""
+        page = (
+            HOME_HTML.replace("{favicon_url}", FAVICON_URL)
+            .replace("__USER_LINK__", user_link)
+            .replace("__USER_CARD__", user_card)
+            .replace("__MODULE_COUNT__", module_count)
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_users(self) -> None:
+        params = parse_qs(urlparse(self.path).query)
+        message = ""
+        if not build_dashboard.use_postgres():
+            message = '<div class="message error">Cadastro de usuarios exige banco de dados Postgres configurado. Nenhum usuario sera salvo localmente.</div>'
+        if "ok" in params:
+            message = '<div class="message">Usuario salvo com sucesso.</div>'
+        if "removido" in params:
+            message = '<div class="message">Usuario removido com sucesso.</div>'
+        if "erro" in params:
+            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        records = load_user_records()
+        edit_username = clean_username(params.get("editar", [""])[0])
+        edit_record = next((item for item in records if item.get("username") == edit_username), None)
+        selected = set()
+        username = ""
+        name = ""
+        active_checked = "checked"
+        form_title = "Novo usuario"
+        password_required = "required"
+        password_hint = "Informe a senha inicial do usuario."
+        original_username = ""
+        if edit_record:
+            username = str(edit_record.get("username", ""))
+            name = str(edit_record.get("name", ""))
+            active_checked = "checked" if edit_record.get("active", True) else ""
+            permissions = edit_record.get("permissions", [])
+            if isinstance(permissions, list):
+                selected = {str(key) for key in permissions}
+            form_title = "Editar usuario"
+            password_required = ""
+            password_hint = "Deixe em branco para manter a senha atual."
+            original_username = username
+        page = (
+            USERS_HTML.replace("{favicon_url}", FAVICON_URL)
+            .replace("{message}", message)
+            .replace("{form_title}", form_title)
+            .replace("{original_username}", html.escape(original_username))
+            .replace("{username}", html.escape(username))
+            .replace("{name}", html.escape(name))
+            .replace("{password_required}", password_required)
+            .replace("{password_hint}", password_hint)
+            .replace("{active_checked}", active_checked)
+            .replace("{permission_checks}", render_permission_checks(selected))
+            .replace("{user_count}", str(len(records)))
+            .replace("{user_rows}", render_user_rows(records))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
     def send_dashboard(self) -> None:
         if build_dashboard.use_postgres() or not INDEX_PATH.exists():
             rebuild_dashboard()
@@ -5677,8 +6169,10 @@ class Handler(BaseHTTPRequestHandler):
     <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
     <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
+    __USER_LINK__
     <a class="top-link" href="/logout">Sair</a>
   </nav>"""
+        nav = nav.replace("__USER_LINK__", '<a class="top-link" href="/usuarios">Usuarios</a>' if is_master_user(self.current_user()) else "")
         page = page.replace('<a class="top-link" href="/editar">Atualizar dados</a>', nav)
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -5829,43 +6323,47 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/home":
             if not self.require_login():
                 return
-            page = HOME_HTML.replace("{favicon_url}", FAVICON_URL)
-            self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+            self.send_home()
             return
         if parsed.path == "/dashboard":
-            if not self.require_login():
+            if not self.require_permission("dashboard"):
                 return
             self.send_dashboard()
             return
         if parsed.path == "/editar":
-            if not self.require_login():
+            if not self.require_permission("editar"):
                 return
             self.send_edit()
             return
         if parsed.path == "/capacidades":
-            if not self.require_login():
+            if not self.require_permission("capacidades"):
                 return
             self.send_capacities()
             return
         if parsed.path == "/relatorio-diario":
-            if not self.require_login():
+            if not self.require_permission("relatorio_diario"):
                 return
             self.send_daily_report()
             return
         if parsed.path == "/relatorio-entrada-notas":
-            if not self.require_login():
+            if not self.require_permission("entrada_notas"):
                 return
             self.send_note_entry_report()
             return
         if parsed.path == "/controle-ct":
-            if not self.require_login():
+            if not self.require_permission("controle_ct"):
                 return
             self.send_ct_control()
             return
         if parsed.path == "/controle-ct/exportar":
-            if not self.require_login():
+            if not self.require_permission("exportar_ct"):
                 return
             self.send_ct_control_export()
+            return
+        if parsed.path == "/usuarios":
+            if not self.require_master():
+                return
+            self.send_users()
             return
         if parsed.path == "/db-status":
             if not self.require_login():
@@ -5885,17 +6383,17 @@ class Handler(BaseHTTPRequestHandler):
             params = self.body_params()
             user = params.get("user", [""])[0].strip()
             password = params.get("password", [""])[0].strip()
-            if user == app_user() and password == app_password():
+            if authenticate_user(user, password):
                 self.send_response(HTTPStatus.SEE_OTHER)
                 self.send_header("Location", "/home")
-                self.set_session_cookie(user)
+                self.set_session_cookie(clean_username(user))
                 self.end_headers()
                 return
             self.send_login('<div class="error">Usuario ou senha invalidos.</div>')
             return
 
         if parsed.path == "/importar":
-            if not self.require_login():
+            if not self.require_permission("editar"):
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -5918,7 +6416,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/capacidades":
-            if not self.require_login():
+            if not self.require_permission("capacidades"):
                 return
             try:
                 params = self.body_params()
@@ -5938,7 +6436,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/relatorio-diario/observacoes":
-            if not self.require_login():
+            if not self.require_permission("relatorio_diario"):
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -5958,7 +6456,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/relatorio-entrada-notas/importar":
-            if not self.require_login():
+            if not self.require_permission("entrada_notas"):
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -5982,7 +6480,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/controle-ct":
-            if not self.require_login():
+            if not self.require_permission("controle_ct"):
                 return
             try:
                 params = self.body_params()
@@ -5996,10 +6494,64 @@ class Handler(BaseHTTPRequestHandler):
             self.redirect("/controle-ct?ok=1")
             return
 
+        if parsed.path == "/usuarios":
+            if not self.require_master():
+                return
+            try:
+                params = self.body_params()
+                action = params.get("action", ["save"])[0]
+                records = load_user_records()
+                username = clean_username(params.get("username", [""])[0])
+                if action == "delete":
+                    save_user_records([item for item in records if item.get("username") != username])
+                    self.redirect("/usuarios?removido=1")
+                    return
+                if action == "toggle":
+                    changed = False
+                    for item in records:
+                        if item.get("username") == username:
+                            item["active"] = not bool(item.get("active", True))
+                            changed = True
+                    if not changed:
+                        raise ValueError("Usuario nao encontrado")
+                    save_user_records(records)
+                    self.redirect("/usuarios?ok=1")
+                    return
+                original_username = clean_username(params.get("original_username", [""])[0])
+                if not username:
+                    raise ValueError("Informe o usuario")
+                if username == app_user():
+                    raise ValueError("O usuario master principal e controlado pelas variaveis do sistema")
+                permissions = sorted({key for key in params.get("permissions", []) if key in ALL_PERMISSION_KEYS})
+                password = params.get("password", [""])[0]
+                existing = next((item for item in records if item.get("username") == original_username), None)
+                if not existing and any(item.get("username") == username for item in records):
+                    raise ValueError("Ja existe um usuario com esse login")
+                if existing and username != original_username and any(item.get("username") == username for item in records):
+                    raise ValueError("Ja existe um usuario com esse login")
+                if not existing and not password:
+                    raise ValueError("Informe a senha do usuario")
+                user_record = {
+                    "username": username,
+                    "name": params.get("name", [""])[0].strip(),
+                    "password_hash": password_hash(password) if password else str(existing.get("password_hash", "")) if existing else "",
+                    "active": "active" in params,
+                    "permissions": permissions,
+                }
+                if existing:
+                    records = [item for item in records if item.get("username") != original_username]
+                records.append(user_record)
+                save_user_records(records)
+            except Exception as exc:
+                self.redirect("/usuarios?erro=" + quote(str(exc)))
+                return
+            self.redirect("/usuarios?ok=1")
+            return
+
         if parsed.path != "/editar":
             self.send_error(HTTPStatus.NOT_FOUND)
             return
-        if not self.require_login():
+        if not self.require_permission("editar"):
             return
 
         try:
@@ -6020,6 +6572,7 @@ def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
     build_dashboard.ensure_database_storage()
     if build_dashboard.use_postgres():
+        ensure_postgres_user_table()
         ensure_postgres_conductor_table()
         ensure_postgres_daily_observation_table()
         ensure_postgres_note_entry_table()
