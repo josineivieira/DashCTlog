@@ -3786,7 +3786,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
     .kpis { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
     .kpi { min-height:112px; padding:18px; display:grid; grid-template-columns:52px 1fr; gap:14px; align-items:center; border:0; }
-    .kpi-icon { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; color:#fff; background:#3f48cc; font-size:22px; font-weight:950; }
+    .kpi-icon { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; color:#fff; background:#3f48cc; }
+    .kpi-icon svg { width:24px; height:24px; stroke:currentColor; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     .kpi:nth-child(2) .kpi-icon { background:#0b66d8; }
     .kpi:nth-child(3) .kpi-icon { background:var(--red); }
     .kpi:nth-child(4) .kpi-icon { background:var(--green); }
@@ -3927,10 +3928,10 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     </div>
     <section id="dashboard" class="tab-view">
       <div class="kpis">
-        <div class="kpi"><div class="kpi-icon">N</div><div><span>Total de notas</span><strong id="kTotal">0</strong><small id="kTotalHint">Todas as cidades</small></div></div>
-        <div class="kpi"><div class="kpi-icon">✓</div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
-        <div class="kpi"><div class="kpi-icon">X</div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
-        <div class="kpi"><div class="kpi-icon">T</div><div><span>Tempo medio</span><strong id="kAvgEntry">-</strong><small>Tempo medio geral</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6"></path><path d="M9 2h6v4H9z"></path><path d="M7 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"></path><path d="M8 12h8"></path><path d="M8 16h6"></path></svg></div><div><span>Total de notas</span><strong id="kTotal">0</strong><small id="kTotalHint">Todas as cidades</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvgEntry">-</strong><small>Tempo medio geral</small></div></div>
       </div>
       <div class="branch-grid" id="cityCards"></div>
       <div class="panel branch-summary">
