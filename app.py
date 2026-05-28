@@ -2534,7 +2534,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       <div class="toolbar">
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
-          <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edição" aria-label="Editar">
+          <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edicao" aria-label="Editar">
             <span class="edit-icon" aria-hidden="true"></span>
             <span class="edit-label">Editar</span>
           </button>
@@ -2805,7 +2805,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const button = $("editModeToggle");
       if (!button) return;
       button.classList.toggle("is-editing", editMode);
-      button.title = editMode ? "Visualizar" : "Alternar modo de edição";
+      button.title = editMode ? "Visualizar" : "Alternar modo de edicao";
       button.setAttribute("aria-label", editMode ? "Visualizar" : "Editar");
       button.querySelector(".edit-icon").innerHTML = editIcon();
       button.querySelector(".edit-label").textContent = editMode ? "Salvar" : "Editar";
@@ -3996,7 +3996,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
   <title>Controle Medicao - Dashboard</title>
   <style>
-    :root { --bg:#eef2f5; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --amber:#f59e0b; --shadow:0 18px 42px rgba(23,32,51,.10); }
+    :root { --bg:#eef2f5; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --panel-soft:#f8fafb; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --amber:#f59e0b; --shadow:0 18px 42px rgba(23,32,51,.10); }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, Segoe UI, Roboto, Arial, sans-serif; }
     a { color:inherit; text-decoration:none; }
@@ -4018,7 +4018,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .tabs button { background:#f3f6f8; border:1px solid var(--line); color:var(--ink); }
     .tabs button.active { background:var(--purple); color:#fff; border-color:transparent; }
     .tab-view[hidden] { display:none; }
-    .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
+    .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; padding:12px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.94); box-shadow:var(--shadow); }
     .custom-date-filter { display:none; gap:10px; align-items:end; }
     .custom-date-filter.is-visible { display:flex; }
     label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
@@ -4027,18 +4027,24 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .import-panel form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
     .import-panel button { background:var(--purple); border-color:transparent; color:#fff; }
     .meta { color:var(--muted); font-size:13px; font-weight:800; }
-    .kpis { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
-    .kpi { min-height:112px; padding:18px; display:grid; grid-template-columns:52px 1fr; gap:14px; align-items:center; border:0; }
-    .kpi-icon { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; color:#fff; background:#3f48cc; }
+    .kpis { display:grid; grid-template-columns:repeat(5,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
+    .kpi { min-height:144px; padding:20px; display:grid; grid-template-columns:64px 1fr; gap:18px; align-items:center; }
+    .kpi-icon { width:58px; height:58px; border-radius:12px; display:grid; place-items:center; color:#fff; background:linear-gradient(135deg,#64248c,#3f48cc); }
     .kpi-icon svg { width:24px; height:24px; stroke:currentColor; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     .kpi:nth-child(2) .kpi-icon { background:var(--green); }
     .kpi:nth-child(3) .kpi-icon { background:var(--red); }
     .kpi:nth-child(4) .kpi-icon { background:var(--blue); }
+    .kpi:nth-child(5) .kpi-icon { background:#1b255f; }
     .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
-    .kpi strong { display:block; margin-top:6px; font-size:30px; line-height:1; }
+    .kpi strong { display:block; margin-top:8px; font-size:34px; line-height:1; color:var(--ink); }
     .kpi small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; }
-    .grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr); gap:14px; margin-bottom:14px; }
-    .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
+    .delta { margin-top:12px; display:inline-flex; padding:6px 9px; border-radius:8px; background:#e7f7ee; color:#166534; font-size:12px; font-weight:900; }
+    .delta.bad { background:#fff1f2; color:#991b1b; }
+    .sla-bar { height:12px; border-radius:999px; background:#e8eef5; overflow:hidden; margin-top:14px; }
+    .sla-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#ff8a1c,#ffc22e); }
+    .ops-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(360px,.95fr) minmax(320px,.7fr); gap:14px; margin-bottom:14px; }
+    .lower-grid { display:grid; grid-template-columns:minmax(420px,1fr) minmax(320px,.72fr) minmax(360px,.88fr); gap:14px; margin-bottom:14px; }
+    .panel h2 { margin:0; padding:18px 18px 0; font-size:18px; color:var(--ink); }
     .panel-body { padding:14px 18px 18px; }
     .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
     .donut { position:relative; width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
@@ -4062,7 +4068,36 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
+    .chart-wrap svg { width:100%; height:auto; display:block; }
+    .rank-list, .alert-list, .recommendations { display:grid; gap:12px; }
+    .rank-row { display:grid; grid-template-columns:minmax(170px,1fr) 120px 70px 58px; gap:12px; align-items:center; font-size:13px; font-weight:850; }
+    .rank-track { height:12px; border-radius:999px; background:#edf2f6; overflow:hidden; }
+    .rank-fill { height:100%; border-radius:inherit; background:var(--red); }
+    .alert-item { display:grid; grid-template-columns:40px 1fr; gap:12px; padding:12px; border-radius:8px; background:#f8fafb; border:1px solid var(--line); }
+    .alert-icon { width:38px; height:38px; border-radius:8px; display:grid; place-items:center; background:rgba(242,56,78,.16); color:#ff6b78; font-weight:950; }
+    .alert-item.warning .alert-icon { background:rgba(245,158,11,.16); color:#ffb13b; }
+    .alert-item strong { display:block; margin-bottom:4px; }
+    .branch-table { width:100%; min-width:0; }
+    .mini-progress { width:74px; height:12px; border-radius:999px; background:#e8eef5; overflow:hidden; display:inline-flex; vertical-align:middle; }
+    .mini-progress span { display:block; background:var(--red); }
+    .mini-progress.ok span { background:var(--green); }
+    .heatmap { display:grid; grid-template-columns:42px repeat(6,1fr); gap:5px; align-items:center; font-size:12px; }
+    .heat-cell { min-height:28px; border-radius:4px; background:#e8eef5; display:grid; place-items:center; color:#16212d; font-weight:900; }
+    .reason-layout { display:grid; grid-template-columns:170px 1fr; gap:18px; align-items:center; }
+    .reason-donut { width:150px; height:150px; border-radius:50%; background:conic-gradient(var(--red) 0deg, var(--red) var(--reasonA), #fb6b2a var(--reasonA), #fb6b2a var(--reasonB), #fbbf24 var(--reasonB), #fbbf24 var(--reasonC), var(--green) var(--reasonC), var(--green) 360deg); position:relative; display:grid; place-items:center; }
+    .reason-donut::before { content:""; width:94px; height:94px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+    .reason-donut-label { position:absolute; text-align:center; font-weight:950; }
+    .reason-list { display:grid; gap:10px; font-size:13px; font-weight:850; }
+    .reason-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; }
+    .reason-dot { width:11px; height:11px; border-radius:3px; background:var(--red); }
+    .executive { display:grid; grid-template-columns:minmax(260px,.8fr) 1fr; gap:20px; padding:18px; }
+    .exec-title { display:flex; align-items:center; gap:12px; margin-bottom:12px; font-size:18px; font-weight:950; }
+    .exec-icon { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; background:#efe7f8; color:var(--purple); }
+    .recommendations { grid-template-columns:repeat(4,minmax(160px,1fr)); }
+    .rec-card { padding:14px; border:1px solid var(--line); border-radius:8px; background:#f8fafb; }
+    .rec-card strong { display:block; margin-bottom:7px; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
+    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .ops-grid, .lower-grid, .executive { grid-template-columns:1fr; } .recommendations { grid-template-columns:repeat(2,minmax(160px,1fr)); } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
     @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
   </style>
@@ -4080,6 +4115,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
         <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
         <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
+        <button type="button" id="refreshDashboard">Atualizar</button>
         <a class="top-link" href="/logout">Sair</a>
       </nav>
     </div>
@@ -4098,15 +4134,22 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     <section id="dashboard" class="tab-view">
       <div class="kpis">
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medicoes</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small><div class="delta" id="kOkDelta">Meta operacional</div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small><div class="delta bad" id="kLateDelta">Acompanhar atrasos</div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small><div class="delta" id="kAvgDelta">Sem domingo</div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 85% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
       </div>
-      <div class="grid">
-        <section class="panel"><h2>Status geral</h2><div class="panel-body" id="statusPanel"></div></section>
-        <section class="panel"><h2>Por terminal</h2><div class="panel-body"><div class="bars" id="terminalBars"></div></div></section>
+      <div class="ops-grid">
+        <section class="panel"><h2>Evolucao dos Fechamentos</h2><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
+        <section class="panel"><h2>Top 5 Terminais com mais atraso</h2><div class="panel-body"><div id="terminalRank" class="rank-list"></div></div></section>
+        <section class="panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
-      <section class="panel"><h2>Resumo por filial</h2><div class="panel-body"><div class="bars" id="branchBars"></div></div></section>
+      <div class="lower-grid">
+        <section class="panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
+        <section class="panel"><h2>Distribuicao por Horario</h2><div class="panel-body"><div id="heatmapPanel" class="heatmap"></div></div></section>
+        <section class="panel"><h2>Motivos de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+      </div>
+      <section class="panel executive"><div><div class="exec-title"><span class="exec-icon">OK</span>Resumo Executivo</div><p id="executiveText" class="meta"></p></div><div><div class="exec-title">Recomendacoes</div><div id="recommendations" class="recommendations"></div></div></section>
     </section>
     <section id="data" class="tab-view" hidden>
       <section class="panel import-panel">
@@ -4143,11 +4186,145 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
     function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
     function renderBars(id, entries){ const max=Math.max(1,...entries.map(([,v])=>v.total)); $(id).innerHTML=entries.length?entries.map(([label,item])=>`<div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill-ok" style="width:${item.ok/max*100}%"></div><div class="fill-late" style="width:${item.late/max*100}%"></div></div><strong>${fmt.format(item.total)}</strong></div>`).join(""):'<div class="empty">Sem dados para o filtro.</div>'; }
+    function dailyStats(data){
+      const map = new Map();
+      data.forEach((row) => {
+        const item = map.get(row.medicao) || { ok: 0, late: 0, total: 0 };
+        item.total++;
+        if (row.status === "ok") item.ok++; else item.late++;
+        map.set(row.medicao, item);
+      });
+      return [...map.entries()].sort((a,b) => (parseBrDate(a[0]) || 0) - (parseBrDate(b[0]) || 0));
+    }
+    function renderEvolution(data){
+      const stats = dailyStats(data).slice(-31);
+      if (!stats.length) { $("evolutionChart").innerHTML = '<div class="empty">Sem dados para o filtro.</div>'; return; }
+      const width = 760, height = 300, pad = { left: 42, right: 38, top: 26, bottom: 36 };
+      const plotW = width - pad.left - pad.right, plotH = height - pad.top - pad.bottom;
+      const max = Math.max(1, ...stats.map(([, item]) => item.total));
+      const x = (idx) => pad.left + (stats.length === 1 ? plotW / 2 : idx * (plotW / (stats.length - 1)));
+      const y = (value) => pad.top + plotH - (value / max) * plotH;
+      const points = stats.map(([, item], idx) => `${x(idx)},${y(item.ok / Math.max(1,item.total) * 100 / 100 * max)}`).join(" ");
+      const bars = stats.map(([date, item], idx) => {
+        const barW = Math.max(8, plotW / stats.length * .5);
+        const okH = item.ok / max * plotH;
+        const lateH = item.late / max * plotH;
+        const bx = x(idx) - barW / 2;
+        const base = pad.top + plotH;
+        return `<rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${height-10}" text-anchor="middle" fill="#657282" font-size="11">${date.slice(0,5)}</text>`;
+      }).join("");
+      $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
+        <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
+        ${bars}
+        <polyline points="${points}" fill="none" stroke="#2b84cb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        ${stats.map(([, item], idx)=>`<circle cx="${x(idx)}" cy="${y(item.ok / Math.max(1,item.total) * max)}" r="4" fill="#fff" stroke="#2b84cb" stroke-width="2"></circle>`).join("")}
+        <text x="${pad.left}" y="16" fill="#657282" font-size="12">No prazo / Fora do prazo</text>
+      </svg>`;
+    }
+    function renderTerminalRank(data){
+      const entries = grouped(data, "terminal").filter(([, item]) => item.late > 0).slice(0, 5);
+      $("terminalRank").innerHTML = entries.length ? entries.map(([label, item]) => {
+        const latePct = item.total ? item.late / item.total * 100 : 0;
+        return `<div class="rank-row"><strong>${escapeHtml(label)}</strong><div class="rank-track"><div class="rank-fill" style="width:${latePct}%"></div></div><span>${latePct.toFixed(0)}%</span><span>${fmt.format(item.late)}</span></div>`;
+      }).join("") : '<div class="empty">Sem terminais fora do prazo.</div>';
+    }
+    function topEntry(entries){ return entries[0] || ["-", { total: 0, ok: 0, late: 0 }]; }
+    function renderAlerts(data){
+      const terminals = grouped(data, "terminal");
+      const branches = grouped(data, "filial");
+      const [topTerminal, topTerminalItem] = topEntry(terminals.filter(([, item]) => item.late > 0));
+      const [topBranch, topBranchItem] = topEntry(branches.filter(([, item]) => item.late > 0));
+      const lateAfter18 = data.filter((row) => row.status === "late" && Number(row.horasFechamento) > 18).length;
+      const alerts = [
+        { icon: "!", cls: "", title: `${topTerminal || "Terminal"} acima da meta`, text: `${percent(topTerminalItem.late, topTerminalItem.total)} fora do prazo (${fmt.format(topTerminalItem.late)} atrasos)` },
+        { icon: "!", cls: "warning", title: `Filial ${topBranch || "-"} com maior atraso`, text: `${fmt.format(topBranchItem.late)} fechamentos fora do prazo no filtro` },
+        { icon: "!", cls: "warning", title: "Atrasos acima de 18h", text: `${fmt.format(lateAfter18)} fechamentos em atraso com mais de 18h` }
+      ];
+      $("alertsPanel").innerHTML = alerts.map((item) => `<div class="alert-item ${item.cls}"><div class="alert-icon">${item.icon}</div><div><strong>${escapeHtml(item.title)}</strong><span class="meta">${escapeHtml(item.text)}</span></div></div>`).join("");
+    }
+    function renderBranchPerformance(data){
+      const entries = grouped(data, "filial").slice(0, 8);
+      $("branchPerformance").innerHTML = entries.length ? `<table class="branch-table"><thead><tr><th>Filial</th><th>Total</th><th>No prazo</th><th>Fora</th><th>% No prazo</th><th>SLA</th></tr></thead><tbody>${entries.map(([label,item]) => {
+        const okPct = item.total ? item.ok / item.total * 100 : 0;
+        return `<tr><td><strong>${escapeHtml(label)}</strong></td><td>${fmt.format(item.total)}</td><td>${fmt.format(item.ok)}</td><td>${fmt.format(item.late)}</td><td>${percent(item.ok,item.total)}</td><td><span class="mini-progress ${okPct>=85?"ok":""}"><span style="width:${okPct}%"></span></span></td></tr>`;
+      }).join("")}</tbody></table>` : '<div class="empty">Sem filiais no filtro.</div>';
+    }
+    function renderHeatmap(data){
+      const days = ["Seg","Ter","Qua","Qui","Sex","Sab","Dom"];
+      const buckets = ["08h","10h","12h","14h","16h","18h"];
+      const map = new Map();
+      data.forEach((row) => {
+        const date = parseBrDate(row.medicao);
+        if (!date) return;
+        const day = (date.getDay() + 6) % 7;
+        const bucket = Math.min(5, Math.floor(Math.max(8, Math.min(19, Number(row.horasFechamento || 0) % 24)) / 2) - 4);
+        const key = `${day}-${bucket}`;
+        const item = map.get(key) || { total: 0, late: 0 };
+        item.total++;
+        if (row.status === "late") item.late++;
+        map.set(key, item);
+      });
+      $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((_, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0 }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; return `<span class="heat-cell" style="background:hsl(${hue} 76% 52%)">${item.total || ""}</span>`; }).join("")}`).join("")}`;
+    }
+    function renderReasons(data){
+      const late = data.filter(r=>r.status==="late");
+      const after18 = late.filter(r=>Number(r.horasFora)>18).length;
+      const after24 = late.filter(r=>Number(r.horasFora)>24).length;
+      const terminal = grouped(late,"terminal")[0]?.[1]?.late || 0;
+      const process = Math.max(0, late.length - after18 - terminal);
+      const total = Math.max(1, late.length);
+      const a = terminal / total * 360;
+      const b = a + after18 / total * 360;
+      const c = b + process / total * 360;
+      $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(late.length)}</strong><span>Total</span></div></div><div class="reason-list">
+        ${[["Terminal critico", terminal, "#f2384e"],["Atraso apos 18h", after18, "#fb6b2a"],["Processo/Sistema", process, "#fbbf24"],["Acima de 24h", after24, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
+      </div></div>`;
+    }
+    function renderExecutive(data, ok, late){
+      const terminals = grouped(data,"terminal");
+      const branches = grouped(data,"filial");
+      const topTerminal = terminals.filter(([,i])=>i.late>0)[0];
+      const topBranch = branches.filter(([,i])=>i.late>0)[0];
+      $("executiveText").textContent = data.length ? `No periodo selecionado, ${percent(late,data.length)} dos fechamentos estao fora do prazo. O principal ponto de atencao e ${topTerminal?.[0] || "sem terminal critico"} com ${fmt.format(topTerminal?.[1].late || 0)} atrasos. A filial mais sensivel no filtro e ${topBranch?.[0] || "-"}, com ${percent(topBranch?.[1].ok || 0, topBranch?.[1].total || 0)} no prazo.` : "Sem dados para o filtro selecionado.";
+      $("recommendations").innerHTML = [
+        ["Foco no terminal critico", `Priorizar conferencia no terminal ${topTerminal?.[0] || "-"}.`],
+        ["Revisar janela de fechamento", "Acompanhar fechamentos acima de 18h e 24h."],
+        ["Atuar na filial critica", `Verificar gargalos da filial ${topBranch?.[0] || "-"}.`],
+        ["Monitorar SLA", "Meta sugerida: manter ao menos 85% no prazo."]
+      ].map(([title,text])=>`<div class="rec-card"><strong>${escapeHtml(title)}</strong><span class="meta">${escapeHtml(text)}</span></div>`).join("");
+    }
     function renderTable(data){ $("rows").innerHTML=data.map(r=>`<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">Sem dados para o filtro.</td></tr>'; }
-    function render(){ updateCustomDateFilter(); const data=filteredRows(); const ok=data.filter(r=>r.status==="ok").length; const late=data.length-ok; const avg=data.length?data.reduce((t,r)=>t+Number(r.horasFechamento||0),0)/data.length:null; $("kTotal").textContent=fmt.format(data.length); $("kOk").textContent=fmt.format(ok); $("kLate").textContent=fmt.format(late); $("kOkHint").textContent=`${percent(ok,data.length)} do total`; $("kLateHint").textContent=`${percent(late,data.length)} do total`; $("kAvg").textContent=avg===null?"-":durationLabel(avg); const deg=data.length?ok/data.length*360:0; $("statusPanel").innerHTML=`<div class="status-card"><div class="donut" style="--okDeg:${deg}deg"><div class="donut-label"><strong>${percent(ok,data.length)}</strong><span>no prazo</span></div></div><div class="legend"><div class="legend-row"><span class="dot"></span><span>No prazo</span><strong>${fmt.format(ok)}</strong></div><div class="legend-row"><span class="dot late"></span><span>Fora do prazo</span><strong>${fmt.format(late)}</strong></div></div></div>`; renderBars("terminalBars",grouped(data,"terminal")); renderBars("branchBars",grouped(data,"filial")); renderTable(data); }
+    function render(){
+      updateCustomDateFilter();
+      const data=filteredRows();
+      const ok=data.filter(r=>r.status==="ok").length;
+      const late=data.length-ok;
+      const avg=data.length?data.reduce((t,r)=>t+Number(r.horasFechamento||0),0)/data.length:null;
+      const sla=data.length ? ok/data.length*100 : 0;
+      $("kTotal").textContent=fmt.format(data.length);
+      $("kOk").textContent=fmt.format(ok);
+      $("kLate").textContent=fmt.format(late);
+      $("kOkHint").textContent=`${percent(ok,data.length)} do total`;
+      $("kLateHint").textContent=`${percent(late,data.length)} do total`;
+      $("kAvg").textContent=avg===null?"-":durationLabel(avg);
+      $("kSla").textContent=`${sla.toFixed(0)}%`;
+      $("kSlaFill").style.width=`${Math.min(100,sla)}%`;
+      $("kOkDelta").textContent = sla >= 85 ? "Dentro da meta" : "Abaixo da meta";
+      $("kOkDelta").classList.toggle("bad", sla < 85);
+      $("kLateDelta").textContent = late ? "Acao necessaria" : "Sem atrasos";
+      renderEvolution(data);
+      renderTerminalRank(data);
+      renderAlerts(data);
+      renderBranchPerformance(data);
+      renderHeatmap(data);
+      renderReasons(data);
+      renderExecutive(data, ok, late);
+      renderTable(data);
+    }
     document.querySelectorAll(".message").forEach((item)=>{ setTimeout(()=>item.classList.add("is-hidden"),4200); setTimeout(()=>item.remove(),4600); });
     document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b===btn)); document.querySelectorAll(".tab-view").forEach(view=>view.hidden=view.id!==btn.dataset.tab); }));
     ["dateModeFilter","dateStartFilter","dateEndFilter","terminalFilter","branchFilter","statusFilter","timeFilter"].forEach(id=>$(id).addEventListener("change",render));
+    $("refreshDashboard").addEventListener("click", render);
     fillFilters(); render();
   </script>
 </body>
@@ -7093,3 +7270,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
