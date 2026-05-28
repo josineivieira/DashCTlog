@@ -870,8 +870,10 @@ USERS_HTML = """<!doctype html>
     a { color:inherit; text-decoration:none; }
     .top-link, button, .button { min-height:36px; display:inline-flex; align-items:center; justify-content:center; padding:8px 11px; border:1px solid rgba(255,255,255,.32); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
     main { padding:22px clamp(16px,4vw,42px) 42px; }
-    .message { margin-bottom:14px; padding:13px 15px; border-radius:8px; border:1px solid #bbf7d0; background:#f0fdf4; color:#14532d; font-weight:900; }
+    .toast-zone { position:fixed; right:clamp(14px,2vw,24px); bottom:clamp(14px,2vw,24px); z-index:30; display:grid; gap:10px; justify-items:end; pointer-events:none; }
+    .message { width:min(440px,calc(100vw - 28px)); padding:13px 15px; border-radius:8px; border:1px solid #bbf7d0; background:#f0fdf4; color:#14532d; font-weight:900; box-shadow:0 18px 42px rgba(23,32,51,.18); pointer-events:auto; transition:opacity .22s ease, transform .22s ease; }
     .message.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .message.is-hidden { opacity:0; transform:translateY(12px); pointer-events:none; }
     .layout { display:grid; grid-template-columns:minmax(320px, 420px) 1fr; gap:16px; align-items:start; }
     .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; }
     .panel-head { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; }
@@ -889,26 +891,33 @@ USERS_HTML = """<!doctype html>
     .primary { background:var(--purple); border-color:var(--purple); }
     .secondary { color:var(--ink); background:#fff; border-color:var(--line); }
     .danger { background:var(--red); border-color:var(--red); }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th, td { padding:12px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-    th { background:#f3f6f8; color:#506071; text-transform:uppercase; font-size:12px; }
-    .user-pill { display:inline-flex; padding:5px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:900; }
+    .user-list { display:grid; gap:12px; }
+    .user-card { display:grid; grid-template-columns:minmax(180px,.9fr) minmax(220px,1.35fr) auto; gap:16px; align-items:center; padding:14px; border:1px solid var(--line); border-radius:8px; background:linear-gradient(180deg,#fff,#fbfdff); }
+    .user-main { min-width:0; }
+    .user-pill { display:inline-flex; align-items:center; gap:7px; padding:6px 9px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:900; }
+    .user-pill::before { content:""; width:8px; height:8px; border-radius:50%; background:#64248c; }
+    .user-name { margin-top:6px; color:var(--muted); font-size:12px; line-height:1.4; }
     .status { display:inline-flex; padding:5px 8px; border-radius:999px; font-weight:900; font-size:12px; background:#dcfce7; color:#166534; }
     .status.off { background:#fee2e2; color:#991b1b; }
-    .perm-list { display:flex; flex-wrap:wrap; gap:5px; }
-    .perm-tag { display:inline-flex; padding:4px 7px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:12px; font-weight:800; }
-    .row-actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .user-meta { display:grid; gap:9px; }
+    .perm-list { display:flex; flex-wrap:wrap; gap:6px; }
+    .perm-tag { display:inline-flex; padding:5px 8px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:12px; font-weight:850; }
+    .row-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
     .row-actions button { min-height:30px; padding:6px 8px; font-size:12px; }
+    .empty-users { padding:22px; border:1px dashed var(--line); border-radius:8px; color:var(--muted); text-align:center; font-weight:850; }
     .hint { color:var(--muted); font-size:12px; line-height:1.45; }
     @media (max-width:980px) {
       .topbar, header { display:block; }
       .nav { justify-content:flex-start; margin-top:16px; }
       .layout { grid-template-columns:1fr; }
       .panel { overflow:auto; }
+      .user-card { grid-template-columns:1fr; align-items:start; }
+      .row-actions { justify-content:flex-start; }
     }
   </style>
 </head>
 <body>
+  <div class="toast-zone" aria-live="polite">{message}</div>
   <header>
     <div class="topbar">
       <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Cadastro de usuarios</h1><p class="subtitle">Controle quem acessa cada tela e funcao do sistema.</p></div></div>
@@ -925,7 +934,6 @@ USERS_HTML = """<!doctype html>
     </div>
   </header>
   <main>
-    {message}
     <section class="layout">
       <form class="panel" method="post" action="/usuarios">
         <div class="panel-head"><h2>{form_title}</h2><span class="hint">Somente master</span></div>
@@ -955,14 +963,17 @@ USERS_HTML = """<!doctype html>
       <section class="panel">
         <div class="panel-head"><h2>Usuarios cadastrados</h2><span class="hint">{user_count} usuarios</span></div>
         <div class="panel-body">
-          <table>
-            <thead><tr><th>Usuario</th><th>Status</th><th>Acessos</th><th>Acoes</th></tr></thead>
-            <tbody>{user_rows}</tbody>
-          </table>
+          <div class="user-list">{user_rows}</div>
         </div>
       </section>
     </section>
   </main>
+  <script>
+    document.querySelectorAll(".message.auto-dismiss").forEach((item) => {
+      window.setTimeout(() => item.classList.add("is-hidden"), 4200);
+      window.setTimeout(() => item.remove(), 4600);
+    });
+  </script>
 </body>
 </html>
 """
@@ -5041,7 +5052,7 @@ def render_permission_checks(selected: set[str]) -> str:
 
 def render_user_rows(records: list[dict[str, object]]) -> str:
     if not records:
-        return '<tr><td colspan="4" class="hint">Nenhum usuario cadastrado ainda.</td></tr>'
+        return '<div class="empty-users">Nenhum usuario cadastrado ainda.</div>'
     rows = []
     for record in sorted(records, key=lambda item: str(item.get("username", "")).lower()):
         username = str(record.get("username", ""))
@@ -5058,26 +5069,29 @@ def render_user_rows(records: list[dict[str, object]]) -> str:
         status_text = "Ativo" if active else "Inativo"
         toggle_text = "Desativar" if active else "Ativar"
         rows.append(f"""
-          <tr>
-            <td><span class="user-pill">{html.escape(username)}</span><div class="hint">{html.escape(name or "-")}</div></td>
-            <td><span class="status{status_class}">{status_text}</span></td>
-            <td><div class="perm-list">{perm_tags}</div></td>
-            <td>
-              <div class="row-actions">
-                <a class="button secondary" href="/usuarios?editar={quote(username)}">Editar</a>
-                <form method="post" action="/usuarios" style="display:inline">
-                  <input type="hidden" name="action" value="toggle">
-                  <input type="hidden" name="username" value="{html.escape(username)}">
-                  <button class="secondary" type="submit">{toggle_text}</button>
-                </form>
-                <form method="post" action="/usuarios" style="display:inline" onsubmit="return confirm('Excluir este usuario?')">
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="username" value="{html.escape(username)}">
-                  <button class="danger" type="submit">Excluir</button>
-                </form>
-              </div>
-            </td>
-          </tr>
+          <article class="user-card">
+            <div class="user-main">
+              <span class="user-pill">{html.escape(username)}</span>
+              <div class="user-name">{html.escape(name or "Sem nome informado")}</div>
+            </div>
+            <div class="user-meta">
+              <span class="status{status_class}">{status_text}</span>
+              <div class="perm-list">{perm_tags}</div>
+            </div>
+            <div class="row-actions">
+              <a class="button secondary" href="/usuarios?editar={quote(username)}">Editar</a>
+              <form method="post" action="/usuarios" style="display:inline">
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="username" value="{html.escape(username)}">
+                <button class="secondary" type="submit">{toggle_text}</button>
+              </form>
+              <form method="post" action="/usuarios" style="display:inline" onsubmit="return confirm('Excluir este usuario?')">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="username" value="{html.escape(username)}">
+                <button class="danger" type="submit">Excluir</button>
+              </form>
+            </div>
+          </article>
         """)
     return "".join(rows)
 
@@ -6179,13 +6193,13 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(self.path).query)
         message = ""
         if not build_dashboard.use_postgres():
-            message = '<div class="message error">Cadastro de usuarios exige banco de dados Postgres configurado. Nenhum usuario sera salvo localmente.</div>'
+            message = '<div class="message error auto-dismiss">Cadastro de usuarios exige banco de dados Postgres configurado. Nenhum usuario sera salvo localmente.</div>'
         if "ok" in params:
-            message = '<div class="message">Usuario salvo com sucesso.</div>'
+            message = '<div class="message auto-dismiss">Usuario salvo com sucesso.</div>'
         if "removido" in params:
-            message = '<div class="message">Usuario removido com sucesso.</div>'
+            message = '<div class="message auto-dismiss">Usuario removido com sucesso.</div>'
         if "erro" in params:
-            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+            message = '<div class="message error auto-dismiss">' + html.escape(params["erro"][0]) + "</div>"
         records = load_user_records()
         edit_username = clean_username(params.get("editar", [""])[0])
         edit_record = next((item for item in records if item.get("username") == edit_username), None)
