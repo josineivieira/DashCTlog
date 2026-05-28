@@ -3771,8 +3771,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .top-link, button, .button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border:1px solid rgba(255,255,255,.30); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
     main { padding:22px clamp(16px,4vw,42px) 40px; }
     .panel, .kpi { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
-    .message { margin-bottom:14px; padding:12px 14px; border-radius:8px; border:1px solid #b8e6c8; background:#f0fff5; color:#166534; font-weight:850; }
+    .message { position:fixed; left:50%; bottom:18px; z-index:30; min-width:min(520px,calc(100vw - 32px)); transform:translateX(-50%); padding:12px 14px; border-radius:8px; border:1px solid #b8e6c8; background:#f0fff5; color:#166534; font-weight:850; box-shadow:0 18px 38px rgba(23,32,51,.18); transition:opacity .2s ease, transform .2s ease; }
     .message.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .message.is-hidden { opacity:0; transform:translate(-50%, 12px); pointer-events:none; }
     .import-panel { margin-bottom:14px; padding:14px; display:flex; flex-wrap:wrap; gap:12px; align-items:end; justify-content:space-between; }
     .import-panel form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
     .import-panel input, select { min-height:38px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-weight:800; background:#fff; color:var(--ink); }
@@ -3834,7 +3835,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .drilldown-head h2 { padding:0; }
     .drilldown-head button { min-height:32px; padding:6px 10px; background:#f3f6f8; color:var(--ink); border-color:var(--line); }
     .drill-list { padding:12px 18px 18px; display:grid; gap:8px; }
-    .drill-item { display:grid; grid-template-columns:120px 1fr auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; font-size:13px; font-weight:850; }
+    .drill-item { display:grid; grid-template-columns:120px 120px 1fr auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; font-size:13px; font-weight:850; }
     .drill-item strong { font-size:15px; }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
@@ -3881,8 +3882,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <label>Inicio <input id="dateStartFilter" type="date"></label>
         <label>Fim <input id="dateEndFilter" type="date"></label>
       </span>
+      <label>Cidade <select id="cityFilter"><option value="">Todas</option></select></label>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
-      <label>Buscar nota <input id="searchFilter" type="search" placeholder="Numero da nota"></label>
     </div>
     <div class="tabs">
       <button type="button" class="active" data-tab="dashboard">Dashboard</button>
@@ -3928,7 +3929,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       <div class="panel">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nota fiscal</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
+            <thead><tr><th>Nota fiscal</th><th>Cidade</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
@@ -3997,9 +3998,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       return date && date >= bounds[0] && date <= bounds[1];
     }
     function filteredRows() {
+      const city = $("cityFilter").value;
       const status = $("statusFilter").value;
-      const query = $("searchFilter").value.trim().toLowerCase();
-      return rows.filter((row) => matchesPeriod(row) && (!status || row.status === status) && (!query || row.nota.toLowerCase().includes(query)));
+      return rows.filter((row) => matchesPeriod(row) && (!city || row.cidade === city) && (!status || row.status === status));
     }
     function bars(id, entries, color) {
       const max = Math.max(1, ...entries.map(([, value]) => value));
@@ -4063,8 +4064,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       const bounds = periodBounds();
       const mode = $("dateModeFilter").value;
       const date = bounds ? `${labels[mode]} (${brDate(bounds[0])} a ${brDate(bounds[1])})` : labels[mode];
+      const city = $("cityFilter").value || "Todas as cidades";
       const status = $("statusFilter").selectedOptions[0]?.textContent || "Todos";
-      return `${date} | ${status}`;
+      return `${date} | ${city} | ${status}`;
     }
     function drawNoteBrand(ctx) {
       ctx.save();
@@ -4306,6 +4308,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
           ${selected.map((row) => `
             <div class="drill-item">
               <strong>${escapeHtml(row.nota)}</strong>
+              <span>${escapeHtml(row.cidade || "Sem cidade")}</span>
               <span>Entrada: ${escapeHtml(row.entrada)}</span>
               <span>Tempo: ${durationLabel(Number(row.horasEntrada))}</span>
               <span>${row.status === "late" ? `${fmt.format(row.horasFora)}h fora` : "No prazo"}</span>
@@ -4335,22 +4338,30 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       drawNoteShareImage();
       $("rows").innerHTML = data.length ? data.map((row) => `
         <tr>
-          <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
+          <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.cidade || "Sem cidade")}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
           <td><span class="badge ${row.status === "ok" ? "ok" : "bad"}">${row.status === "ok" ? "No prazo" : "Fora do prazo"}</span></td>
           <td class="num">${durationLabel(Number(row.horasEntrada))}</td>
           <td class="num">${row.horasFora ? fmt.format(row.horasFora) : "-"}</td>
         </tr>
-      `).join("") : '<tr><td class="empty" colspan="7">Sem dados para os filtros atuais.</td></tr>';
+      `).join("") : '<tr><td class="empty" colspan="8">Sem dados para os filtros atuais.</td></tr>';
     }
     const today = new Date();
     $("dateStartFilter").value = isoDate(new Date(today.getFullYear(), today.getMonth(), 1));
     $("dateEndFilter").value = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    $("cityFilter").innerHTML = ['<option value="">Todas</option>', ...[...new Set(rows.map((row) => row.cidade).filter(Boolean))].sort().map((city) => `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`)].join("");
     updateCustomDateFilter();
-    ["dateModeFilter", "dateStartFilter", "dateEndFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", () => {
+    ["dateModeFilter", "dateStartFilter", "dateEndFilter", "cityFilter", "statusFilter"].forEach((id) => $(id).addEventListener("input", () => {
       activeDrilldown = null;
       updateCustomDateFilter();
       render();
     }));
+    document.querySelectorAll(".message").forEach((item) => {
+      setTimeout(() => item.classList.add("is-hidden"), 3600);
+      setTimeout(() => item.remove(), 4000);
+    });
+    if (window.location.search.includes("ok=") || window.location.search.includes("erro=")) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     $("noteDownloadImage").addEventListener("click", downloadNoteImage);
     $("noteShareImage").addEventListener("click", shareNoteImage);
     document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => {
@@ -5046,6 +5057,7 @@ def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
     horas_fora = max(0, int((entrada - prazo).total_seconds() // 3600)) if late else 0
     return {
         "nota": row.get("nota", ""),
+        "cidade": row.get("cidade", ""),
         "emissao": format_note_date(emissao),
         "entrada": format_note_datetime(entrada),
         "prazo": format_note_datetime(prazo),
@@ -5055,7 +5067,21 @@ def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
     }
 
 
-def clean_note_entry_import_row(nota: object, emissao: object, entrada: object) -> dict[str, str] | None:
+NOTE_ENTRY_CITY_BY_BRANCH = {
+    "178": "ITACOATIARA",
+    "171": "MANAUS",
+    "182": "BOA VISTA",
+}
+
+
+def note_entry_city_from_branch(value: object) -> str:
+    text = str(value or "").strip()
+    if text.endswith(".0"):
+        text = text[:-2]
+    return NOTE_ENTRY_CITY_BY_BRANCH.get(text, text)
+
+
+def clean_note_entry_import_row(nota: object, emissao: object, entrada: object, filial: object) -> dict[str, str] | None:
     note = str(nota or "").strip()
     doc_date = parse_note_entry_datetime(emissao)
     entry_date = parse_note_entry_datetime(entrada)
@@ -5063,6 +5089,7 @@ def clean_note_entry_import_row(nota: object, emissao: object, entrada: object) 
         return None
     return {
         "nota": note,
+        "cidade": note_entry_city_from_branch(filial),
         "emissao_iso": doc_date.isoformat(timespec="minutes"),
         "entrada_iso": entry_date.isoformat(timespec="minutes"),
     }
@@ -5081,6 +5108,7 @@ def parse_note_entry_file(content: bytes) -> list[dict[str, str]]:
         "dtdocumento": "Dt.Documento",
         "dtinclusao": "Dt.Inclusao",
         "acao": "Acao",
+        "filial": "Filial",
     }
     with ZipFile(io.BytesIO(content)) as xlsx:
         for sheet_name in xlsx_sheet_names_from_zip(xlsx):
@@ -5100,6 +5128,7 @@ def parse_note_entry_file(content: bytes) -> list[dict[str, str]]:
                     values[indexes["nrdocumento"]],
                     values[indexes["dtdocumento"]],
                     values[indexes["dtinclusao"]],
+                    values[indexes["filial"]],
                 )
                 if item:
                     imported.append(item)
@@ -5116,12 +5145,14 @@ def ensure_postgres_note_entry_table() -> None:
                     id SERIAL PRIMARY KEY,
                     row_order INTEGER NOT NULL DEFAULT 0,
                     nota_fiscal TEXT NOT NULL DEFAULT '',
+                    cidade TEXT NOT NULL DEFAULT '',
                     emissao_iso TEXT NOT NULL DEFAULT '',
                     entrada_iso TEXT NOT NULL DEFAULT '',
                     imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
                 """
             )
+            cur.execute("ALTER TABLE entrada_notas ADD COLUMN IF NOT EXISTS cidade TEXT NOT NULL DEFAULT ''")
             cur.execute(
                 """
                 DELETE FROM entrada_notas newer
@@ -5147,15 +5178,16 @@ def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
             for idx, row in enumerate(rows, start=1):
                 cur.execute(
                     """
-                    INSERT INTO entrada_notas (row_order, nota_fiscal, emissao_iso, entrada_iso)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO entrada_notas (row_order, nota_fiscal, cidade, emissao_iso, entrada_iso)
+                    VALUES (%s, %s, %s, %s, %s)
                     ON CONFLICT (nota_fiscal) DO UPDATE SET
                         row_order = EXCLUDED.row_order,
+                        cidade = EXCLUDED.cidade,
                         emissao_iso = EXCLUDED.emissao_iso,
                         entrada_iso = EXCLUDED.entrada_iso,
                         imported_at = now()
                     """,
-                    (idx, row["nota"], row["emissao_iso"], row["entrada_iso"]),
+                    (idx, row["nota"], row.get("cidade", ""), row["emissao_iso"], row["entrada_iso"]),
                 )
 
 
@@ -5167,13 +5199,13 @@ def note_entry_rows() -> list[dict[str, object]]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT nota_fiscal, emissao_iso, entrada_iso
+                SELECT nota_fiscal, cidade, emissao_iso, entrada_iso
                 FROM entrada_notas
                 ORDER BY row_order, id
                 """
             )
             rows = [
-                {"nota": item[0], "emissao_iso": item[1], "entrada_iso": item[2]}
+                {"nota": item[0], "cidade": item[1], "emissao_iso": item[2], "entrada_iso": item[3]}
                 for item in cur.fetchall()
             ]
     return [note_entry_view_row(row) for row in rows]
