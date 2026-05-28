@@ -869,31 +869,42 @@ HTML_TEMPLATE = """<!doctype html>
       background: var(--bg);
       color: var(--ink);
       font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      overflow-x: hidden;
     }
     header {
       position: relative;
       overflow: hidden;
-      padding: 16px clamp(16px, 4vw, 42px) 0;
-      background: transparent;
-      color: var(--ink);
+      padding: 22px clamp(16px, 4vw, 42px) 28px;
+      background: radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%), linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f);
+      color: #fff;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
     }
-    header::after { display: none; }
+    header::after {
+      content:"";
+      position:absolute;
+      right:clamp(18px, 5vw, 72px);
+      bottom:-86px;
+      width:min(46vw,520px);
+      aspect-ratio:1.8;
+      background:url("__FAVICON__") center / contain no-repeat;
+      opacity:.16;
+      pointer-events:none;
+    }
     header > * {
       position: relative;
       z-index: 2;
     }
     h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); letter-spacing: 0; font-weight: 950; }
-    .subtitle { margin: 8px 0 0; color: var(--muted); }
+    .subtitle { margin: 8px 0 0; color: rgba(255,255,255,.9); }
     .brand-pill {
       display: inline-flex;
       align-items: center;
       gap: 12px;
       margin-bottom: 10px;
-      color: var(--ink);
+      color: #fff;
       font-size: 13px;
       font-weight: 900;
       text-transform: uppercase;
@@ -917,12 +928,13 @@ HTML_TEMPLATE = """<!doctype html>
       padding: 7px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      color: var(--ink);
+      color: #fff;
       text-decoration: none;
       font-size: 13px;
       font-weight: 800;
-      background: #fff;
-      box-shadow: var(--shadow);
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.30);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
     }
     main { padding: 14px clamp(16px, 4vw, 44px) 42px; }
     .filters {
@@ -1296,7 +1308,14 @@ HTML_TEMPLATE = """<!doctype html>
     .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
     .empty { color: var(--muted); padding: 22px; text-align: center; }
     @media (max-width: 1440px) {
-      main { padding-inline: 20px; }
+      main {
+        padding-inline: 14px;
+        zoom: .86;
+        width: calc(100% / .86);
+      }
+      header { padding: 18px 24px 24px; }
+      h1 { font-size: 34px; }
+      .subtitle { margin-top: 6px; }
       .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
       .kpi { min-height: 104px; padding: 16px; grid-template-columns: 48px 1fr; gap: 12px; }
       .kpi-icon { width: 44px; height: 44px; border-radius: 10px; }
@@ -1315,6 +1334,7 @@ HTML_TEMPLATE = """<!doctype html>
       .performance-card { grid-column: 1 / -1; }
     }
     @media (max-width: 980px) {
+      main { zoom: 1; width: auto; }
       .filters, .kpis { grid-template-columns: 1fr 1fr; }
       .dashboard-grid, .lower-grid { grid-template-columns: 1fr; }
       .wide { grid-column: 1 / -1; }
