@@ -3779,6 +3779,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .import-panel button, .tabs button { background:var(--purple); border-color:transparent; color:#fff; }
     .meta { color:var(--muted); font-size:13px; font-weight:800; }
     .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
+    .custom-date-filter { display:none; gap:10px; align-items:end; }
+    .custom-date-filter.is-visible { display:flex; }
     label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
     .kpis { display:grid; grid-template-columns:repeat(5,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
     .kpi { min-height:118px; padding:16px; position:relative; overflow:hidden; border:0; }
@@ -3811,11 +3813,25 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .legend-dot { width:12px; height:12px; border-radius:50%; background:var(--green); }
     .legend-dot.late { background:var(--red); }
     .daily-chart { display:grid; gap:11px; }
-    .day-row { display:grid; grid-template-columns:90px 1fr 76px; gap:10px; align-items:center; font-size:13px; font-weight:850; }
+    .day-row { display:grid; grid-template-columns:90px 1fr 150px; gap:10px; align-items:center; font-size:13px; font-weight:850; }
     .day-track { height:18px; display:flex; border-radius:999px; background:#edf2f6; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.03); }
+    .day-stack { height:100%; display:flex; min-width:10px; border-radius:inherit; overflow:hidden; }
+    .day-ok, .day-late { flex:0 0 auto; min-width:0; cursor:pointer; transition:filter .15s ease; }
+    .day-ok:hover, .day-late:hover { filter:brightness(.9); }
     .day-ok { background:var(--green); }
     .day-late { background:var(--red); }
     .day-row strong { text-align:right; }
+    .day-counts { display:flex; justify-content:flex-end; gap:8px; align-items:center; white-space:nowrap; }
+    .mini-pill { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:950; color:var(--muted); }
+    .mini-pill::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--green); }
+    .mini-pill.late::before { background:var(--red); }
+    .drilldown { margin-top:14px; }
+    .drilldown-head { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:14px 18px 0; }
+    .drilldown-head h2 { padding:0; }
+    .drilldown-head button { min-height:32px; padding:6px 10px; background:#f3f6f8; color:var(--ink); border-color:var(--line); }
+    .drill-list { padding:12px 18px 18px; display:grid; gap:8px; }
+    .drill-item { display:grid; grid-template-columns:120px 1fr auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; font-size:13px; font-weight:850; }
+    .drill-item strong { font-size:15px; }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
     th, td { padding:10px 11px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; font-size:13px; }
@@ -3834,7 +3850,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     #noteShareCanvas { display:block; width:min(100%,760px); height:auto; margin:0 auto; border-radius:8px; box-shadow:0 18px 42px rgba(23,32,51,.18); background:#fff; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } }
-    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid, .status-card { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
+    @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .grid, .status-card, .drill-item { grid-template-columns:1fr; } .nav { justify-content:flex-start; } }
   </style>
 </head>
 <body>
@@ -3856,7 +3872,11 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <main>
     {message}
     <div class="filters">
-      <label>Data emissao <select id="dateFilter"></select></label>
+      <label>Periodo <select id="dateModeFilter"><option value="month">Mes atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Ultimos 7 dias</option><option value="custom">Periodo</option><option value="all">Todas</option></select></label>
+      <span class="custom-date-filter" id="customDateFilter">
+        <label>Inicio <input id="dateStartFilter" type="date"></label>
+        <label>Fim <input id="dateEndFilter" type="date"></label>
+      </span>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
       <label>Buscar nota <input id="searchFilter" type="search" placeholder="Numero da nota"></label>
     </div>
@@ -3876,6 +3896,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="panel"><h2>Status</h2><div class="panel-body bars" id="statusBars"></div></div>
         <div class="panel"><h2>Entradas por dia</h2><div class="panel-body daily-chart" id="dailyChart"></div></div>
       </div>
+      <div class="panel drilldown" id="drilldownPanel" hidden></div>
       <section class="share-panel">
         <div class="share-head">
           <h2>Imagem para WhatsApp</h2>
@@ -3914,13 +3935,67 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     const rows = __ROWS__;
     const fmt = new Intl.NumberFormat("pt-BR");
     const $ = (id) => document.getElementById(id);
+    let activeDrilldown = null;
     function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    function uniqueDates() { return [...new Set(rows.map((row) => row.emissao).filter(Boolean))].sort().reverse(); }
+    function parseBrDate(value) {
+      const [day, month, year] = String(value || "").split("/").map(Number);
+      if (!day || !month || !year) return null;
+      return new Date(year, month - 1, day);
+    }
+    function isoDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+    function brDate(date) {
+      return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    }
+    function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+    function endOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999); }
+    function periodBounds() {
+      const mode = $("dateModeFilter").value;
+      const today = startOfDay(new Date());
+      if (mode === "all") return null;
+      if (mode === "today") return [today, endOfDay(today)];
+      if (mode === "last7") {
+        const start = new Date(today);
+        start.setDate(start.getDate() - 6);
+        return [start, endOfDay(today)];
+      }
+      if (mode === "week") {
+        const start = new Date(today);
+        const day = start.getDay() || 7;
+        start.setDate(start.getDate() - day + 1);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return [start, endOfDay(end)];
+      }
+      if (mode === "custom") {
+        const startValue = $("dateStartFilter").value;
+        const endValue = $("dateEndFilter").value;
+        const start = startValue ? new Date(`${startValue}T00:00:00`) : null;
+        const end = endValue ? new Date(`${endValue}T23:59:59`) : null;
+        if (start && end) return [start, end];
+        if (start) return [start, endOfDay(today)];
+        if (end) return [new Date(1900, 0, 1), end];
+        return null;
+      }
+      return [new Date(today.getFullYear(), today.getMonth(), 1), endOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))];
+    }
+    function updateCustomDateFilter() {
+      $("customDateFilter").classList.toggle("is-visible", $("dateModeFilter").value === "custom");
+    }
+    function matchesPeriod(row) {
+      const bounds = periodBounds();
+      if (!bounds) return true;
+      const date = parseBrDate(row.emissao);
+      return date && date >= bounds[0] && date <= bounds[1];
+    }
     function filteredRows() {
-      const date = $("dateFilter").value;
       const status = $("statusFilter").value;
       const query = $("searchFilter").value.trim().toLowerCase();
-      return rows.filter((row) => (!date || row.emissao === date) && (!status || row.status === status) && (!query || row.nota.toLowerCase().includes(query)));
+      return rows.filter((row) => matchesPeriod(row) && (!status || row.status === status) && (!query || row.nota.toLowerCase().includes(query)));
     }
     function bars(id, entries, color) {
       const max = Math.max(1, ...entries.map(([, value]) => value));
@@ -3973,7 +4048,17 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       ctx.restore();
     }
     function selectedLabel() {
-      const date = $("dateFilter").value || "Todas as datas";
+      const labels = {
+        month: "Mes atual",
+        today: "Hoje",
+        week: "Semana atual",
+        last7: "Ultimos 7 dias",
+        custom: "Periodo",
+        all: "Todas as datas"
+      };
+      const bounds = periodBounds();
+      const mode = $("dateModeFilter").value;
+      const date = bounds ? `${labels[mode]} (${brDate(bounds[0])} a ${brDate(bounds[1])})` : labels[mode];
       const status = $("statusFilter").selectedOptions[0]?.textContent || "Todos";
       return `${date} | ${status}`;
     }
@@ -4159,17 +4244,65 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         map.set(row.emissao, item);
       });
       const entries = [...map.entries()].sort().reverse().slice(0, 14);
+      const maxTotal = Math.max(1, ...entries.map(([, item]) => item.total));
       $("dailyChart").innerHTML = entries.length ? entries.map(([date, item]) => {
         const okWidth = item.total ? item.ok / item.total * 100 : 0;
         const lateWidth = item.total ? item.late / item.total * 100 : 0;
+        const totalWidth = Math.max(4, item.total / maxTotal * 100);
         return `
           <div class="day-row">
             <span>${escapeHtml(date)}</span>
-            <div class="day-track"><div class="day-ok" style="width:${okWidth}%"></div><div class="day-late" style="width:${lateWidth}%"></div></div>
-            <strong>${fmt.format(item.total)} notas</strong>
+            <div class="day-track" title="Clique para ver as notas">
+              <div class="day-stack" style="width:${totalWidth}%">
+                ${item.ok ? `<div class="day-ok" data-drill-date="${escapeHtml(date)}" data-drill-status="ok" style="width:${okWidth}%"></div>` : ""}
+                ${item.late ? `<div class="day-late" data-drill-date="${escapeHtml(date)}" data-drill-status="late" style="width:${lateWidth}%"></div>` : ""}
+              </div>
+            </div>
+            <strong class="day-counts"><span class="mini-pill">${fmt.format(item.ok)}</span><span class="mini-pill late">${fmt.format(item.late)}</span></strong>
           </div>
         `;
       }).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+      document.querySelectorAll("[data-drill-date]").forEach((item) => item.addEventListener("click", () => {
+        activeDrilldown = { date: item.dataset.drillDate, status: item.dataset.drillStatus };
+        render();
+        $("drilldownPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }));
+    }
+    function renderDrilldown(data) {
+      const panel = $("drilldownPanel");
+      if (!activeDrilldown) {
+        panel.hidden = true;
+        panel.innerHTML = "";
+        return;
+      }
+      const statusLabel = activeDrilldown.status === "late" ? "fora do prazo" : "no prazo";
+      const selected = data.filter((row) => row.emissao === activeDrilldown.date && row.status === activeDrilldown.status);
+      if (!selected.length) {
+        panel.hidden = true;
+        panel.innerHTML = "";
+        return;
+      }
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="drilldown-head">
+          <h2>${fmt.format(selected.length)} notas ${statusLabel} em ${escapeHtml(activeDrilldown.date)}</h2>
+          <button type="button" id="clearDrilldown">Fechar</button>
+        </div>
+        <div class="drill-list">
+          ${selected.map((row) => `
+            <div class="drill-item">
+              <strong>${escapeHtml(row.nota)}</strong>
+              <span>Entrada: ${escapeHtml(row.entrada)}</span>
+              <span>Tempo: ${durationLabel(Number(row.horasEntrada))}</span>
+              <span>${row.status === "late" ? `${fmt.format(row.horasFora)}h fora` : "No prazo"}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+      $("clearDrilldown").addEventListener("click", () => {
+        activeDrilldown = null;
+        render();
+      });
     }
     function render() {
       const data = filteredRows();
@@ -4184,6 +4317,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       $("kAvgEntry").textContent = avgEntry === null ? "-" : durationLabel(avgEntry);
       renderStatusPanel(ok, late);
       renderDailyChart(data);
+      renderDrilldown(data);
       drawNoteShareImage();
       $("rows").innerHTML = data.length ? data.map((row) => `
         <tr>
@@ -4194,8 +4328,15 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         </tr>
       `).join("") : '<tr><td class="empty" colspan="7">Sem dados para os filtros atuais.</td></tr>';
     }
-    $("dateFilter").innerHTML = ['<option value="">Todas</option>', ...uniqueDates().map((date) => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)].join("");
-    ["dateFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", render));
+    const today = new Date();
+    $("dateStartFilter").value = isoDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    $("dateEndFilter").value = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    updateCustomDateFilter();
+    ["dateModeFilter", "dateStartFilter", "dateEndFilter", "statusFilter", "searchFilter"].forEach((id) => $(id).addEventListener("input", () => {
+      activeDrilldown = null;
+      updateCustomDateFilter();
+      render();
+    }));
     $("noteDownloadImage").addEventListener("click", downloadNoteImage);
     $("noteShareImage").addEventListener("click", shareNoteImage);
     document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => {
@@ -4562,6 +4703,11 @@ def xlsx_rows_from_bytes(content: bytes, sheet_name: str) -> list[list[str]]:
         return xlsx_rows_from_zip(xlsx, sheet_name)
 
 
+def xlsx_sheet_names_from_zip(xlsx: ZipFile) -> list[str]:
+    workbook = ET.fromstring(xlsx.read("xl/workbook.xml"))
+    return [sheet.attrib.get("name", "") for sheet in workbook.findall("a:sheets/a:sheet", XLSX_NS) if sheet.attrib.get("name")]
+
+
 def excel_number(value: object) -> float | None:
     try:
         text = str(value).strip().replace(",", ".")
@@ -4908,28 +5054,43 @@ def clean_note_entry_import_row(nota: object, emissao: object, entrada: object) 
     }
 
 
+def note_entry_action_is_413(value: object) -> bool:
+    text = str(value or "").strip()
+    if text.endswith(".0"):
+        text = text[:-2]
+    return text == "413"
+
+
 def parse_note_entry_file(content: bytes) -> list[dict[str, str]]:
-    rows = xlsx_rows_from_bytes(content, "Gd_Edicao")
-    if not rows:
-        raise ValueError("Aba Gd_Edicao nao encontrada na planilha")
-    headers = [normalize_header(item) for item in rows[0]]
-    required = {"nrdocumento": "Nr.Documento", "dtdocumento": "Dt.Documento", "dtinclusao": "Dt.Inclusao"}
-    indexes: dict[str, int] = {}
-    for key, label in required.items():
-        if key not in headers:
-            raise ValueError(f"Coluna obrigatoria nao encontrada: {label}")
-        indexes[key] = headers.index(key)
-    imported: list[dict[str, str]] = []
-    for raw in rows[1:]:
-        values = raw + [""] * (len(headers) + 1)
-        item = clean_note_entry_import_row(
-            values[indexes["nrdocumento"]],
-            values[indexes["dtdocumento"]],
-            values[indexes["dtinclusao"]],
-        )
-        if item:
-            imported.append(item)
-    return imported
+    required = {
+        "nrdocumento": "Nr.Documento",
+        "dtdocumento": "Dt.Documento",
+        "dtinclusao": "Dt.Inclusao",
+        "acao": "Acao",
+    }
+    with ZipFile(io.BytesIO(content)) as xlsx:
+        for sheet_name in xlsx_sheet_names_from_zip(xlsx):
+            rows = xlsx_rows_from_zip(xlsx, sheet_name)
+            if not rows:
+                continue
+            headers = [normalize_header(item) for item in rows[0]]
+            if not all(key in headers for key in required):
+                continue
+            indexes = {key: headers.index(key) for key in required}
+            imported: list[dict[str, str]] = []
+            for raw in rows[1:]:
+                values = raw + [""] * (len(headers) + 1)
+                if not note_entry_action_is_413(values[indexes["acao"]]):
+                    continue
+                item = clean_note_entry_import_row(
+                    values[indexes["nrdocumento"]],
+                    values[indexes["dtdocumento"]],
+                    values[indexes["dtinclusao"]],
+                )
+                if item:
+                    imported.append(item)
+            return imported
+    raise ValueError("A planilha importada nao possui as colunas necessarias.")
 
 
 def ensure_postgres_note_entry_table() -> None:
@@ -4947,6 +5108,20 @@ def ensure_postgres_note_entry_table() -> None:
                 )
                 """
             )
+            cur.execute(
+                """
+                DELETE FROM entrada_notas newer
+                USING entrada_notas older
+                WHERE newer.nota_fiscal = older.nota_fiscal
+                  AND newer.id > older.id
+                """
+            )
+            cur.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS entrada_notas_nota_fiscal_idx
+                ON entrada_notas (nota_fiscal)
+                """
+            )
 
 
 def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
@@ -4955,12 +5130,16 @@ def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
     ensure_postgres_note_entry_table()
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("TRUNCATE TABLE entrada_notas RESTART IDENTITY")
             for idx, row in enumerate(rows, start=1):
                 cur.execute(
                     """
                     INSERT INTO entrada_notas (row_order, nota_fiscal, emissao_iso, entrada_iso)
                     VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (nota_fiscal) DO UPDATE SET
+                        row_order = EXCLUDED.row_order,
+                        emissao_iso = EXCLUDED.emissao_iso,
+                        entrada_iso = EXCLUDED.entrada_iso,
+                        imported_at = now()
                     """,
                     (idx, row["nota"], row["emissao_iso"], row["entrada_iso"]),
                 )
