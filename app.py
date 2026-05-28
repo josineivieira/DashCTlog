@@ -3801,7 +3801,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .branch-grid { display:grid; grid-template-columns:repeat(3,minmax(260px,1fr)); gap:14px; margin-bottom:14px; }
     .branch-card { padding:16px; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
     .branch-title { display:flex; align-items:center; gap:8px; margin:0 0 12px; color:#17377d; font-size:16px; font-weight:950; }
-    .branch-title::before { content:""; width:22px; height:22px; border-radius:6px; border:2px solid #0b66d8; box-shadow:inset 6px 0 0 rgba(11,102,216,.15); }
+    .branch-title svg { width:22px; height:22px; color:#0b66d8; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
     .branch-main { display:grid; grid-template-columns:128px 1fr; gap:14px; align-items:center; }
     .city-ring { position:relative; width:118px; height:118px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#0b66d8 0deg, #0b66d8 var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
     .city-ring::before { content:""; width:74px; height:74px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
@@ -4310,7 +4310,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         const lateRows = item.lateRows.slice().sort((a, b) => b.horasFora - a.horasFora).slice(0, 5);
         return `
           <section class="branch-card">
-            <h2 class="branch-title">${escapeHtml(item.city)}</h2>
+            <h2 class="branch-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path><path d="M16 9h2a2 2 0 0 1 2 2v10"></path><path d="M8 7h4"></path><path d="M8 11h4"></path><path d="M8 15h4"></path><path d="M3 21h18"></path></svg>${escapeHtml(item.city)}</h2>
             <div class="branch-main">
               <div class="city-ring" style="--okDeg:${okDeg}deg">
                 <div class="city-ring-label"><strong>${percentLabel(item.ok, item.total)}</strong><span>No prazo</span></div>
