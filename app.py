@@ -41,6 +41,7 @@ PERMISSIONS = [
     ("controle_ct", "Controle de CT", "Acompanhar fila, patio e saidas"),
     ("relatorio_diario", "Relatorio diario", "Visualizar relatorio operacional diario"),
     ("entrada_notas", "Entrada de notas", "Importar e acompanhar prazo das notas"),
+    ("controle_medicao", "Controle Medicao", "Acompanhar prazo dos fechamentos de medicao"),
     ("exportar_ct", "Exportar CT", "Baixar planilha do Controle de CT"),
 ]
 ALL_PERMISSION_KEYS = {key for key, _, _ in PERMISSIONS}
@@ -763,6 +764,7 @@ HOME_HTML = """<!doctype html>
         <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Capacidades</a>
         <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Relatorio diario</a>
         <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Entrada de notas</a>
+        <a class="side-link" href="/controle-medicao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg>Controle Medicao</a>
         <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
         __USER_LINK__
       </nav>
@@ -825,6 +827,13 @@ HOME_HTML = """<!doctype html>
             <strong>Entrada de notas</strong>
             <p>Confira se as notas fiscais foram dadas entrada dentro do prazo de 48 horas.</p>
             <div class="button">Abrir relatorio</div>
+          </a>
+          <a class="card" href="/controle-medicao">
+            <span>Medicao</span>
+            <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg></div>
+            <strong>Controle Medicao</strong>
+            <p>Acompanhe fechamentos de medicao no prazo de 2 dias sem contar domingo.</p>
+            <div class="button">Abrir controle</div>
           </a>
           __USER_CARD__
         </section>
@@ -3979,6 +3988,173 @@ DAILY_REPORT_HTML = """<!doctype html>
 """
 
 
+MEASUREMENT_CONTROL_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{favicon_url}" type="image/svg+xml">
+  <title>Controle Medicao - Dashboard</title>
+  <style>
+    :root { --bg:#eef2f5; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --amber:#f59e0b; --shadow:0 18px 42px rgba(23,32,51,.10); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, Segoe UI, Roboto, Arial, sans-serif; }
+    a { color:inherit; text-decoration:none; }
+    header { position:relative; overflow:hidden; padding:24px clamp(16px,4vw,42px) 30px; background:radial-gradient(720px circle at 76% 35%, rgba(43,132,203,.34), transparent 62%), linear-gradient(135deg,#34104f,#4c176d 58%,#1b255f); color:#fff; }
+    header::after { content:""; position:absolute; right:clamp(20px,6vw,76px); bottom:-88px; width:min(46vw,520px); aspect-ratio:1.8; background:url("{favicon_url}") center / contain no-repeat; opacity:.18; pointer-events:none; }
+    .topbar { position:relative; z-index:2; display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
+    .brand-title { display:flex; align-items:center; gap:16px; }
+    .brand-title img { width:90px; height:auto; filter:drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
+    h1 { margin:0; font-size:clamp(28px,4vw,46px); line-height:1; letter-spacing:0; }
+    .subtitle { margin:8px 0 0; color:#d7e4ea; }
+    .nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:9px; }
+    .top-link, button, .button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border:1px solid rgba(255,255,255,.30); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
+    main { padding:22px clamp(16px,4vw,42px) 40px; }
+    .panel, .kpi { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .message { position:fixed; left:50%; bottom:18px; z-index:30; min-width:min(520px,calc(100vw - 32px)); transform:translateX(-50%); padding:12px 14px; border-radius:8px; border:1px solid #b8e6c8; background:#f0fff5; color:#166534; font-weight:850; box-shadow:0 18px 38px rgba(23,32,51,.18); transition:opacity .2s ease, transform .2s ease; }
+    .message.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .message.is-hidden { opacity:0; transform:translate(-50%, 12px); pointer-events:none; }
+    .tabs { display:flex; gap:8px; margin-bottom:14px; }
+    .tabs button { background:#f3f6f8; border:1px solid var(--line); color:var(--ink); }
+    .tabs button.active { background:var(--purple); color:#fff; border-color:transparent; }
+    .tab-view[hidden] { display:none; }
+    .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:14px; }
+    .custom-date-filter { display:none; gap:10px; align-items:end; }
+    .custom-date-filter.is-visible { display:flex; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
+    select, input { min-height:38px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-weight:800; background:#fff; color:var(--ink); }
+    .import-panel { margin-bottom:14px; padding:14px; display:flex; flex-wrap:wrap; gap:12px; align-items:end; justify-content:space-between; }
+    .import-panel form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+    .import-panel button { background:var(--purple); border-color:transparent; color:#fff; }
+    .meta { color:var(--muted); font-size:13px; font-weight:800; }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
+    .kpi { min-height:112px; padding:18px; display:grid; grid-template-columns:52px 1fr; gap:14px; align-items:center; border:0; }
+    .kpi-icon { width:46px; height:46px; border-radius:12px; display:grid; place-items:center; color:#fff; background:#3f48cc; }
+    .kpi-icon svg { width:24px; height:24px; stroke:currentColor; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .kpi:nth-child(2) .kpi-icon { background:var(--green); }
+    .kpi:nth-child(3) .kpi-icon { background:var(--red); }
+    .kpi:nth-child(4) .kpi-icon { background:var(--blue); }
+    .kpi span { color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; }
+    .kpi strong { display:block; margin-top:6px; font-size:30px; line-height:1; }
+    .kpi small { display:block; margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; }
+    .grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr); gap:14px; margin-bottom:14px; }
+    .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
+    .panel-body { padding:14px 18px 18px; }
+    .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
+    .donut { position:relative; width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
+    .donut::before { content:""; width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+    .donut-label { position:absolute; display:grid; gap:3px; text-align:center; font-weight:950; }
+    .donut-label span { color:var(--muted); font-size:11px; text-transform:uppercase; }
+    .legend { display:grid; gap:12px; }
+    .legend-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; font-size:13px; font-weight:900; }
+    .dot { width:12px; height:12px; border-radius:50%; background:var(--green); }
+    .dot.late { background:var(--red); }
+    .bars { display:grid; gap:11px; }
+    .bar-row { display:grid; grid-template-columns:150px 1fr 80px; gap:10px; align-items:center; font-weight:850; font-size:13px; }
+    .track { height:12px; border-radius:999px; background:#edf2f6; overflow:hidden; display:flex; }
+    .fill-ok { height:100%; background:var(--green); }
+    .fill-late { height:100%; background:var(--red); }
+    .table-wrap { overflow:auto; max-height:620px; }
+    table { width:100%; border-collapse:collapse; min-width:980px; font-size:13px; }
+    th, td { padding:11px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+    th { background:#f3f6f8; color:var(--muted); text-transform:uppercase; font-size:12px; position:sticky; top:0; }
+    td.num, th.num { text-align:right; }
+    .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
+    .badge.ok { background:#e7f7ee; color:#166534; }
+    .badge.bad { background:#fff1f2; color:#991b1b; }
+    .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
+    @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
+    @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Controle Medicao</h1></div>
+        <p class="subtitle">Acompanhamento dos fechamentos de medicao no prazo de 2 dias, sem contar domingo.</p>
+      </div>
+      <nav class="nav">
+        <a class="top-link" href="/home">Home</a>
+        <a class="top-link" href="/dashboard">Dashboard</a>
+        <a class="top-link" href="/controle-ct">Controle de CT</a>
+        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
+        <a class="top-link" href="/logout">Sair</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {message}
+    <div class="filters">
+      <label>Periodo <select id="dateModeFilter"><option value="month">Mes atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Ultimos 7 dias</option><option value="custom">Periodo</option><option value="all">Todas</option></select></label>
+      <span class="custom-date-filter" id="customDateFilter"><label>Inicio <input id="dateStartFilter" type="date"></label><label>Fim <input id="dateEndFilter" type="date"></label></span>
+      <label>Terminal <select id="terminalFilter"><option value="">Todos</option></select></label>
+      <label>Filial <select id="branchFilter"><option value="">Todas</option></select></label>
+      <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
+      <label>Tempo fechamento <select id="timeFilter"><option value="">Todos</option><option value="same">Mesmo dia</option><option value="one">Ate 1 dia</option><option value="two">Ate 2 dias</option><option value="late">Acima de 2 dias</option></select></label>
+    </div>
+    <div class="tabs"><button type="button" class="active" data-tab="dashboard">Dashboard</button><button type="button" data-tab="data">Dados</button></div>
+    <section id="dashboard" class="tab-view">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medicoes</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small></div></div>
+      </div>
+      <div class="grid">
+        <section class="panel"><h2>Status geral</h2><div class="panel-body" id="statusPanel"></div></section>
+        <section class="panel"><h2>Por terminal</h2><div class="panel-body"><div class="bars" id="terminalBars"></div></div></section>
+      </div>
+      <section class="panel"><h2>Resumo por filial</h2><div class="panel-body"><div class="bars" id="branchBars"></div></div></section>
+    </section>
+    <section id="data" class="tab-view" hidden>
+      <section class="panel import-panel">
+        <div><strong>Importar medicoes</strong><div class="meta">Envie a planilha atualizada para renovar o relatorio.</div></div>
+        <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medicoes</button></form>
+      </section>
+      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+    </section>
+  </main>
+  <script>
+    const rows = __ROWS__;
+    const fmt = new Intl.NumberFormat("pt-BR");
+    const $ = (id) => document.getElementById(id);
+    function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function parseBrDate(value) { const [d,m,y]=String(value||"").split("/").map(Number); return d&&m&&y ? new Date(y,m-1,d) : null; }
+    function isoDate(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
+    function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+    function endOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23,59,59,999); }
+    function durationLabel(hours) { if (!Number.isFinite(hours)) return "-"; const h=Math.max(0,Math.round(hours)); const d=Math.floor(h/24); const r=h%24; return d ? `${d}d ${r}h` : `${r}h`; }
+    function percent(part,total) { return total ? `${(part/total*100).toFixed(1).replace(".", ",")}%` : "0%"; }
+    function periodBounds() {
+      const mode=$("dateModeFilter").value; const today=startOfDay(new Date());
+      if (mode==="all") return null;
+      if (mode==="today") return [today,endOfDay(today)];
+      if (mode==="last7") { const s=new Date(today); s.setDate(s.getDate()-6); return [s,endOfDay(today)]; }
+      if (mode==="week") { const s=new Date(today); const day=s.getDay()||7; s.setDate(s.getDate()-day+1); const e=new Date(s); e.setDate(e.getDate()+6); return [s,endOfDay(e)]; }
+      if (mode==="custom") { const sv=$("dateStartFilter").value; const ev=$("dateEndFilter").value; const s=sv?new Date(`${sv}T00:00:00`):null; const e=ev?new Date(`${ev}T23:59:59`):null; if(s&&e)return[s,e]; if(s)return[s,endOfDay(today)]; if(e)return[new Date(1900,0,1),e]; return null; }
+      return [new Date(today.getFullYear(), today.getMonth(), 1), endOfDay(new Date(today.getFullYear(), today.getMonth()+1, 0))];
+    }
+    function updateCustomDateFilter(){ $("customDateFilter").classList.toggle("is-visible", $("dateModeFilter").value==="custom"); }
+    function matchesPeriod(row){ const b=periodBounds(); if(!b)return true; const d=parseBrDate(row.medicao); return d && d>=b[0] && d<=b[1]; }
+    function matchesTime(row){ const f=$("timeFilter").value; const h=Number(row.horasFechamento); if(!f)return true; if(f==="same")return h<24; if(f==="one")return h<=24; if(f==="two")return h<=48; return h>48; }
+    function filteredRows(){ const terminal=$("terminalFilter").value, filial=$("branchFilter").value, status=$("statusFilter").value; return rows.filter(r=>matchesPeriod(r)&&matchesTime(r)&&(!terminal||r.terminal===terminal)&&(!filial||r.filial===filial)&&(!status||r.status===status)); }
+    function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
+    function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
+    function renderBars(id, entries){ const max=Math.max(1,...entries.map(([,v])=>v.total)); $(id).innerHTML=entries.length?entries.map(([label,item])=>`<div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill-ok" style="width:${item.ok/max*100}%"></div><div class="fill-late" style="width:${item.late/max*100}%"></div></div><strong>${fmt.format(item.total)}</strong></div>`).join(""):'<div class="empty">Sem dados para o filtro.</div>'; }
+    function renderTable(data){ $("rows").innerHTML=data.map(r=>`<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">Sem dados para o filtro.</td></tr>'; }
+    function render(){ updateCustomDateFilter(); const data=filteredRows(); const ok=data.filter(r=>r.status==="ok").length; const late=data.length-ok; const avg=data.length?data.reduce((t,r)=>t+Number(r.horasFechamento||0),0)/data.length:null; $("kTotal").textContent=fmt.format(data.length); $("kOk").textContent=fmt.format(ok); $("kLate").textContent=fmt.format(late); $("kOkHint").textContent=`${percent(ok,data.length)} do total`; $("kLateHint").textContent=`${percent(late,data.length)} do total`; $("kAvg").textContent=avg===null?"-":durationLabel(avg); const deg=data.length?ok/data.length*360:0; $("statusPanel").innerHTML=`<div class="status-card"><div class="donut" style="--okDeg:${deg}deg"><div class="donut-label"><strong>${percent(ok,data.length)}</strong><span>no prazo</span></div></div><div class="legend"><div class="legend-row"><span class="dot"></span><span>No prazo</span><strong>${fmt.format(ok)}</strong></div><div class="legend-row"><span class="dot late"></span><span>Fora do prazo</span><strong>${fmt.format(late)}</strong></div></div></div>`; renderBars("terminalBars",grouped(data,"terminal")); renderBars("branchBars",grouped(data,"filial")); renderTable(data); }
+    document.querySelectorAll(".message").forEach((item)=>{ setTimeout(()=>item.classList.add("is-hidden"),4200); setTimeout(()=>item.remove(),4600); });
+    document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b===btn)); document.querySelectorAll(".tab-view").forEach(view=>view.hidden=view.id!==btn.dataset.tab); }));
+    ["dateModeFilter","dateStartFilter","dateEndFilter","terminalFilter","branchFilter","statusFilter","timeFilter"].forEach(id=>$(id).addEventListener("change",render));
+    fillFilters(); render();
+  </script>
+</body>
+</html>
+"""
+
+
 NOTE_ENTRY_REPORT_HTML = """<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -5802,6 +5978,171 @@ def note_entry_rows() -> list[dict[str, object]]:
     return [note_entry_view_row(row) for row in rows]
 
 
+def measurement_deadline(start: dt.datetime) -> dt.datetime:
+    return note_entry_deadline(start)
+
+
+def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
+    medicao = parse_note_entry_datetime(row.get("medicao_iso", ""))
+    fechamento = parse_note_entry_datetime(row.get("fechamento_iso", ""))
+    if not medicao or not fechamento:
+        return {
+            "seq": row.get("seq", ""),
+            "filial": row.get("filial", ""),
+            "terminal": row.get("terminal", ""),
+            "medicao": "",
+            "fechamento": "",
+            "prazo": "",
+            "status": "late",
+            "horasFechamento": None,
+            "horasFora": 0,
+        }
+    prazo = measurement_deadline(medicao)
+    late = fechamento > prazo
+    return {
+        "seq": row.get("seq", ""),
+        "filial": row.get("filial", ""),
+        "terminal": row.get("terminal", ""),
+        "medicao": format_note_date(medicao),
+        "fechamento": format_note_datetime(fechamento),
+        "prazo": format_note_datetime(prazo),
+        "status": "late" if late else "ok",
+        "horasFechamento": max(0, int((fechamento - medicao).total_seconds() // 3600)),
+        "horasFora": max(0, int((fechamento - prazo).total_seconds() // 3600)) if late else 0,
+    }
+
+
+def clean_measurement_import_row(seq: object, filial: object, terminal: object, nome_terminal: object, medicao: object, fechamento: object) -> dict[str, str] | None:
+    measurement_date = parse_note_entry_datetime(medicao)
+    close_date = parse_note_entry_datetime(fechamento)
+    if not measurement_date or not close_date:
+        return None
+    branch = str(filial or "").strip()
+    if branch.endswith(".0"):
+        branch = branch[:-2]
+    terminal_code = str(terminal or "").strip()
+    if terminal_code.endswith(".0"):
+        terminal_code = terminal_code[:-2]
+    terminal_name = str(nome_terminal or "").strip()
+    terminal_label = f"{terminal_code} - {terminal_name}" if terminal_name else terminal_code
+    return {
+        "seq": str(seq or "").strip(),
+        "filial": branch,
+        "terminal": terminal_label,
+        "medicao_iso": measurement_date.isoformat(timespec="minutes"),
+        "fechamento_iso": close_date.isoformat(timespec="minutes"),
+    }
+
+
+def parse_measurement_file(content: bytes) -> list[dict[str, str]]:
+    required = {
+        "seqlancamento": "Seq.Lancamento",
+        "filial": "Filial",
+        "dtmedicao": "Dt.Medicao",
+        "terminal": "Terminal",
+        "nometerminal": "Nome Terminal",
+        "dtalteracao": "Dt.Alteracao",
+    }
+    optional_type = "tipodamedicao"
+    with ZipFile(io.BytesIO(content)) as xlsx:
+        for sheet_name in xlsx_sheet_names_from_zip(xlsx):
+            rows = xlsx_rows_from_zip(xlsx, sheet_name)
+            if not rows:
+                continue
+            headers = [normalize_header(item) for item in rows[0]]
+            if not all(key in headers for key in required):
+                continue
+            indexes = {key: headers.index(key) for key in required}
+            type_index = headers.index(optional_type) if optional_type in headers else None
+            imported: list[dict[str, str]] = []
+            for raw in rows[1:]:
+                values = raw + [""] * (len(headers) + 1)
+                if type_index is not None and "fechamento" not in normalize_header(values[type_index]):
+                    continue
+                item = clean_measurement_import_row(
+                    values[indexes["seqlancamento"]],
+                    values[indexes["filial"]],
+                    values[indexes["terminal"]],
+                    values[indexes["nometerminal"]],
+                    values[indexes["dtmedicao"]],
+                    values[indexes["dtalteracao"]],
+                )
+                if item:
+                    imported.append(item)
+            return imported
+    raise ValueError("A planilha importada nao possui as colunas necessarias.")
+
+
+def ensure_postgres_measurement_table() -> None:
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS controle_medicao (
+                    id SERIAL PRIMARY KEY,
+                    row_order INTEGER NOT NULL DEFAULT 0,
+                    seq_lancamento TEXT NOT NULL DEFAULT '',
+                    filial TEXT NOT NULL DEFAULT '',
+                    terminal TEXT NOT NULL DEFAULT '',
+                    medicao_iso TEXT NOT NULL DEFAULT '',
+                    fechamento_iso TEXT NOT NULL DEFAULT '',
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS controle_medicao_seq_idx
+                ON controle_medicao (seq_lancamento)
+                """
+            )
+
+
+def save_measurement_rows(rows: list[dict[str, str]]) -> None:
+    if not build_dashboard.use_postgres():
+        raise RuntimeError("Controle Medicao exige banco de dados Postgres configurado.")
+    ensure_postgres_measurement_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE controle_medicao RESTART IDENTITY")
+            for idx, row in enumerate(rows, start=1):
+                cur.execute(
+                    """
+                    INSERT INTO controle_medicao (
+                        row_order, seq_lancamento, filial, terminal, medicao_iso, fechamento_iso, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, now())
+                    """,
+                    (idx, row["seq"], row["filial"], row["terminal"], row["medicao_iso"], row["fechamento_iso"]),
+                )
+
+
+def measurement_rows() -> list[dict[str, object]]:
+    if not build_dashboard.use_postgres():
+        return []
+    ensure_postgres_measurement_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT seq_lancamento, filial, terminal, medicao_iso, fechamento_iso
+                FROM controle_medicao
+                ORDER BY row_order, id
+                """
+            )
+            rows = [
+                {
+                    "seq": item[0],
+                    "filial": item[1],
+                    "terminal": item[2],
+                    "medicao_iso": item[3],
+                    "fechamento_iso": item[4],
+                }
+                for item in cur.fetchall()
+            ]
+    return [measurement_view_row(row) for row in rows]
+
+
 CT_CONTROL_EXPORT_COLUMNS = [
     ("data", "Data"),
     ("motorista", "Motorista"),
@@ -6062,6 +6403,7 @@ class Handler(BaseHTTPRequestHandler):
             "/controle-ct/exportar": "exportar_ct",
             "/relatorio-diario": "relatorio_diario",
             "/relatorio-entrada-notas": "entrada_notas",
+            "/controle-medicao": "controle_medicao",
         }
         for href, permission in href_permissions.items():
             if permission in permissions:
@@ -6165,7 +6507,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_home(self) -> None:
         is_master = is_master_user(self.current_user())
-        visible_modules = ["dashboard", "editar", "capacidades", "relatorio_diario", "entrada_notas", "controle_ct"]
+        visible_modules = ["dashboard", "editar", "capacidades", "relatorio_diario", "entrada_notas", "controle_medicao", "controle_ct"]
         allowed = user_permissions(self.current_user())
         user_link = ""
         user_card = ""
@@ -6249,6 +6591,7 @@ class Handler(BaseHTTPRequestHandler):
     <a class="top-link" href="/controle-ct">Controle de CT</a>
     <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
     <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
+    <a class="top-link" href="/controle-medicao">Controle Medicao</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
     __USER_LINK__
     <a class="top-link" href="/logout">Sair</a>
@@ -6315,6 +6658,22 @@ class Handler(BaseHTTPRequestHandler):
             NOTE_ENTRY_REPORT_HTML.replace("{message}", message)
             .replace("{favicon_url}", FAVICON_URL)
             .replace("__ROWS__", json_for_script(note_entry_rows()))
+        )
+        self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+
+    def send_measurement_control(self) -> None:
+        params = parse_qs(urlparse(self.path).query)
+        message = ""
+        if not build_dashboard.use_postgres():
+            message = '<div class="message error">Controle Medicao exige banco de dados Postgres configurado.</div>'
+        if "ok" in params:
+            message = '<div class="message">Planilha importada com sucesso.</div>'
+        if "erro" in params:
+            message = '<div class="message error">' + html.escape(params["erro"][0]) + "</div>"
+        page = (
+            MEASUREMENT_CONTROL_HTML.replace("{message}", message)
+            .replace("{favicon_url}", FAVICON_URL)
+            .replace("__ROWS__", json_for_script(measurement_rows()))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -6430,6 +6789,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_permission("entrada_notas"):
                 return
             self.send_note_entry_report()
+            return
+        if parsed.path == "/controle-medicao":
+            if not self.require_permission("controle_medicao"):
+                return
+            self.send_measurement_control()
             return
         if parsed.path == "/controle-ct":
             if not self.require_permission("controle_ct"):
@@ -6570,6 +6934,32 @@ class Handler(BaseHTTPRequestHandler):
             self.redirect("/relatorio-entrada-notas?ok=1")
             return
 
+        if parsed.path == "/controle-medicao/importar":
+            if not self.require_permission("controle_medicao"):
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > MAX_UPLOAD_BYTES:
+                    raise ValueError("Arquivo muito grande")
+                body = self.rfile.read(length)
+                files = parse_multipart(self.headers.get("Content-Type", ""), body)
+                filename, content = files.get("measurement_file", ("", b""))
+                if not filename or not content:
+                    raise ValueError("Selecione um arquivo XLSX")
+                if Path(filename).suffix.lower() != ".xlsx":
+                    raise ValueError("Importe apenas arquivo XLSX")
+                imported_rows = parse_measurement_file(content)
+                if not imported_rows:
+                    raise ValueError("Nenhuma medicao encontrada na planilha")
+                save_measurement_rows(imported_rows)
+            except Exception as exc:
+                self.audit("importar_medicao_falha", "controle_medicao", {"erro": str(exc)}, ok=False)
+                self.redirect("/controle-medicao?erro=" + quote(str(exc)))
+                return
+            self.audit("importar_medicao", "controle_medicao", {"arquivo": filename, "medicoes": len(imported_rows)})
+            self.redirect("/controle-medicao?ok=1")
+            return
+
         if parsed.path == "/controle-ct":
             if not self.require_permission("controle_ct"):
                 return
@@ -6692,6 +7082,7 @@ def main() -> None:
         ensure_postgres_conductor_table()
         ensure_postgres_daily_observation_table()
         ensure_postgres_note_entry_table()
+        ensure_postgres_measurement_table()
     if build_dashboard.use_postgres() or not INDEX_PATH.exists():
         rebuild_dashboard()
     port = int(os.environ.get("PORT", "8000"))
