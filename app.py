@@ -3819,18 +3819,20 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .mini-table th { position:static; background:transparent; color:var(--muted); }
     .mini-table td:last-child, .mini-table th:last-child { text-align:right; }
     .view-late { margin:10px auto 0; display:flex; width:max-content; border:0; background:transparent; color:#0b66d8; padding:4px; min-height:auto; font-size:12px; }
-    .branch-summary { padding:16px 18px 18px; }
+    .branch-summary { padding:16px 24px 20px; }
     .summary-legend { display:flex; justify-content:center; gap:22px; margin:4px 0 16px; color:var(--muted); font-size:12px; font-weight:900; }
     .summary-legend span { display:inline-flex; gap:7px; align-items:center; }
     .summary-legend span::before { content:""; width:12px; height:12px; border-radius:3px; background:#0b66d8; }
     .summary-legend span.late::before { background:var(--red); }
-    .summary-chart { display:grid; grid-template-columns:64px 1fr; gap:10px 16px; align-items:center; }
-    .summary-name { color:var(--ink); font-size:13px; font-weight:950; text-align:right; }
-    .summary-bars { height:52px; display:flex; align-items:end; gap:8px; border-bottom:1px solid var(--line); }
-    .summary-bar-wrap { flex:0 0 42px; height:100%; display:flex; align-items:end; justify-content:center; }
-    .summary-bar { width:34px; min-height:2px; border-radius:5px 5px 0 0; background:#0b66d8; position:relative; cursor:pointer; }
+    .summary-chart { display:grid; grid-template-columns:56px 1fr; grid-template-rows:260px auto; gap:0 14px; align-items:stretch; }
+    .summary-axis { grid-row:1; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; padding:0 0 18px; color:var(--muted); font-size:12px; font-weight:800; }
+    .summary-plot { grid-row:1; position:relative; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(130px,1fr); align-items:end; gap:44px; padding:22px 18px 18px; border-left:1px solid var(--line); border-bottom:1px solid var(--line); background:repeating-linear-gradient(to top, transparent 0, transparent 51px, #edf1f5 52px); overflow-x:auto; }
+    .summary-group { height:100%; min-width:130px; display:flex; align-items:end; justify-content:center; gap:10px; }
+    .summary-bar { width:48px; min-height:3px; border-radius:6px 6px 0 0; background:#0b66d8; position:relative; cursor:pointer; box-shadow:0 10px 20px rgba(11,102,216,.18); }
     .summary-bar.late { background:var(--red); }
-    .summary-bar span { position:absolute; left:50%; bottom:calc(100% + 3px); transform:translateX(-50%); color:var(--ink); font-size:12px; font-weight:950; }
+    .summary-bar span { position:absolute; left:50%; bottom:calc(100% + 5px); transform:translateX(-50%); color:var(--ink); font-size:13px; font-weight:950; }
+    .summary-labels { grid-column:2; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(130px,1fr); gap:44px; padding:8px 18px 0; overflow:hidden; }
+    .summary-name { color:var(--ink); font-size:13px; font-weight:950; text-align:center; }
     .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; }
     .panel-body { padding:14px 18px 18px; }
     .bars { display:grid; gap:10px; }
@@ -4340,13 +4342,20 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     function renderCitySummary(data) {
       const stats = cityStats(data);
       const max = Math.max(1, ...stats.map((item) => Math.max(item.ok, item.late)));
-      $("citySummary").innerHTML = stats.length ? stats.map((item) => `
-        <div class="summary-name">${escapeHtml(item.city)}</div>
-        <div class="summary-bars">
-          <div class="summary-bar-wrap"><div class="summary-bar" data-drill-city="${escapeHtml(item.city)}" data-drill-status="ok" style="height:${Math.max(2, item.ok / max * 100)}%"><span>${fmt.format(item.ok)}</span></div></div>
-          <div class="summary-bar-wrap"><div class="summary-bar late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late" style="height:${Math.max(2, item.late / max * 100)}%"><span>${fmt.format(item.late)}</span></div></div>
+      const step = Math.max(1, Math.ceil(max / 4));
+      const axisMax = step * 4;
+      $("citySummary").innerHTML = stats.length ? `
+        <div class="summary-axis">${[4, 3, 2, 1, 0].map((idx) => `<span>${fmt.format(step * idx)}</span>`).join("")}</div>
+        <div class="summary-plot">
+          ${stats.map((item) => `
+            <div class="summary-group">
+              <div class="summary-bar" data-drill-city="${escapeHtml(item.city)}" data-drill-status="ok" style="height:${Math.max(2, item.ok / axisMax * 100)}%"><span>${fmt.format(item.ok)}</span></div>
+              <div class="summary-bar late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late" style="height:${Math.max(2, item.late / axisMax * 100)}%"><span>${fmt.format(item.late)}</span></div>
+            </div>
+          `).join("")}
         </div>
-      `).join("") : '<div class="empty">Sem dados para o filtro.</div>';
+        <div class="summary-labels">${stats.map((item) => `<div class="summary-name">${escapeHtml(item.city)}</div>`).join("")}</div>
+      ` : '<div class="empty">Sem dados para o filtro.</div>';
       $("citySummary").onclick = (event) => {
         const bar = event.target.closest("[data-drill-city]");
         if (bar) {
