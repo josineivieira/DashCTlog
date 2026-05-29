@@ -4515,7 +4515,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .drilldown-head h2 { padding:0; }
     .drilldown-head button { min-height:32px; padding:6px 10px; background:#f3f6f8; color:var(--ink); border-color:var(--line); }
     .drill-list { padding:12px 18px 18px; display:grid; gap:8px; }
-    .drill-item { display:grid; grid-template-columns:120px 120px 1fr auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; font-size:13px; font-weight:850; }
+    .drill-item { display:grid; grid-template-columns:110px 110px minmax(150px,1fr) minmax(150px,1fr) auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; font-size:13px; font-weight:850; }
     .drill-item strong { font-size:15px; }
     .table-wrap { overflow:auto; max-height:calc(100vh - 390px); }
     table { width:100%; min-width:980px; border-collapse:collapse; }
@@ -4790,6 +4790,18 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       ctx.fillText(text, x, y + 1);
       ctx.restore();
     }
+    function fillFittedText(ctx, text, x, y, maxWidth, size, weight = "900", color = "#16212d", minSize = 11) {
+      let fontSize = size;
+      ctx.save();
+      ctx.fillStyle = color;
+      do {
+        ctx.font = `${weight} ${fontSize}px Arial`;
+        if (ctx.measureText(text).width <= maxWidth || fontSize <= minSize) break;
+        fontSize -= 1;
+      } while (fontSize >= minSize);
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
     function drawCanvasRing(ctx, x, y, radius, ok, total) {
       const okRad = total ? ok / total * Math.PI * 2 : 0;
       ctx.save();
@@ -4856,12 +4868,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         const x = 54 + idx * (kpiW + 18);
         drawNoteCard(ctx, x, kpiY, kpiW, 124, accent);
         drawCanvasCircleIcon(ctx, x + 34, kpiY + 64, accent, icon);
-        ctx.fillStyle = "#657282";
-        ctx.font = "900 18px Arial";
-        ctx.fillText(label.toUpperCase(), x + 68, kpiY + 42);
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 31px Arial";
-        ctx.fillText(value, x + 68, kpiY + 88);
+        fillFittedText(ctx, label.toUpperCase(), x + 68, kpiY + 42, kpiW - 86, 16, "900", "#657282", 12);
+        fillFittedText(ctx, value, x + 68, kpiY + 88, kpiW - 86, 31, "900", "#16212d", 20);
       });
 
       const cardY = 466;
@@ -4869,19 +4877,17 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       stats.slice(0, 3).forEach((item, idx) => {
         const x = 54 + idx * (cardW + 18);
         drawNoteCard(ctx, x, cardY, cardW, 410, "#0b66d8");
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 24px Arial";
-        ctx.fillText(item.city, x + 22, cardY + 46);
+        fillFittedText(ctx, item.city, x + 22, cardY + 46, cardW - 44, 24, "900", "#16212d", 16);
         drawCanvasRing(ctx, x + 84, cardY + 150, 58, item.ok, item.total);
-        drawCanvasCircleIcon(ctx, x + 178, cardY + 112, "#0b66d8", "");
-        drawCanvasCircleIcon(ctx, x + 178, cardY + 164, "#e2263c", "");
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 20px Arial";
-        ctx.fillText(`${fmt.format(item.ok)} no prazo`, x + 206, cardY + 118);
-        ctx.fillText(`${fmt.format(item.late)} fora`, x + 206, cardY + 170);
+        drawCanvasCircleIcon(ctx, x + 174, cardY + 114, "#0b66d8", "");
+        drawCanvasCircleIcon(ctx, x + 174, cardY + 172, "#e2263c", "");
+        fillFittedText(ctx, fmt.format(item.ok), x + 204, cardY + 109, 82, 22, "900", "#16212d", 16);
+        fillFittedText(ctx, "no prazo", x + 204, cardY + 130, 82, 15, "900", "#16212d", 12);
+        fillFittedText(ctx, fmt.format(item.late), x + 204, cardY + 167, 82, 22, "900", "#16212d", 16);
+        fillFittedText(ctx, "fora", x + 204, cardY + 188, 82, 15, "900", "#16212d", 12);
         ctx.fillStyle = "#657282";
         ctx.font = "900 17px Arial";
-        ctx.fillText(`Total: ${fmt.format(item.total)}`, x + 206, cardY + 224);
+        ctx.fillText(`Total: ${fmt.format(item.total)}`, x + 204, cardY + 224);
         ctx.strokeStyle = "#e3e9ef";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -4894,13 +4900,15 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         ctx.fillStyle = "#657282";
         ctx.font = "900 13px Arial";
         ctx.fillText("NOTA", x + 22, cardY + 310);
-        ctx.fillText("ENTRADA", x + 190, cardY + 310);
+        ctx.fillText("EMISSAO", x + 112, cardY + 310);
+        ctx.fillText("ENTRADA", x + 216, cardY + 310);
         ctx.fillStyle = "#16212d";
-        ctx.font = "800 15px Arial";
+        ctx.font = "800 14px Arial";
         item.lateRows.slice(0, 4).forEach((row, rowIdx) => {
           const lineY = cardY + 338 + rowIdx * 24;
           ctx.fillText(row.nota, x + 22, lineY);
-          ctx.fillText(String(row.entrada).split(" ")[0] || "-", x + 190, lineY);
+          ctx.fillText(String(row.emissao).split(" ")[0] || "-", x + 112, lineY);
+          ctx.fillText(String(row.entrada).split(" ")[0] || "-", x + 216, lineY);
         });
       });
 
@@ -5030,8 +5038,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
               <h3>Notas fora do prazo</h3>
               ${lateRows.length ? `
                 <table class="mini-table">
-                  <thead><tr><th>Nota</th><th>Dia da entrada</th></tr></thead>
-                  <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(String(row.entrada).split(" ")[0] || "-")}</td></tr>`).join("")}</tbody>
+                  <thead><tr><th>Nota</th><th>Emissao</th><th>Entrada</th></tr></thead>
+                  <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(String(row.emissao).split(" ")[0] || "-")}</td><td>${escapeHtml(String(row.entrada).split(" ")[0] || "-")}</td></tr>`).join("")}</tbody>
                 </table>
                 <button type="button" class="view-late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late">Ver todas (${fmt.format(item.late)})</button>
               ` : '<div class="empty">Sem notas fora do prazo.</div>'}
@@ -5101,6 +5109,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
             <div class="drill-item">
               <strong>${escapeHtml(row.nota)}</strong>
               <span>${escapeHtml(row.cidade || "Sem cidade")}</span>
+              <span>Emissao: ${escapeHtml(row.emissao)}</span>
               <span>Entrada: ${escapeHtml(row.entrada)}</span>
               <span>Tempo: ${durationLabel(Number(row.horasEntrada))}</span>
               <span>${row.status === "late" ? `${fmt.format(row.horasFora)}h fora` : "No prazo"}</span>
