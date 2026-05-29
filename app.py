@@ -4069,6 +4069,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
     .chart-wrap svg { width:100%; height:auto; display:block; }
+    .detail-trigger { cursor:pointer; }
+    .detail-trigger:hover { filter:brightness(.96); outline:2px solid rgba(43,132,203,.28); outline-offset:2px; }
     .rank-list, .alert-list, .recommendations { display:grid; gap:12px; }
     .rank-row { display:grid; grid-template-columns:minmax(170px,1fr) 120px 70px 58px; gap:12px; align-items:center; font-size:13px; font-weight:850; }
     .rank-track { height:12px; border-radius:999px; background:#edf2f6; overflow:hidden; }
@@ -4099,6 +4101,15 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .rec-card { padding:14px; border:1px solid var(--line); border-radius:8px; background:#f8fafb; }
     .rec-card strong { display:block; margin-bottom:7px; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
+    .detail-modal { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.44); }
+    .detail-modal[hidden] { display:none; }
+    .detail-dialog { width:min(1180px,96vw); max-height:88vh; display:grid; grid-template-rows:auto 1fr; background:#fff; border-radius:8px; box-shadow:0 24px 70px rgba(15,23,42,.30); overflow:hidden; }
+    .detail-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 18px; border-bottom:1px solid var(--line); }
+    .detail-head h3 { margin:0; font-size:18px; }
+    .detail-head button { width:36px; height:36px; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:20px; font-weight:950; cursor:pointer; }
+    .detail-count { color:var(--muted); font-size:13px; font-weight:900; }
+    .detail-table-wrap { overflow:auto; padding:0 18px 18px; }
+    .detail-table { min-width:1120px; }
     @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .ops-grid, .lower-grid, .executive { grid-template-columns:1fr; } .recommendations { grid-template-columns:repeat(2,minmax(160px,1fr)); } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
     @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
@@ -4129,6 +4140,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       <span class="custom-date-filter" id="customDateFilter"><label>Inicio <input id="dateStartFilter" type="date"></label><label>Fim <input id="dateEndFilter" type="date"></label></span>
       <label>Terminal <select id="terminalFilter"><option value="">Todos</option></select></label>
       <label>Filial <select id="branchFilter"><option value="">Todas</option></select></label>
+      <label>Usuario alteracao <select id="userChangeFilter"><option value="">Todos</option></select></label>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
       <label>Tempo fechamento <select id="timeFilter"><option value="">Todos</option><option value="same">Mesmo dia</option><option value="one">Ate 1 dia</option><option value="two">Ate 2 dias</option><option value="late">Acima de 2 dias</option></select></label>
     </div>
@@ -4158,9 +4170,18 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div><strong>Importar medicoes</strong><div class="meta">Envie a planilha atualizada para renovar o relatorio.</div></div>
         <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medicoes</button></form>
       </section>
-      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario alteracao</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
     </section>
   </main>
+  <div class="detail-modal" id="detailModal" hidden>
+    <div class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="detail-head">
+        <div><h3 id="detailTitle">Detalhes</h3><div class="detail-count" id="detailCount"></div></div>
+        <button type="button" id="detailClose" aria-label="Fechar">x</button>
+      </div>
+      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario alteracao</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+    </div>
+  </div>
   <script>
     const rows = __ROWS__;
     const fmt = new Intl.NumberFormat("pt-BR");
@@ -4185,15 +4206,19 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function updateCustomDateFilter(){ $("customDateFilter").classList.toggle("is-visible", $("dateModeFilter").value==="custom"); }
     function matchesPeriod(row){ const b=periodBounds(); if(!b)return true; const d=parseBrDate(row.medicao); return d && d>=b[0] && d<=b[1]; }
     function matchesTime(row){ const f=$("timeFilter").value; const h=Number(row.horasFechamento); if(!f)return true; if(f==="same")return h<24; if(f==="one")return h<=24; if(f==="two")return h<=48; return h>48; }
-    function filteredRows(){ const terminal=$("terminalFilter").value, filial=$("branchFilter").value, status=$("statusFilter").value; return rows.filter(r=>matchesPeriod(r)&&matchesTime(r)&&(!terminal||r.terminal===terminal)&&(!filial||r.filial===filial)&&(!status||r.status===status)); }
-    function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
+    function filteredRows(){ const terminal=$("terminalFilter").value, filial=$("branchFilter").value, usuario=$("userChangeFilter").value, status=$("statusFilter").value; return rows.filter(r=>matchesPeriod(r)&&matchesTime(r)&&(!terminal||r.terminal===terminal)&&(!filial||r.filial===filial)&&(!usuario||r.usuarioAlteracao===usuario)&&(!status||r.status===status)); }
+    function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); const users=[...new Set(rows.map(r=>r.usuarioAlteracao).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("userChangeFilter").innerHTML='<option value="">Todos</option>'+users.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
     function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
+    function rowMarkup(r){ return `<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
+    function showDetails(title, data){ $("detailTitle").textContent=title; $("detailCount").textContent=`${fmt.format(data.length)} medicoes`; $("detailRows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para este item.</td></tr>'; $("detailModal").hidden=false; }
+    function closeDetails(){ $("detailModal").hidden=true; }
     function renderBars(id, entries){ const max=Math.max(1,...entries.map(([,v])=>v.total)); $(id).innerHTML=entries.length?entries.map(([label,item])=>`<div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill-ok" style="width:${item.ok/max*100}%"></div><div class="fill-late" style="width:${item.late/max*100}%"></div></div><strong>${fmt.format(item.total)}</strong></div>`).join(""):'<div class="empty">Sem dados para o filtro.</div>'; }
     function dailyStats(data){
       const map = new Map();
       data.forEach((row) => {
-        const item = map.get(row.medicao) || { ok: 0, late: 0, total: 0 };
+        const item = map.get(row.medicao) || { ok: 0, late: 0, total: 0, rows: [] };
         item.total++;
+        item.rows.push(row);
         if (row.status === "ok") item.ok++; else item.late++;
         map.set(row.medicao, item);
       });
@@ -4206,30 +4231,35 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const plotW = width - pad.left - pad.right, plotH = height - pad.top - pad.bottom;
       const max = Math.max(1, ...stats.map(([, item]) => item.total));
       const x = (idx) => pad.left + (stats.length === 1 ? plotW / 2 : idx * (plotW / (stats.length - 1)));
-      const y = (value) => pad.top + plotH - (value / max) * plotH;
-      const points = stats.map(([, item], idx) => `${x(idx)},${y(item.ok / Math.max(1,item.total) * 100 / 100 * max)}`).join(" ");
+      const barArea = plotW / Math.max(1, stats.length);
       const bars = stats.map(([date, item], idx) => {
-        const barW = Math.max(8, plotW / stats.length * .5);
+        const barW = Math.max(12, Math.min(26, barArea * .58));
         const okH = item.ok / max * plotH;
         const lateH = item.late / max * plotH;
         const bx = x(idx) - barW / 2;
         const base = pad.top + plotH;
-        return `<rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${height-10}" text-anchor="middle" fill="#657282" font-size="11">${date.slice(0,5)}</text>`;
+        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${Math.max(14,base-okH-lateH-6)}" text-anchor="middle" fill="#16212d" font-size="12" font-weight="900">${fmt.format(item.total)}</text><text x="${x(idx)}" y="${height-10}" text-anchor="middle" fill="#657282" font-size="10">${date.slice(0,5)}</text></g>`;
       }).join("");
       $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
-        <polyline points="${points}" fill="none" stroke="#2b84cb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
-        ${stats.map(([, item], idx)=>`<circle cx="${x(idx)}" cy="${y(item.ok / Math.max(1,item.total) * max)}" r="4" fill="#fff" stroke="#2b84cb" stroke-width="2"></circle>`).join("")}
-        <text x="${pad.left}" y="16" fill="#657282" font-size="12">No prazo / Fora do prazo</text>
+        <text x="${pad.left}" y="16" fill="#657282" font-size="12">Verde: no prazo / Vermelho: fora do prazo</text>
       </svg>`;
+      $("evolutionChart").querySelectorAll("[data-evolution-idx]").forEach((node) => node.addEventListener("click", () => {
+        const [date, item] = stats[Number(node.dataset.evolutionIdx)];
+        showDetails(`Fechamentos em ${date}`, item.rows);
+      }));
     }
     function renderTerminalRank(data){
       const entries = grouped(data, "terminal").filter(([, item]) => item.late > 0).slice(0, 5);
-      $("terminalRank").innerHTML = entries.length ? entries.map(([label, item]) => {
+      $("terminalRank").innerHTML = entries.length ? entries.map(([label, item], idx) => {
         const latePct = item.total ? item.late / item.total * 100 : 0;
-        return `<div class="rank-row"><strong>${escapeHtml(label)}</strong><div class="rank-track"><div class="rank-fill" style="width:${latePct}%"></div></div><span>${latePct.toFixed(0)}%</span><span>${fmt.format(item.late)}</span></div>`;
+        return `<div class="rank-row detail-trigger" data-terminal-idx="${idx}"><strong>${escapeHtml(label)}</strong><div class="rank-track"><div class="rank-fill" style="width:${latePct}%"></div></div><span>${latePct.toFixed(0)}%</span><span>${fmt.format(item.late)}</span></div>`;
       }).join("") : '<div class="empty">Sem terminais fora do prazo.</div>';
+      $("terminalRank").querySelectorAll("[data-terminal-idx]").forEach((node) => node.addEventListener("click", () => {
+        const terminal = entries[Number(node.dataset.terminalIdx)][0];
+        showDetails(`Atrasos do terminal ${terminal}`, data.filter(r=>r.terminal===terminal && r.status==="late"));
+      }));
     }
     function topEntry(entries){ return entries[0] || ["-", { total: 0, ok: 0, late: 0 }]; }
     function renderAlerts(data){
@@ -4239,18 +4269,26 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const [topBranch, topBranchItem] = topEntry(branches.filter(([, item]) => item.late > 0));
       const lateAfter18 = data.filter((row) => row.status === "late" && Number(row.horasFechamento) > 18).length;
       const alerts = [
-        { icon: "!", cls: "", title: `${topTerminal || "Terminal"} acima da meta`, text: `${percent(topTerminalItem.late, topTerminalItem.total)} fora do prazo (${fmt.format(topTerminalItem.late)} atrasos)` },
-        { icon: "!", cls: "warning", title: `Filial ${topBranch || "-"} com maior atraso`, text: `${fmt.format(topBranchItem.late)} fechamentos fora do prazo no filtro` },
-        { icon: "!", cls: "warning", title: "Atrasos acima de 18h", text: `${fmt.format(lateAfter18)} fechamentos em atraso com mais de 18h` }
+        { icon: "!", cls: "", title: `${topTerminal || "Terminal"} acima da meta`, text: `${percent(topTerminalItem.late, topTerminalItem.total)} fora do prazo (${fmt.format(topTerminalItem.late)} atrasos)`, rows: data.filter(r=>r.terminal===topTerminal && r.status==="late") },
+        { icon: "!", cls: "warning", title: `Filial ${topBranch || "-"} com maior atraso`, text: `${fmt.format(topBranchItem.late)} fechamentos fora do prazo no filtro`, rows: data.filter(r=>r.filial===topBranch && r.status==="late") },
+        { icon: "!", cls: "warning", title: "Atrasos acima de 18h", text: `${fmt.format(lateAfter18)} fechamentos em atraso com mais de 18h`, rows: data.filter((row) => row.status === "late" && Number(row.horasFechamento) > 18) }
       ];
-      $("alertsPanel").innerHTML = alerts.map((item) => `<div class="alert-item ${item.cls}"><div class="alert-icon">${item.icon}</div><div><strong>${escapeHtml(item.title)}</strong><span class="meta">${escapeHtml(item.text)}</span></div></div>`).join("");
+      $("alertsPanel").innerHTML = alerts.map((item, idx) => `<div class="alert-item detail-trigger ${item.cls}" data-alert-idx="${idx}"><div class="alert-icon">${item.icon}</div><div><strong>${escapeHtml(item.title)}</strong><span class="meta">${escapeHtml(item.text)}</span></div></div>`).join("");
+      $("alertsPanel").querySelectorAll("[data-alert-idx]").forEach((node) => node.addEventListener("click", () => {
+        const item = alerts[Number(node.dataset.alertIdx)];
+        showDetails(item.title, item.rows);
+      }));
     }
     function renderBranchPerformance(data){
       const entries = grouped(data, "filial").slice(0, 8);
-      $("branchPerformance").innerHTML = entries.length ? `<table class="branch-table"><thead><tr><th>Filial</th><th>Total</th><th>No prazo</th><th>Fora</th><th>% No prazo</th><th>SLA</th></tr></thead><tbody>${entries.map(([label,item]) => {
+      $("branchPerformance").innerHTML = entries.length ? `<table class="branch-table"><thead><tr><th>Filial</th><th>Total</th><th>No prazo</th><th>Fora</th><th>% No prazo</th><th>SLA</th></tr></thead><tbody>${entries.map(([label,item], idx) => {
         const okPct = item.total ? item.ok / item.total * 100 : 0;
-        return `<tr><td><strong>${escapeHtml(label)}</strong></td><td>${fmt.format(item.total)}</td><td>${fmt.format(item.ok)}</td><td>${fmt.format(item.late)}</td><td>${percent(item.ok,item.total)}</td><td><span class="mini-progress ${okPct>=85?"ok":""}"><span style="width:${okPct}%"></span></span></td></tr>`;
+        return `<tr class="detail-trigger" data-branch-idx="${idx}"><td><strong>${escapeHtml(label)}</strong></td><td>${fmt.format(item.total)}</td><td>${fmt.format(item.ok)}</td><td>${fmt.format(item.late)}</td><td>${percent(item.ok,item.total)}</td><td><span class="mini-progress ${okPct>=85?"ok":""}"><span style="width:${okPct}%"></span></span></td></tr>`;
       }).join("")}</tbody></table>` : '<div class="empty">Sem filiais no filtro.</div>';
+      $("branchPerformance").querySelectorAll("[data-branch-idx]").forEach((node) => node.addEventListener("click", () => {
+        const branch = entries[Number(node.dataset.branchIdx)][0];
+        showDetails(`Fechamentos da filial ${branch}`, data.filter(r=>r.filial===branch));
+      }));
     }
     function renderHeatmap(data){
       const days = ["Seg","Ter","Qua","Qui","Sex","Sab","Dom"];
@@ -4263,25 +4301,39 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         const hour = date.getHours();
         const bucket = Math.min(5, Math.max(0, Math.floor(Math.max(8, Math.min(19, hour)) / 2) - 4));
         const key = `${day}-${bucket}`;
-        const item = map.get(key) || { total: 0, late: 0 };
+        const item = map.get(key) || { total: 0, late: 0, rows: [] };
         item.total++;
+        item.rows.push(row);
         if (row.status === "late") item.late++;
         map.set(key, item);
       });
-      $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((bucketLabel, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0 }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; const detail = `${day} ${bucketLabel}: ${fmt.format(item.total)} fechamentos, ${fmt.format(item.late)} fora do prazo`; return item.total ? `<span class="heat-cell" title="${detail}" style="background:hsl(${hue} 76% 52%)"><strong>${fmt.format(item.total)}</strong><small>${fmt.format(item.late)} fora</small></span>` : `<span class="heat-cell" title="${detail}"></span>`; }).join("")}`).join("")}`;
+      $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((bucketLabel, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0, rows:[] }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; const detail = `${day} ${bucketLabel}: ${fmt.format(item.total)} fechamentos, ${fmt.format(item.late)} fora do prazo`; return item.total ? `<span class="heat-cell detail-trigger" data-heat-key="${d}-${b}" title="${detail}" style="background:hsl(${hue} 76% 52%)"><strong>${fmt.format(item.total)}</strong><small>${fmt.format(item.late)} fora</small></span>` : `<span class="heat-cell" title="${detail}"></span>`; }).join("")}`).join("")}`;
+      $("heatmapPanel").querySelectorAll("[data-heat-key]").forEach((node) => node.addEventListener("click", () => {
+        const item = map.get(node.dataset.heatKey);
+        showDetails(`Fechamentos ${node.title.split(":")[0]}`, item?.rows || []);
+      }));
     }
     function renderReasons(data){
-      const until2 = data.filter(r=>Number(r.horasFechamento)<=48).length;
-      const days3to4 = data.filter(r=>Number(r.horasFechamento)>48 && Number(r.horasFechamento)<=96).length;
-      const days5to6 = data.filter(r=>Number(r.horasFechamento)>96 && Number(r.horasFechamento)<=144).length;
-      const days7plus = data.filter(r=>Number(r.horasFechamento)>144).length;
+      const ranges = [
+        ["Ate 2 dias", "#16b26f", data.filter(r=>Number(r.horasFechamento)<=48)],
+        ["3 a 4 dias", "#fbbf24", data.filter(r=>Number(r.horasFechamento)>48 && Number(r.horasFechamento)<=96)],
+        ["5 a 6 dias", "#fb6b2a", data.filter(r=>Number(r.horasFechamento)>96 && Number(r.horasFechamento)<=144)],
+        ["7+ dias", "#f2384e", data.filter(r=>Number(r.horasFechamento)>144)]
+      ];
+      const until2 = ranges[0][2].length;
+      const days3to4 = ranges[1][2].length;
+      const days5to6 = ranges[2][2].length;
       const total = Math.max(1, data.length);
       const a = until2 / total * 360;
       const b = a + days3to4 / total * 360;
       const c = b + days5to6 / total * 360;
       $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(data.length)}</strong><span>Total</span></div></div><div class="reason-list">
-        ${[["Ate 2 dias", until2, "#16b26f"],["3 a 4 dias", days3to4, "#fbbf24"],["5 a 6 dias", days5to6, "#fb6b2a"],["7+ dias", days7plus, "#f2384e"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
+        ${ranges.map(([label,color,items], idx)=>`<div class="reason-row detail-trigger" data-range-idx="${idx}"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(items.length)}</strong></div>`).join("")}
       </div></div>`;
+      $("reasonPanel").querySelectorAll("[data-range-idx]").forEach((node) => node.addEventListener("click", () => {
+        const [label,, items] = ranges[Number(node.dataset.rangeIdx)];
+        showDetails(`Faixa de fechamento: ${label}`, items);
+      }));
     }
     function renderExecutive(data, ok, late){
       const terminals = grouped(data,"terminal");
@@ -4298,7 +4350,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         ["Monitorar SLA por filial", `Meta: manter 85% das medicoes fechadas em ate 2 dias; foco inicial na filial ${topBranch?.[0] || "-"}.`]
       ].map(([title,text])=>`<div class="rec-card"><strong>${escapeHtml(title)}</strong><span class="meta">${escapeHtml(text)}</span></div>`).join("");
     }
-    function renderTable(data){ $("rows").innerHTML=data.map(r=>`<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">Sem dados para o filtro.</td></tr>'; }
+    function renderTable(data){ $("rows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>'; }
     function render(){
       updateCustomDateFilter();
       const data=filteredRows();
@@ -4328,8 +4380,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     }
     document.querySelectorAll(".message").forEach((item)=>{ setTimeout(()=>item.classList.add("is-hidden"),4200); setTimeout(()=>item.remove(),4600); });
     document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b===btn)); document.querySelectorAll(".tab-view").forEach(view=>view.hidden=view.id!==btn.dataset.tab); }));
-    ["dateModeFilter","dateStartFilter","dateEndFilter","terminalFilter","branchFilter","statusFilter","timeFilter"].forEach(id=>$(id).addEventListener("change",render));
+    ["dateModeFilter","dateStartFilter","dateEndFilter","terminalFilter","branchFilter","userChangeFilter","statusFilter","timeFilter"].forEach(id=>$(id).addEventListener("change",render));
     $("refreshDashboard").addEventListener("click", render);
+    $("detailClose").addEventListener("click", closeDetails);
+    $("detailModal").addEventListener("click", (event)=>{ if(event.target===$("detailModal")) closeDetails(); });
+    document.addEventListener("keydown", (event)=>{ if(event.key==="Escape" && !$("detailModal").hidden) closeDetails(); });
     fillFilters(); render();
   </script>
 </body>
@@ -6172,6 +6227,7 @@ def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
             "seq": row.get("seq", ""),
             "filial": row.get("filial", ""),
             "terminal": row.get("terminal", ""),
+            "usuarioAlteracao": row.get("usuario_alteracao", row.get("usuarioAlteracao", "")),
             "medicao": "",
             "fechamento": "",
             "prazo": "",
@@ -6185,6 +6241,7 @@ def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
         "seq": row.get("seq", ""),
         "filial": row.get("filial", ""),
         "terminal": row.get("terminal", ""),
+        "usuarioAlteracao": row.get("usuario_alteracao", row.get("usuarioAlteracao", "")),
         "medicao": format_note_date(medicao),
         "fechamento": format_note_datetime(fechamento),
         "prazo": format_note_datetime(prazo),
@@ -6194,7 +6251,7 @@ def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
     }
 
 
-def clean_measurement_import_row(seq: object, filial: object, terminal: object, nome_terminal: object, medicao: object, fechamento: object) -> dict[str, str] | None:
+def clean_measurement_import_row(seq: object, filial: object, terminal: object, nome_terminal: object, medicao: object, fechamento: object, usuario_alteracao: object = "") -> dict[str, str] | None:
     measurement_date = parse_note_entry_datetime(medicao)
     close_date = parse_note_entry_datetime(fechamento)
     if not measurement_date or not close_date:
@@ -6211,6 +6268,7 @@ def clean_measurement_import_row(seq: object, filial: object, terminal: object, 
         "seq": str(seq or "").strip(),
         "filial": branch,
         "terminal": terminal_label,
+        "usuario_alteracao": str(usuario_alteracao or "").strip(),
         "medicao_iso": measurement_date.isoformat(timespec="minutes"),
         "fechamento_iso": close_date.isoformat(timespec="minutes"),
     }
@@ -6226,6 +6284,7 @@ def parse_measurement_file(content: bytes) -> list[dict[str, str]]:
         "dtalteracao": "Dt.Alteracao",
     }
     optional_type = "tipodamedicao"
+    optional_user_change = "nomeusuarioalteracao"
     with ZipFile(io.BytesIO(content)) as xlsx:
         for sheet_name in xlsx_sheet_names_from_zip(xlsx):
             rows = xlsx_rows_from_zip(xlsx, sheet_name)
@@ -6236,6 +6295,7 @@ def parse_measurement_file(content: bytes) -> list[dict[str, str]]:
                 continue
             indexes = {key: headers.index(key) for key in required}
             type_index = headers.index(optional_type) if optional_type in headers else None
+            user_change_index = headers.index(optional_user_change) if optional_user_change in headers else None
             imported: list[dict[str, str]] = []
             for raw in rows[1:]:
                 values = raw + [""] * (len(headers) + 1)
@@ -6248,6 +6308,7 @@ def parse_measurement_file(content: bytes) -> list[dict[str, str]]:
                     values[indexes["nometerminal"]],
                     values[indexes["dtmedicao"]],
                     values[indexes["dtalteracao"]],
+                    values[user_change_index] if user_change_index is not None else "",
                 )
                 if item:
                     imported.append(item)
@@ -6266,12 +6327,14 @@ def ensure_postgres_measurement_table() -> None:
                     seq_lancamento TEXT NOT NULL DEFAULT '',
                     filial TEXT NOT NULL DEFAULT '',
                     terminal TEXT NOT NULL DEFAULT '',
+                    usuario_alteracao TEXT NOT NULL DEFAULT '',
                     medicao_iso TEXT NOT NULL DEFAULT '',
                     fechamento_iso TEXT NOT NULL DEFAULT '',
                     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
                 """
             )
+            cur.execute("ALTER TABLE controle_medicao ADD COLUMN IF NOT EXISTS usuario_alteracao TEXT NOT NULL DEFAULT ''")
             cur.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS controle_medicao_seq_idx
@@ -6291,11 +6354,11 @@ def save_measurement_rows(rows: list[dict[str, str]]) -> None:
                 cur.execute(
                     """
                     INSERT INTO controle_medicao (
-                        row_order, seq_lancamento, filial, terminal, medicao_iso, fechamento_iso, updated_at
+                        row_order, seq_lancamento, filial, terminal, usuario_alteracao, medicao_iso, fechamento_iso, updated_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, now())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, now())
                     """,
-                    (idx, row["seq"], row["filial"], row["terminal"], row["medicao_iso"], row["fechamento_iso"]),
+                    (idx, row["seq"], row["filial"], row["terminal"], row.get("usuario_alteracao", ""), row["medicao_iso"], row["fechamento_iso"]),
                 )
 
 
@@ -6307,7 +6370,7 @@ def measurement_rows() -> list[dict[str, object]]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT seq_lancamento, filial, terminal, medicao_iso, fechamento_iso
+                SELECT seq_lancamento, filial, terminal, usuario_alteracao, medicao_iso, fechamento_iso
                 FROM controle_medicao
                 ORDER BY row_order, id
                 """
@@ -6317,8 +6380,9 @@ def measurement_rows() -> list[dict[str, object]]:
                     "seq": item[0],
                     "filial": item[1],
                     "terminal": item[2],
-                    "medicao_iso": item[3],
-                    "fechamento_iso": item[4],
+                    "usuario_alteracao": item[3],
+                    "medicao_iso": item[4],
+                    "fechamento_iso": item[5],
                 }
                 for item in cur.fetchall()
             ]
