@@ -2839,13 +2839,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         const bDone = b.row.status === "Finalizado";
         if (aDone !== bDone) return aDone ? 1 : -1;
         if (aDone && bDone) return a.index - b.index;
-        return arrivalSortValue(a.row) - arrivalSortValue(b.row);
+        return arrivalSortValue(b.row) - arrivalSortValue(a.row);
       });
     }
     function arrivalSortValue(row) {
       const value = toDateTimeInput(row.chegada);
       const time = value ? new Date(value).getTime() : 0;
-      return Number.isFinite(time) && time > 0 ? time : Number.POSITIVE_INFINITY;
+      return Number.isFinite(time) && time > 0 ? time : 0;
     }
     function renderCounters() {
       const active = visibleRows().map(({ row }) => row);
