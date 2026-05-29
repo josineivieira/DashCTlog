@@ -773,8 +773,8 @@ HOME_HTML = """<!doctype html>
     <div class="content">
       <header class="topbar">
         <div>
-          <h1>Home operacional</h1>
-          <p class="subtitle">Acesse os modulos de acompanhamento, cadastro e controle.</p>
+          <h1>__HOME_GREETING__, __HOME_USER__</h1>
+          <p class="subtitle">Bom te ver por aqui. Escolha um modulo para acompanhar a operacao.</p>
         </div>
         <a class="logout" href="/logout">Sair</a>
       </header>
@@ -3365,6 +3365,11 @@ DAILY_REPORT_HTML = """<!doctype html>
             <option value="19">Ipiranga</option>
           </select>
         </label>
+        <label>Municipio
+          <select id="municipioSelect">
+            <option value="">Todos</option>
+          </select>
+        </label>
         <button type="button" id="generateImage">Gerar imagem</button>
       </div>
     </div>
@@ -3391,6 +3396,7 @@ DAILY_REPORT_HTML = """<!doctype html>
                 <th>Placa</th>
                 <th>Motorista</th>
                 <th>Terminal</th>
+                <th>Municipio destino</th>
                 <th class="num">Viagens</th>
                 <th class="num">Capacidade</th>
                 <th class="num">Volume</th>
@@ -3540,7 +3546,8 @@ DAILY_REPORT_HTML = """<!doctype html>
 
     function filteredRows() {
       const terminal = $("terminalSelect").value;
-      return rows.filter((row) => matchesDateRange(row) && (!terminal || row.terminal === terminal));
+      const municipio = $("municipioSelect").value;
+      return rows.filter((row) => matchesDateRange(row) && (!terminal || row.terminal === terminal) && (!municipio || row.municipioDestino === municipio));
     }
 
     function groupedRowsByPlate(data) {
@@ -3564,6 +3571,7 @@ DAILY_REPORT_HTML = """<!doctype html>
           clientes: 0,
           motoristas: [],
           motorista: "",
+          municipios: [],
           produtos: [],
           mixProdutos: ""
         };
@@ -3575,6 +3583,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         current.notas += Number(row.notas) || 0;
         current.clientes += Number(row.clientes) || 0;
         if (row.motorista) current.motoristas.push(row.motorista);
+        if (row.municipioDestino) current.municipios.push(row.municipioDestino);
         current.produtos.push(...(row.produtos || []));
         current._terminals = current._terminals || new Map();
         current._terminals.set(row.terminalNome, row.terminal);
@@ -3593,9 +3602,12 @@ DAILY_REPORT_HTML = """<!doctype html>
           .map(([produto, quantidade]) => ({ produto, quantidade }));
         const motoristas = [...new Set(row.motoristas.flatMap((name) => String(name).split("/")).map((name) => name.trim()).filter(Boolean))]
           .sort((a, b) => a.localeCompare(b, "pt-BR"));
+        const municipios = [...new Set(row.municipios.map((name) => String(name).trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "pt-BR"));
         return {
           ...row,
           motorista: motoristas.join(" / "),
+          municipioDestino: municipios.join(" / ") || row.municipioDestino || "-",
           terminal: terminals.map(([, code]) => code).join("/"),
           terminalNome: terminals.map(([name]) => name).join("/"),
           terminalShort: terminals.map(([name]) => name.slice(0, 3)).join("/"),
@@ -3627,7 +3639,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     function renderTable(data) {
       const detailData = groupedRowsByPlate(data);
       if (!detailData.length) {
-        $("reportRows").innerHTML = `<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>`;
+        $("reportRows").innerHTML = `<tr><td colspan="11" class="empty">Sem dados para o filtro.</td></tr>`;
         return;
       }
       $("reportRows").innerHTML = detailData
@@ -3643,6 +3655,7 @@ DAILY_REPORT_HTML = """<!doctype html>
             <td><span class="pill">${escapeHtml(row.placa)}</span></td>
             <td>${escapeHtml(row.motorista || "-")}</td>
             <td>${escapeHtml(row.terminalNome)}</td>
+            <td>${escapeHtml(row.municipioDestino || "-")}</td>
             <td class="num">${fmt.format(row.viagens)}</td>
             <td class="num">${volume(row.capacidade)}</td>
             <td class="num">${volume(row.quantidade)}</td>
@@ -3820,6 +3833,10 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.font = "800 24px Arial";
       const terminalLabel = $("terminalSelect").selectedOptions[0]?.textContent || "Todos";
       ctx.fillText(`Terminal: ${terminalLabel}`, 58, 298);
+      const municipioLabel = $("municipioSelect").selectedOptions[0]?.textContent || "Todos";
+      if ($("municipioSelect").value) {
+        ctx.fillText(`Municipio: ${municipioLabel}`, 360, 298);
+      }
 
       const kpiY = 302;
       const kpiW = 228;
@@ -3969,8 +3986,10 @@ DAILY_REPORT_HTML = """<!doctype html>
     $("dateSelect").value = dates[0] || "";
     $("dateStart").value = dates.length ? inputDate(dates[dates.length - 1]) : "";
     $("dateEnd").value = dates.length ? inputDate(dates[0]) : "";
+    $("municipioSelect").innerHTML = ['<option value="">Todos</option>', ...[...new Set(rows.map((row) => row.municipioDestino).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`)].join("");
     ["dateModeSelect", "dateSelect", "dateStart", "dateEnd"].forEach((id) => $(id).addEventListener("change", render));
     $("terminalSelect").addEventListener("change", render);
+    $("municipioSelect").addEventListener("change", render);
     $("reportRows").addEventListener("input", (event) => {
       const key = event.target?.dataset?.observationKey;
       if (!key) return;
@@ -4141,7 +4160,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       <span class="custom-date-filter" id="customDateFilter"><label>Inicio <input id="dateStartFilter" type="date"></label><label>Fim <input id="dateEndFilter" type="date"></label></span>
       <label>Terminal <select id="terminalFilter"><option value="">Todos</option></select></label>
       <label>Filial <select id="branchFilter"><option value="">Todas</option></select></label>
-      <label>Usuario alteracao <select id="userChangeFilter"><option value="">Todos</option></select></label>
+      <label>Usuario <select id="userChangeFilter"><option value="">Todos</option></select></label>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
       <label>Tempo fechamento <select id="timeFilter"><option value="">Todos</option><option value="same">Mesmo dia</option><option value="one">Ate 1 dia</option><option value="two">Ate 2 dias</option><option value="late">Acima de 2 dias</option></select></label>
     </div>
@@ -4171,7 +4190,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div><strong>Importar medicoes</strong><div class="meta">Envie a planilha atualizada para renovar o relatorio.</div></div>
         <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medicoes</button></form>
       </section>
-      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario alteracao</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
     </section>
   </main>
   <div class="detail-modal" id="detailModal" hidden>
@@ -4180,7 +4199,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div><h3 id="detailTitle">Detalhes</h3><div class="detail-count" id="detailCount"></div></div>
         <button type="button" id="detailClose" aria-label="Fechar">x</button>
       </div>
-      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario alteracao</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="detailRows"></tbody></table></div>
     </div>
   </div>
   <script>
@@ -6764,7 +6783,12 @@ class Handler(BaseHTTPRequestHandler):
     def send_home(self) -> None:
         is_master = is_master_user(self.current_user())
         visible_modules = ["dashboard", "editar", "capacidades", "relatorio_diario", "entrada_notas", "controle_medicao", "controle_ct"]
-        allowed = user_permissions(self.current_user())
+        username = self.current_user()
+        allowed = user_permissions(username)
+        user_record = find_user_record(username)
+        display_name = str(user_record.get("name", "")).strip() if user_record else ""
+        if not display_name:
+            display_name = username or "usuario"
         user_link = ""
         user_card = ""
         module_count = str(sum(1 for key in visible_modules if key in allowed))
@@ -6784,6 +6808,8 @@ class Handler(BaseHTTPRequestHandler):
             .replace("__USER_LINK__", user_link)
             .replace("__USER_CARD__", user_card)
             .replace("__MODULE_COUNT__", module_count)
+            .replace("__HOME_GREETING__", "Ola")
+            .replace("__HOME_USER__", html.escape(display_name))
         )
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
