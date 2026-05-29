@@ -4086,7 +4086,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .heat-cell { min-height:42px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
     .heat-cell small { margin-top:3px; font-size:10px; font-weight:950; color:rgba(22,33,45,.78); }
     .reason-layout { display:grid; grid-template-columns:170px 1fr; gap:18px; align-items:center; }
-    .reason-donut { width:150px; height:150px; border-radius:50%; background:conic-gradient(var(--red) 0deg, var(--red) var(--reasonA), #fb6b2a var(--reasonA), #fb6b2a var(--reasonB), #fbbf24 var(--reasonB), #fbbf24 var(--reasonC), var(--green) var(--reasonC), var(--green) 360deg); position:relative; display:grid; place-items:center; }
+    .reason-donut { width:150px; height:150px; border-radius:50%; background:conic-gradient(var(--green) 0deg, var(--green) var(--reasonA), #fbbf24 var(--reasonA), #fbbf24 var(--reasonB), #fb6b2a var(--reasonB), #fb6b2a var(--reasonC), var(--red) var(--reasonC), var(--red) 360deg); position:relative; display:grid; place-items:center; }
     .reason-donut::before { content:""; width:94px; height:94px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
     .reason-donut-label { position:absolute; text-align:center; font-weight:950; }
     .reason-list { display:grid; gap:10px; font-size:13px; font-weight:850; }
@@ -4149,7 +4149,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       <div class="lower-grid">
         <section class="panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
         <section class="panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total de fechamentos por horario; abaixo, quantos ficaram fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
-        <section class="panel"><h2>Faixas de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
       </div>
       <section class="panel executive"><div><div class="exec-title"><span class="exec-icon">OK</span>Resumo Executivo</div><p id="executiveText" class="meta"></p></div><div><div class="exec-title">Recomendacoes</div><div id="recommendations" class="recommendations"></div></div></section>
     </section>
@@ -4271,17 +4271,16 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((bucketLabel, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0 }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; const detail = `${day} ${bucketLabel}: ${fmt.format(item.total)} fechamentos, ${fmt.format(item.late)} fora do prazo`; return item.total ? `<span class="heat-cell" title="${detail}" style="background:hsl(${hue} 76% 52%)"><strong>${fmt.format(item.total)}</strong><small>${fmt.format(item.late)} fora</small></span>` : `<span class="heat-cell" title="${detail}"></span>`; }).join("")}`).join("")}`;
     }
     function renderReasons(data){
-      const late = data.filter(r=>r.status==="late");
-      const until2 = late.filter(r=>Number(r.horasFora)<=48).length;
-      const days3to4 = late.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=96).length;
-      const days5to6 = late.filter(r=>Number(r.horasFora)>96 && Number(r.horasFora)<=144).length;
-      const days7plus = late.filter(r=>Number(r.horasFora)>144).length;
-      const total = Math.max(1, late.length);
-      const a = days7plus / total * 360;
-      const b = a + days5to6 / total * 360;
-      const c = b + days3to4 / total * 360;
-      $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(late.length)}</strong><span>Total</span></div></div><div class="reason-list">
-        ${[["Atraso 7+ dias", days7plus, "#f2384e"],["Atraso 5 a 6 dias", days5to6, "#fb6b2a"],["Atraso 3 a 4 dias", days3to4, "#fbbf24"],["Ate 2 dias", until2, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
+      const until2 = data.filter(r=>Number(r.horasFechamento)<=48).length;
+      const days3to4 = data.filter(r=>Number(r.horasFechamento)>48 && Number(r.horasFechamento)<=96).length;
+      const days5to6 = data.filter(r=>Number(r.horasFechamento)>96 && Number(r.horasFechamento)<=144).length;
+      const days7plus = data.filter(r=>Number(r.horasFechamento)>144).length;
+      const total = Math.max(1, data.length);
+      const a = until2 / total * 360;
+      const b = a + days3to4 / total * 360;
+      const c = b + days5to6 / total * 360;
+      $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(data.length)}</strong><span>Total</span></div></div><div class="reason-list">
+        ${[["Ate 2 dias", until2, "#16b26f"],["3 a 4 dias", days3to4, "#fbbf24"],["5 a 6 dias", days5to6, "#fb6b2a"],["7+ dias", days7plus, "#f2384e"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
       </div></div>`;
     }
     function renderExecutive(data, ok, late){
@@ -4289,12 +4288,14 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const branches = grouped(data,"filial");
       const topTerminal = terminals.filter(([,i])=>i.late>0)[0];
       const topBranch = branches.filter(([,i])=>i.late>0)[0];
+      const longClosings = data.filter(r=>Number(r.horasFechamento)>48).length;
+      const criticalClosings = data.filter(r=>Number(r.horasFechamento)>96).length;
       $("executiveText").textContent = data.length ? `No periodo selecionado, ${percent(late,data.length)} dos fechamentos estao fora do prazo. O principal ponto de atencao e ${topTerminal?.[0] || "sem terminal critico"} com ${fmt.format(topTerminal?.[1].late || 0)} atrasos. A filial mais sensivel no filtro e ${topBranch?.[0] || "-"}, com ${percent(topBranch?.[1].ok || 0, topBranch?.[1].total || 0)} no prazo.` : "Sem dados para o filtro selecionado.";
       $("recommendations").innerHTML = [
-        ["Foco no terminal critico", `Priorizar conferencia no terminal ${topTerminal?.[0] || "-"}.`],
-        ["Revisar janela de fechamento", "Acompanhar fechamentos acima de 18h e 24h."],
-        ["Atuar na filial critica", `Verificar gargalos da filial ${topBranch?.[0] || "-"}.`],
-        ["Monitorar SLA", "Meta sugerida: manter ao menos 85% no prazo."]
+        ["Priorizar terminal critico", `Atuar no terminal ${topTerminal?.[0] || "-"} e acompanhar plano de correcao dos ${fmt.format(topTerminal?.[1].late || 0)} atrasos.`],
+        ["Tratar medicoes acima de 2 dias", `Acompanhar diariamente ${fmt.format(longClosings)} medicoes fora da faixa ideal, com responsavel e previsao de fechamento.`],
+        ["Escalar casos acima de 4 dias", `${fmt.format(criticalClosings)} fechamentos longos exigem justificativa e prioridade maxima ate regularizar.`],
+        ["Monitorar SLA por filial", `Meta: manter 85% das medicoes fechadas em ate 2 dias; foco inicial na filial ${topBranch?.[0] || "-"}.`]
       ].map(([title,text])=>`<div class="rec-card"><strong>${escapeHtml(title)}</strong><span class="meta">${escapeHtml(text)}</span></div>`).join("");
     }
     function renderTable(data){ $("rows").innerHTML=data.map(r=>`<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`).join("")||'<tr><td colspan="9" class="empty">Sem dados para o filtro.</td></tr>'; }
