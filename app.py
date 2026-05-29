@@ -3563,7 +3563,8 @@ DAILY_REPORT_HTML = """<!doctype html>
       const terminalFilter = $("terminalSelect").value;
       data.forEach((row) => {
         const terminalKey = terminalFilter ? row.terminal : "todos";
-        const key = `${row.data}||${row.placa}||${terminalKey}`;
+        const driverKey = String(row.motorista || "").trim().toUpperCase();
+        const key = `${row.data}||${row.placa}||${driverKey}||${terminalKey}`;
         const current = groups.get(key) || {
           ...row,
           terminal: terminalKey,
@@ -3679,7 +3680,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     }
 
     function observationKey(row) {
-      return [row.data, row.placa, row.terminal || "todos"].join("||");
+      return [row.data, row.placa, row.motorista || "", row.terminal || "todos"].join("||");
     }
 
     async function saveObservations() {

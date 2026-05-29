@@ -232,6 +232,13 @@ def clean_product(description: str) -> str:
     return " ".join(product.split()).strip() or "Sem produto"
 
 
+def invoice_numbers(value: object) -> list[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    return [item.strip() for item in re.split(r"\s+/\s+", text) if item.strip()]
+
+
 def day(value: str) -> str:
     parsed = excel_datetime(value)
     return parsed.strftime("%d/%m/%Y") if parsed else ""
@@ -602,12 +609,13 @@ def ensure_editable_data() -> list[dict[str, object]]:
 
 
 def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]:
-    orders_by_key: Counter[tuple[str, str, str]] = Counter()
-    load_by_key: dict[tuple[str, str, str], float] = defaultdict(float)
-    products_by_key: dict[tuple[str, str, str], Counter[str]] = defaultdict(Counter)
-    notes_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
-    clients_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
-    drivers_by_key: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    report_key = tuple[str, str, str, str]
+    orders_by_key: Counter[report_key] = Counter()
+    load_by_key: dict[report_key, float] = defaultdict(float)
+    products_by_key: dict[report_key, Counter[str]] = defaultdict(Counter)
+    notes_by_key: dict[report_key, set[str]] = defaultdict(set)
+    clients_by_key: dict[report_key, set[str]] = defaultdict(set)
+    drivers_by_key: dict[report_key, set[str]] = defaultdict(set)
     capacities: dict[str, int] = {}
     detail_line_count = 0
 
@@ -615,9 +623,10 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
         terminal = str(row.get("terminal", "")).strip()
         plate = str(row.get("placa", "")).strip().upper()
         date = day(str(row.get("data", "")))
+        driver = str(row.get("motorista1", "")).strip().upper()
         if terminal not in TERMINAL_NAMES or not plate or not date:
             continue
-        key = (date, plate, terminal)
+        key = (date, plate, terminal, driver)
         trips = int(num(str(row.get("viagens", 0))) or 0)
         if trips > orders_by_key.get(key, 0):
             orders_by_key[key] = trips
@@ -630,13 +639,11 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             product = clean_product(str(row.get("produto", ""))) or "SEM PRODUTO"
             products_by_key[key][product] += quantity
             detail_line_count += 1
-        note = str(row.get("notaFiscal", "")).strip()
         client = str(row.get("cliente", "")).strip()
-        if note:
+        for note in invoice_numbers(row.get("notaFiscal", "")):
             notes_by_key[key].add(note)
         if client:
             clients_by_key[key].add(client)
-        driver = str(row.get("motorista1", "")).strip().upper()
         if driver:
             drivers_by_key[key].add(driver)
 
@@ -646,18 +653,20 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             datetime.strptime(item[0], "%d/%m/%Y"),
             item[1],
             item[2],
+            item[3],
         ),
     )
     daily_plate_rows: list[dict[str, object]] = []
-    for date, plate, terminal in all_keys:
-        loaded = load_by_key.get((date, plate, terminal), 0.0)
+    for date, plate, terminal, driver in all_keys:
+        key = (date, plate, terminal, driver)
+        loaded = load_by_key.get(key, 0.0)
         capacity = capacities.get(normalize_plate(plate)) or capacities.get(plate) or 30000
-        trips_from_orders = orders_by_key.get((date, plate, terminal), 0)
+        trips_from_orders = orders_by_key.get(key, 0)
         trips_from_load = math.ceil(loaded / capacity) if loaded else 0
         trips = max(trips_from_orders, trips_from_load)
         products = [
             {"produto": product, "quantidade": qty}
-            for product, qty in products_by_key.get((date, plate, terminal), Counter()).most_common()
+            for product, qty in products_by_key.get(key, Counter()).most_common()
         ]
         daily_plate_rows.append(
             {
@@ -670,9 +679,9 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
                 "viagensCarga": trips_from_load,
                 "capacidade": capacity,
                 "quantidade": loaded,
-                "notas": len(notes_by_key.get((date, plate, terminal), set())),
-                "clientes": len(clients_by_key.get((date, plate, terminal), set())),
-                "motorista": " / ".join(sorted(drivers_by_key.get((date, plate, terminal), set()))),
+                "notas": len(notes_by_key.get(key, set())),
+                "clientes": len(clients_by_key.get(key, set())),
+                "motorista": " / ".join(sorted(drivers_by_key.get(key, set()))),
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"
@@ -745,8 +754,8 @@ def build_data() -> dict[str, object]:
         product = clean_product(row[dh["product"]])
         load_by_key[key] += quantity
         products_by_key[key][product] += quantity
-        if row[dh["nf"]].strip():
-            notes_by_key[key].add(row[dh["nf"]].strip())
+        for note in invoice_numbers(row[dh["nf"]]):
+            notes_by_key[key].add(note)
         if row[dh["client"]].strip():
             clients_by_key[key].add(row[dh["client"]].strip())
         detail_line_count += 1
