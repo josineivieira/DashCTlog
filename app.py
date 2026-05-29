@@ -82,6 +82,13 @@ def clean_username(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "", value.strip())
 
 
+def display_user_name(value: str) -> str:
+    text = str(value or "").strip()
+    text = re.sub(r"[_\.-]+", " ", text)
+    text = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def load_user_records() -> list[dict[str, object]]:
     if build_dashboard.use_postgres():
         return postgres_user_records()
@@ -6789,6 +6796,7 @@ class Handler(BaseHTTPRequestHandler):
         display_name = str(user_record.get("name", "")).strip() if user_record else ""
         if not display_name:
             display_name = username or "usuario"
+        display_name = display_user_name(display_name)
         user_link = ""
         user_card = ""
         module_count = str(sum(1 for key in visible_modules if key in allowed))
