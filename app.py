@@ -4265,12 +4265,14 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         const lateH = item.late / max * plotH;
         const bx = x(idx) - barW / 2;
         const base = pad.top + plotH;
-        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${Math.max(16,base-okH-lateH-7)}" text-anchor="middle" fill="#16212d" font-size="13" font-weight="900">${fmt.format(item.total)}</text><text x="${x(idx)}" y="${height-28}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text><text x="${x(idx)}" y="${height-12}" text-anchor="middle" fill="#657282" font-size="10">clique</text></g>`;
+        const okLabel = item.ok && okH >= 24 ? `<text x="${x(idx)}" y="${base-okH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.ok)}</text>` : "";
+        const lateLabel = item.late && lateH >= 24 ? `<text x="${x(idx)}" y="${base-okH-lateH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.late)}</text>` : "";
+        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}<text x="${x(idx)}" y="${height-28}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text><text x="${x(idx)}" y="${height-12}" text-anchor="middle" fill="#657282" font-size="10">clique</text></g>`;
       }).join("");
       $("evolutionChart").innerHTML = `<svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
-        <text x="${pad.left}" y="16" fill="#657282" font-size="12">Verde: no prazo / Vermelho: fora do prazo</text>
+        <text x="${pad.left}" y="16" fill="#657282" font-size="12">Valores dentro da barra: no prazo (verde) e fora do prazo (vermelho)</text>
       </svg>`;
       $("evolutionChart").querySelectorAll("[data-evolution-idx]").forEach((node) => node.addEventListener("click", () => {
         const [date, item] = stats[Number(node.dataset.evolutionIdx)];
