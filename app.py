@@ -4068,7 +4068,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
-    .chart-wrap svg { width:100%; height:auto; display:block; }
+    .chart-wrap { overflow-x:auto; overflow-y:hidden; padding-bottom:6px; }
+    .chart-wrap svg { width:auto; max-width:none; height:auto; display:block; }
     .detail-trigger { cursor:pointer; }
     .detail-trigger:hover { filter:brightness(.96); outline:2px solid rgba(43,132,203,.28); outline-offset:2px; }
     .rank-list, .alert-list, .recommendations { display:grid; gap:12px; }
@@ -4227,20 +4228,20 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function renderEvolution(data){
       const stats = dailyStats(data).slice(-31);
       if (!stats.length) { $("evolutionChart").innerHTML = '<div class="empty">Sem dados para o filtro.</div>'; return; }
-      const width = 760, height = 300, pad = { left: 42, right: 38, top: 26, bottom: 36 };
+      const width = Math.max(760, stats.length * 48 + 92), height = 330, pad = { left: 50, right: 42, top: 30, bottom: 58 };
       const plotW = width - pad.left - pad.right, plotH = height - pad.top - pad.bottom;
       const max = Math.max(1, ...stats.map(([, item]) => item.total));
       const x = (idx) => pad.left + (stats.length === 1 ? plotW / 2 : idx * (plotW / (stats.length - 1)));
       const barArea = plotW / Math.max(1, stats.length);
       const bars = stats.map(([date, item], idx) => {
-        const barW = Math.max(12, Math.min(26, barArea * .58));
+        const barW = Math.max(18, Math.min(34, barArea * .64));
         const okH = item.ok / max * plotH;
         const lateH = item.late / max * plotH;
         const bx = x(idx) - barW / 2;
         const base = pad.top + plotH;
-        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${Math.max(14,base-okH-lateH-6)}" text-anchor="middle" fill="#16212d" font-size="12" font-weight="900">${fmt.format(item.total)}</text><text x="${x(idx)}" y="${height-10}" text-anchor="middle" fill="#657282" font-size="10">${date.slice(0,5)}</text></g>`;
+        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect><text x="${x(idx)}" y="${Math.max(16,base-okH-lateH-7)}" text-anchor="middle" fill="#16212d" font-size="13" font-weight="900">${fmt.format(item.total)}</text><text x="${x(idx)}" y="${height-28}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text><text x="${x(idx)}" y="${height-12}" text-anchor="middle" fill="#657282" font-size="10">clique</text></g>`;
       }).join("");
-      $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
+      $("evolutionChart").innerHTML = `<svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
         <text x="${pad.left}" y="16" fill="#657282" font-size="12">Verde: no prazo / Vermelho: fora do prazo</text>
