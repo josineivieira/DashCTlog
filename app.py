@@ -4165,6 +4165,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     const $ = (id) => document.getElementById(id);
     function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
     function parseBrDate(value) { const [d,m,y]=String(value||"").split("/").map(Number); return d&&m&&y ? new Date(y,m-1,d) : null; }
+    function parseBrDateTime(value) { const [datePart,timePart="00:00"]=String(value||"").split(" "); const [d,m,y]=datePart.split("/").map(Number); const [hh=0,mm=0]=timePart.split(":").map(Number); return d&&m&&y ? new Date(y,m-1,d,hh||0,mm||0) : null; }
     function isoDate(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
     function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
     function endOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23,59,59,999); }
@@ -4254,10 +4255,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const buckets = ["08h","10h","12h","14h","16h","18h"];
       const map = new Map();
       data.forEach((row) => {
-        const date = parseBrDate(row.medicao);
+        const date = parseBrDateTime(row.fechamento) || parseBrDate(row.medicao);
         if (!date) return;
         const day = (date.getDay() + 6) % 7;
-        const bucket = Math.min(5, Math.floor(Math.max(8, Math.min(19, Number(row.horasFechamento || 0) % 24)) / 2) - 4);
+        const hour = date.getHours();
+        const bucket = Math.min(5, Math.max(0, Math.floor(Math.max(8, Math.min(19, hour)) / 2) - 4));
         const key = `${day}-${bucket}`;
         const item = map.get(key) || { total: 0, late: 0 };
         item.total++;
@@ -4268,16 +4270,18 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     }
     function renderReasons(data){
       const late = data.filter(r=>r.status==="late");
-      const after18 = late.filter(r=>Number(r.horasFora)>18).length;
-      const after24 = late.filter(r=>Number(r.horasFora)>24).length;
-      const terminal = grouped(late,"terminal")[0]?.[1]?.late || 0;
-      const process = Math.max(0, late.length - after18 - terminal);
+      const topTerminal = grouped(late,"terminal")[0]?.[0] || "";
+      const terminal = late.filter(r=>topTerminal && r.terminal===topTerminal).length;
+      const remaining = late.filter(r=>!topTerminal || r.terminal!==topTerminal);
+      const after24 = remaining.filter(r=>Number(r.horasFora)>24).length;
+      const after18 = remaining.filter(r=>Number(r.horasFora)>18 && Number(r.horasFora)<=24).length;
+      const process = Math.max(0, late.length - terminal - after24 - after18);
       const total = Math.max(1, late.length);
       const a = terminal / total * 360;
-      const b = a + after18 / total * 360;
+      const b = a + after24 / total * 360;
       const c = b + process / total * 360;
       $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(late.length)}</strong><span>Total</span></div></div><div class="reason-list">
-        ${[["Terminal critico", terminal, "#f2384e"],["Atraso apos 18h", after18, "#fb6b2a"],["Processo/Sistema", process, "#fbbf24"],["Acima de 24h", after24, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
+        ${[["Terminal critico", terminal, "#f2384e"],["Acima de 24h", after24, "#fb6b2a"],["Processo/Sistema", process, "#fbbf24"],["Atraso 18h a 24h", after18, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
       </div></div>`;
     }
     function renderExecutive(data, ok, late){
