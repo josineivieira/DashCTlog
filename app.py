@@ -2417,6 +2417,86 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       font-weight: 800;
       background: #fff;
     }
+    .multi-filter {
+      position: relative;
+      min-width: 210px;
+    }
+    .multi-filter summary {
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 9px;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 900;
+      cursor: pointer;
+      list-style: none;
+    }
+    .multi-filter summary::-webkit-details-marker { display: none; }
+    .multi-filter summary::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      opacity: .8;
+      flex: 0 0 auto;
+    }
+    .multi-filter[open] summary::after {
+      transform: rotate(225deg) translateY(-1px);
+    }
+    .multi-filter-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 10;
+      width: min(320px, 88vw);
+      max-height: 300px;
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 18px 38px rgba(23,32,51,.18);
+    }
+    .multi-filter-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #edf1f5;
+      margin-bottom: 6px;
+    }
+    .multi-filter-clear {
+      min-height: 28px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .multi-filter-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 4px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .multi-filter-option input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+    }
     .custom-date-filter {
       display: none;
       gap: 6px;
@@ -2571,6 +2651,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
             <input id="dateFromFilter" type="date" title="Data inicial">
             <input id="dateToFilter" type="date" title="Data final">
           </span>
+          <details class="multi-filter" id="driverMultiFilter">
+            <summary><span id="driverFilterLabel">Motoristas</span></summary>
+            <div class="multi-filter-panel">
+              <div class="multi-filter-actions"><button type="button" class="multi-filter-clear" id="clearDriverFilter">Limpar</button></div>
+              <div id="driverFilterOptions"></div>
+            </div>
+          </details>
           <input id="searchFilter" type="search" placeholder="Buscar motorista">
           <select id="statusFilter">
             <option value="">Todos os status</option>
@@ -2606,6 +2693,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     let rows = __ROWS__;
     const conductors = __CONDUCTORS__;
     let editMode = false;
+    let selectedDriverFilters = new Set();
     const $ = (id) => document.getElementById(id);
     function dismissToast(element, delay = 4200) {
       if (!element) return;
@@ -2754,6 +2842,24 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const values = [...new Set(["", ...conductorNames, current].map((value) => String(value || "").trim()).filter((value, idx) => idx === 0 || value))];
       return values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value || "-")}</option>`).join("");
     }
+    function driverFilterKey(value) {
+      return String(value || "").trim().toUpperCase();
+    }
+    function availableDriverNames() {
+      return [...new Set([
+        ...rows.map((row) => cleanRow(row).motorista),
+        ...conductors.map((item) => typeof item === "string" ? item : (item.nome || item.motorista || ""))
+      ].map((value) => String(value || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
+    function updateDriverFilterOptions() {
+      const names = availableDriverNames();
+      $("driverFilterOptions").innerHTML = names.length ? names.map((name) => {
+        const key = driverFilterKey(name);
+        return `<label class="multi-filter-option"><input type="checkbox" value="${escapeAttr(key)}" ${selectedDriverFilters.has(key) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>`;
+      }).join("") : '<div class="multi-filter-option">Sem motoristas</div>';
+      $("driverFilterLabel").textContent = selectedDriverFilters.size ? `${selectedDriverFilters.size} motorista${selectedDriverFilters.size > 1 ? "s" : ""}` : "Motoristas";
+    }
     function statusClass(status) {
       const normalized = String(status).toLowerCase();
       if (normalized.includes("finalizado")) return "status-finalizado";
@@ -2831,6 +2937,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const freight = $("freightFilter").value;
       return rows.map((row, index) => ({ row: cleanRow(row), index })).filter(({ row }) => {
         return (!query || row.motorista.toLowerCase().includes(query))
+          && (!selectedDriverFilters.size || selectedDriverFilters.has(driverFilterKey(row.motorista)))
           && (!status || row.status === status)
           && (!freight || row.tipoFrete === freight)
           && matchesDateRange(row);
@@ -2877,6 +2984,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         </tr>
       `).join("");
       renderCounters();
+      updateDriverFilterOptions();
       updateEditModeButton();
     }
     function syncFromTableIfReady() {
@@ -2971,6 +3079,19 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       rows = rows.filter((_, index) => !remove.has(index));
       render();
       $("ctForm").requestSubmit();
+    });
+    $("driverFilterOptions").addEventListener("change", (event) => {
+      if (event.target?.type !== "checkbox") return;
+      if (event.target.checked) {
+        selectedDriverFilters.add(event.target.value);
+      } else {
+        selectedDriverFilters.delete(event.target.value);
+      }
+      render();
+    });
+    $("clearDriverFilter").addEventListener("click", () => {
+      selectedDriverFilters.clear();
+      render();
     });
     $("selectAll").addEventListener("change", (event) => {
       document.querySelectorAll("#rows input[type='checkbox']").forEach((input) => input.checked = event.target.checked);
