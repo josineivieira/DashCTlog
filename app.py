@@ -4081,8 +4081,10 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .mini-progress { width:74px; height:12px; border-radius:999px; background:#e8eef5; overflow:hidden; display:inline-flex; vertical-align:middle; }
     .mini-progress span { display:block; background:var(--red); }
     .mini-progress.ok span { background:var(--green); }
+    .heatmap-note { margin-bottom:8px; color:var(--muted); font-size:12px; font-weight:850; }
     .heatmap { display:grid; grid-template-columns:42px repeat(6,1fr); gap:5px; align-items:center; font-size:12px; }
-    .heat-cell { min-height:28px; border-radius:4px; background:#e8eef5; display:grid; place-items:center; color:#16212d; font-weight:900; }
+    .heat-cell { min-height:42px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
+    .heat-cell small { margin-top:3px; font-size:10px; font-weight:950; color:rgba(22,33,45,.78); }
     .reason-layout { display:grid; grid-template-columns:170px 1fr; gap:18px; align-items:center; }
     .reason-donut { width:150px; height:150px; border-radius:50%; background:conic-gradient(var(--red) 0deg, var(--red) var(--reasonA), #fb6b2a var(--reasonA), #fb6b2a var(--reasonB), #fbbf24 var(--reasonB), #fbbf24 var(--reasonC), var(--green) var(--reasonC), var(--green) 360deg); position:relative; display:grid; place-items:center; }
     .reason-donut::before { content:""; width:94px; height:94px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
@@ -4146,8 +4148,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       </div>
       <div class="lower-grid">
         <section class="panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
-        <section class="panel"><h2>Distribuicao por Horario</h2><div class="panel-body"><div id="heatmapPanel" class="heatmap"></div></div></section>
-        <section class="panel"><h2>Motivos de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total de fechamentos por horario; abaixo, quantos ficaram fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
+        <section class="panel"><h2>Faixas de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
       </div>
       <section class="panel executive"><div><div class="exec-title"><span class="exec-icon">OK</span>Resumo Executivo</div><p id="executiveText" class="meta"></p></div><div><div class="exec-title">Recomendacoes</div><div id="recommendations" class="recommendations"></div></div></section>
     </section>
@@ -4266,22 +4268,20 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         if (row.status === "late") item.late++;
         map.set(key, item);
       });
-      $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((_, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0 }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; return `<span class="heat-cell" style="background:hsl(${hue} 76% 52%)">${item.total || ""}</span>`; }).join("")}`).join("")}`;
+      $("heatmapPanel").innerHTML = `<span></span>${buckets.map(b=>`<strong>${b}</strong>`).join("")}${days.map((day, d) => `<strong>${day}</strong>${buckets.map((bucketLabel, b) => { const item = map.get(`${d}-${b}`) || { total:0, late:0 }; const ratio = item.total ? item.late / item.total : 0; const hue = 145 - ratio * 145; const detail = `${day} ${bucketLabel}: ${fmt.format(item.total)} fechamentos, ${fmt.format(item.late)} fora do prazo`; return item.total ? `<span class="heat-cell" title="${detail}" style="background:hsl(${hue} 76% 52%)"><strong>${fmt.format(item.total)}</strong><small>${fmt.format(item.late)} fora</small></span>` : `<span class="heat-cell" title="${detail}"></span>`; }).join("")}`).join("")}`;
     }
     function renderReasons(data){
       const late = data.filter(r=>r.status==="late");
-      const topTerminal = grouped(late,"terminal")[0]?.[0] || "";
-      const terminal = late.filter(r=>topTerminal && r.terminal===topTerminal).length;
-      const remaining = late.filter(r=>!topTerminal || r.terminal!==topTerminal);
-      const after24 = remaining.filter(r=>Number(r.horasFora)>24).length;
-      const after18 = remaining.filter(r=>Number(r.horasFora)>18 && Number(r.horasFora)<=24).length;
-      const process = Math.max(0, late.length - terminal - after24 - after18);
+      const until2 = late.filter(r=>Number(r.horasFora)<=48).length;
+      const days3to4 = late.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=96).length;
+      const days5to6 = late.filter(r=>Number(r.horasFora)>96 && Number(r.horasFora)<=144).length;
+      const days7plus = late.filter(r=>Number(r.horasFora)>144).length;
       const total = Math.max(1, late.length);
-      const a = terminal / total * 360;
-      const b = a + after24 / total * 360;
-      const c = b + process / total * 360;
+      const a = days7plus / total * 360;
+      const b = a + days5to6 / total * 360;
+      const c = b + days3to4 / total * 360;
       $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(late.length)}</strong><span>Total</span></div></div><div class="reason-list">
-        ${[["Terminal critico", terminal, "#f2384e"],["Acima de 24h", after24, "#fb6b2a"],["Processo/Sistema", process, "#fbbf24"],["Atraso 18h a 24h", after18, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
+        ${[["Atraso 7+ dias", days7plus, "#f2384e"],["Atraso 5 a 6 dias", days5to6, "#fb6b2a"],["Atraso 3 a 4 dias", days3to4, "#fbbf24"],["Ate 2 dias", until2, "#16b26f"]].map(([label,value,color])=>`<div class="reason-row"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(value)}</strong></div>`).join("")}
       </div></div>`;
     }
     function renderExecutive(data, ok, late){
