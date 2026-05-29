@@ -5416,13 +5416,77 @@ def import_key(row: dict[str, object]) -> tuple[str, ...]:
     )
 
 
-def merge_import_rows(current_rows: list[dict[str, object]], imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
-    merged: list[dict[str, object]] = []
-    index: dict[tuple[str, ...], int] = {}
-    for row in [*current_rows, *imported_rows]:
+def import_group_key(row: dict[str, object]) -> tuple[str, str, str, str]:
+    return (
+        str(row.get("data", "")).strip(),
+        str(row.get("terminal", "")).strip(),
+        str(row.get("placa", "")).strip().upper(),
+        str(row.get("motorista1", "")).strip().upper(),
+    )
+
+
+def unique_join(values: list[object]) -> str:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        normalized = normalize_header(text)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        output.append(text)
+    return " / ".join(output)
+
+
+def collapse_import_rows(imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    grouped: dict[tuple[str, str, str, str], dict[str, object]] = {}
+    grouped_rows: dict[tuple[str, str, str, str], list[dict[str, object]]] = {}
+    for row in imported_rows:
         if is_return_row(row):
             continue
+        key = import_group_key(row)
+        grouped_rows.setdefault(key, []).append(row)
+        if key not in grouped:
+            grouped[key] = dict(row)
+
+    collapsed: list[dict[str, object]] = []
+    for key, rows in grouped_rows.items():
+        row = dict(grouped[key])
+        row["quantidade"] = sum(build_dashboard.num(str(item.get("quantidade", 0))) for item in rows)
+
+        trips = [int(build_dashboard.num(str(item.get("viagens", 0))) or 0) for item in rows]
+        row["viagens"] = max(trips) if any(trips) else ""
+
+        for field in ("notaFiscal", "produto", "cliente", "municipioDestino", "cfopDescricao"):
+            row[field] = unique_join([item.get(field, "") for item in rows])
+
+        capacity_values = [str(item.get("capacidade", "")).strip() for item in rows if str(item.get("capacidade", "")).strip()]
+        if capacity_values:
+            row["capacidade"] = capacity_values[0]
+        collapsed.append(row)
+    return collapsed
+
+
+def merge_import_rows(current_rows: list[dict[str, object]], imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    collapsed_imports = collapse_import_rows(imported_rows)
+    imported_keys = {import_group_key(row) for row in collapsed_imports}
+    merged: list[dict[str, object]] = []
+    index: dict[tuple[str, ...], int] = {}
+    for row in current_rows:
+        if is_return_row(row):
+            continue
+        if import_group_key(row) in imported_keys:
+            continue
         key = import_key(row)
+        if key in index:
+            merged[index[key]] = dict(row)
+        else:
+            index[key] = len(merged)
+            merged.append(dict(row))
+    for row in collapsed_imports:
+        key = import_group_key(row)
         if key in index:
             merged[index[key]] = dict(row)
         else:
