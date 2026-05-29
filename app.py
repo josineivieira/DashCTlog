@@ -2469,6 +2469,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       color: #243041;
       opacity: 1;
     }
+    select.cell:disabled {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: none;
+      padding-right: 7px;
+    }
+    select.cell:disabled::-ms-expand { display: none; }
     body.editing-ct input.cell,
     body.editing-ct select.cell {
       background: #fffdf1;
@@ -2827,7 +2834,18 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           && (!status || row.status === status)
           && (!freight || row.tipoFrete === freight)
           && matchesDateRange(row);
+      }).sort((a, b) => {
+        const aDone = a.row.status === "Finalizado";
+        const bDone = b.row.status === "Finalizado";
+        if (aDone !== bDone) return aDone ? 1 : -1;
+        if (aDone && bDone) return a.index - b.index;
+        return arrivalSortValue(a.row) - arrivalSortValue(b.row);
       });
+    }
+    function arrivalSortValue(row) {
+      const value = toDateTimeInput(row.chegada);
+      const time = value ? new Date(value).getTime() : 0;
+      return Number.isFinite(time) && time > 0 ? time : Number.POSITIVE_INFINITY;
     }
     function renderCounters() {
       const active = visibleRows().map(({ row }) => row);
