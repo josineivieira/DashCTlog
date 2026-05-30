@@ -4389,6 +4389,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     const fmt = new Intl.NumberFormat("pt-BR");
     const $ = (id) => document.getElementById(id);
     function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function escapeAttr(value) { return escapeHtml(value).replace(/"/g, "&quot;"); }
     function parseBrDate(value) { const [d,m,y]=String(value||"").split("/").map(Number); return d&&m&&y ? new Date(y,m-1,d) : null; }
     function parseBrDateTime(value) { const [datePart,timePart="00:00"]=String(value||"").split(" "); const [d,m,y]=datePart.split("/").map(Number); const [hh=0,mm=0]=timePart.split(":").map(Number); return d&&m&&y ? new Date(y,m-1,d,hh||0,mm||0) : null; }
     function isoDate(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
