@@ -3833,6 +3833,13 @@ DAILY_REPORT_HTML = """<!doctype html>
       `).join("");
     }
 
+    function needsObservation(row) {
+      const trips = Number(row.viagens) || 0;
+      const capacity = Number(row.capacidade) || 0;
+      const qty = Number(row.quantidade) || 0;
+      return trips < 2 || (trips > 1 && capacity > 0 && qty < capacity * trips);
+    }
+
     function renderTable(data) {
       const detailData = groupedRowsByPlate(data);
       if (!detailData.length) {
@@ -3844,7 +3851,7 @@ DAILY_REPORT_HTML = """<!doctype html>
         .sort((a, b) => parseDate(b.data) - parseDate(a.data) || b.viagens - a.viagens || b.quantidade - a.quantidade || a.placa.localeCompare(b.placa))
         .map((row) => {
           const key = observationKey(row);
-          const needsNote = row.viagens < 2;
+          const needsNote = needsObservation(row);
           const note = observations[key] || "";
           return `
           <tr class="${needsNote && !note ? "needs-note" : ""}">
@@ -3983,7 +3990,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       const observationWidth = 320;
       const rowMetrics = report.detailData.map((row) => {
         const driverLines = wrapText(ctx, row.motorista || "-", 210).slice(0, 2);
-        const note = observations[observationKey(row)] || (row.viagens < 2 ? "Sem observacao informada" : "-");
+        const note = observations[observationKey(row)] || (needsObservation(row) ? "Sem observacao informada" : "-");
         const noteLines = wrapText(ctx, note, observationWidth).slice(0, 3);
         return {
           row,
@@ -4613,7 +4620,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Relatorio de entrada de notas - Dashboard</title>
+  <title>Relatorio de entrada de NF de Armazenagem - Dashboard</title>
   <style>
     :root { --bg:#eef2f5; --top:#34104f; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --shadow:0 18px 42px rgba(23,32,51,.10); }
     * { box-sizing: border-box; }
@@ -4748,6 +4755,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     .share-actions button.secondary { background:#f3f6f8; border-color:var(--line); color:var(--ink); }
     .canvas-wrap { padding:18px; background:linear-gradient(90deg, rgba(52,16,79,.06), rgba(43,132,203,.07)), #f8fafb; overflow:auto; }
     #noteShareCanvas { display:block; width:min(100%,760px); height:auto; margin:0 auto; border-radius:8px; box-shadow:0 18px 42px rgba(23,32,51,.18); background:#fff; }
+    .table-actions { padding:14px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; border-bottom:1px solid var(--line); }
+    .table-actions button { background:var(--purple); border-color:transparent; color:#fff; }
+    .table-actions button.secondary { background:#f3f6f8; border-color:var(--line); color:var(--ink); }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .branch-grid { grid-template-columns:repeat(2,minmax(260px,1fr)); } }
     @media (max-width:900px) { .topbar { flex-direction:column; } .kpis, .branch-grid, .status-card, .drill-item { grid-template-columns:1fr; } .nav { justify-content:flex-start; } .branch-main { grid-template-columns:1fr; } }
@@ -4757,8 +4767,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <header>
     <div class="topbar">
       <div>
-        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de notas</h1></div>
-        <p class="subtitle">Acompanhamento da entrada de notas fiscais.</p>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de NF de Armazenagem</h1></div>
+        <p class="subtitle">Acompanhamento da entrada de NF de armazenagem.</p>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
@@ -4822,22 +4832,25 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
           <button type="submit">Importar notas</button>
         </form>
       </section>
-      <div class="panel">
+      <form class="panel" method="post" action="/relatorio-entrada-notas" id="noteDataForm">
+        <input type="hidden" name="rows_json" id="noteRowsJson">
+        <div class="table-actions"><button type="button" class="secondary" id="deleteNoteRows">Excluir selecionados</button><button type="submit">Salvar alteracoes</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nota fiscal</th><th>Cidade</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="selectAllNotes" aria-label="Selecionar todas"></th><th>Nota fiscal</th><th>Cidade</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
-      </div>
+      </form>
     </section>
   </main>
   <script>
-    const rows = __ROWS__;
+    let rows = __ROWS__;
     const fmt = new Intl.NumberFormat("pt-BR");
     const $ = (id) => document.getElementById(id);
     let activeDrilldown = null;
     function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function escapeAttr(value) { return escapeHtml(value).replace(/"/g, "&quot;"); }
     function parseBrDate(value) {
       const [day, month, year] = String(value || "").split("/").map(Number);
       if (!day || !month || !year) return null;
@@ -4856,6 +4869,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     function sortByEmission(items) {
       return items.slice().sort((a, b) => emissionSortValue(a) - emissionSortValue(b) || String(a.nota).localeCompare(String(b.nota), "pt-BR", { numeric: true }));
     }
+    function noteKey(row) { return String(row.nota || "").trim(); }
     function isoDate(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -5213,7 +5227,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       if (!blob) return downloadNoteImage();
       const file = new File([blob], "relatorio-entrada-notas.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Relatorio de entrada de notas" });
+        await navigator.share({ files: [file], title: "Relatorio de entrada de NF de Armazenagem" });
       } else {
         await downloadNoteImage();
       }
@@ -5367,13 +5381,15 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       renderDrilldown(data);
       drawNoteShareImage();
       $("rows").innerHTML = data.length ? data.map((row) => `
-        <tr>
+        <tr data-key="${escapeAttr(noteKey(row))}">
+          <td><input type="checkbox" class="note-select" aria-label="Selecionar nota"></td>
           <td>${escapeHtml(row.nota)}</td><td>${escapeHtml(row.cidade || "Sem cidade")}</td><td>${escapeHtml(row.emissao)}</td><td>${escapeHtml(row.entrada)}</td><td>${escapeHtml(row.prazo)}</td>
           <td><span class="badge ${row.status === "ok" ? "ok" : "bad"}">${row.status === "ok" ? "No prazo" : "Fora do prazo"}</span></td>
           <td class="num">${durationLabel(Number(row.horasEntrada))}</td>
           <td class="num">${row.horasFora ? fmt.format(row.horasFora) : "-"}</td>
         </tr>
-      `).join("") : '<tr><td class="empty" colspan="8">Sem dados para os filtros atuais.</td></tr>';
+      `).join("") : '<tr><td class="empty" colspan="9">Sem dados para os filtros atuais.</td></tr>';
+      $("selectAllNotes").checked = false;
     }
     const today = new Date();
     $("dateStartFilter").value = isoDate(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -5394,6 +5410,16 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     }
     $("noteDownloadImage").addEventListener("click", downloadNoteImage);
     $("noteShareImage").addEventListener("click", shareNoteImage);
+    $("selectAllNotes").addEventListener("change", (event) => { document.querySelectorAll(".note-select").forEach((input) => input.checked = event.target.checked); });
+    $("deleteNoteRows").addEventListener("click", () => {
+      const selected = new Set([...document.querySelectorAll("#rows tr")].filter((tr) => tr.querySelector(".note-select")?.checked).map((tr) => tr.dataset.key));
+      if (!selected.size) return;
+      rows = rows.filter((row) => !selected.has(noteKey(row)));
+      activeDrilldown = null;
+      $("cityFilter").innerHTML = ['<option value="">Todas</option>', ...[...new Set(rows.map((row) => row.cidade).filter(Boolean))].sort().map((city) => `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`)].join("");
+      render();
+    });
+    $("noteDataForm").addEventListener("submit", () => { $("noteRowsJson").value = JSON.stringify(rows); });
     document.querySelectorAll("[data-tab]").forEach((button) => button.addEventListener("click", () => {
       document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
       document.querySelectorAll(".tab-view").forEach((view) => view.hidden = view.id !== button.dataset.tab);
@@ -6498,6 +6524,37 @@ def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
                 )
 
 
+def replace_note_entry_rows(rows: list[dict[str, str]]) -> None:
+    if not build_dashboard.use_postgres():
+        raise RuntimeError("Banco de dados nao configurado para salvar entrada de notas.")
+    ensure_postgres_note_entry_table()
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE entrada_notas RESTART IDENTITY")
+            for idx, row in enumerate(rows, start=1):
+                cur.execute(
+                    """
+                    INSERT INTO entrada_notas (row_order, nota_fiscal, cidade, emissao_iso, entrada_iso)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (idx, row["nota"], row.get("cidade", ""), row["emissao_iso"], row["entrada_iso"]),
+                )
+
+
+def clean_note_entry_saved_row(row: dict[str, object]) -> dict[str, str] | None:
+    note = str(row.get("nota", "") or "").strip()
+    emissao = parse_note_entry_datetime(row.get("emissao_iso", "") or row.get("emissao", ""))
+    entrada = parse_note_entry_datetime(row.get("entrada_iso", "") or row.get("entrada", ""))
+    if not note or not emissao or not entrada:
+        return None
+    return {
+        "nota": note,
+        "cidade": str(row.get("cidade", "") or "").strip(),
+        "emissao_iso": emissao.isoformat(timespec="minutes"),
+        "entrada_iso": entrada.isoformat(timespec="minutes"),
+    }
+
+
 def note_entry_rows() -> list[dict[str, object]]:
     if not build_dashboard.use_postgres():
         return []
@@ -7532,6 +7589,29 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.audit("salvar_observacoes", "relatorio_diario", {"observacoes": len(observations)})
             self.send_bytes(json.dumps({"ok": True}).encode("utf-8"), "application/json; charset=utf-8")
+            return
+
+        if parsed.path == "/relatorio-entrada-notas":
+            if not self.require_permission("entrada_notas"):
+                return
+            try:
+                params = self.body_params()
+                payload = params.get("rows_json", ["[]"])[0]
+                raw_rows = json.loads(payload or "[]")
+                if not isinstance(raw_rows, list):
+                    raise ValueError("Dados de notas invalidos")
+                cleaned_rows = [
+                    item
+                    for item in (clean_note_entry_saved_row(row) for row in raw_rows if isinstance(row, dict))
+                    if item
+                ]
+                replace_note_entry_rows(cleaned_rows)
+            except Exception as exc:
+                self.audit("salvar_notas_falha", "entrada_notas", {"erro": str(exc)}, ok=False)
+                self.redirect("/relatorio-entrada-notas?erro=" + quote(str(exc)))
+                return
+            self.audit("salvar_notas", "entrada_notas", {"notas": len(cleaned_rows)})
+            self.redirect("/relatorio-entrada-notas?ok=1")
             return
 
         if parsed.path == "/relatorio-entrada-notas/importar":
