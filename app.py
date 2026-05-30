@@ -832,7 +832,7 @@ HOME_HTML = """<!doctype html>
             <span>Notas</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg></div>
             <strong>Entrada de notas</strong>
-            <p>Confira se as notas fiscais foram dadas entrada dentro do prazo de 48 horas.</p>
+            <p>Confira se as notas fiscais foram dadas entrada no prazo de 2 dias, sem domingo e feriados.</p>
             <div class="button">Abrir relatorio</div>
           </a>
           <a class="card" href="/controle-medicao">
@@ -6357,8 +6357,55 @@ def parse_note_entry_datetime(value: object) -> dt.datetime | None:
     return None
 
 
+def easter_date(year: int) -> dt.date:
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return dt.date(year, month, day)
+
+
+def note_entry_holidays(year: int) -> set[dt.date]:
+    easter = easter_date(year)
+    return {
+        dt.date(year, 1, 1),
+        easter - dt.timedelta(days=48),
+        easter - dt.timedelta(days=47),
+        easter - dt.timedelta(days=2),
+        dt.date(year, 4, 21),
+        dt.date(year, 5, 1),
+        easter + dt.timedelta(days=60),
+        dt.date(year, 9, 7),
+        dt.date(year, 10, 12),
+        dt.date(year, 11, 2),
+        dt.date(year, 11, 15),
+        dt.date(year, 11, 20),
+        dt.date(year, 12, 25),
+    }
+
+
+def is_note_entry_non_working_day(value: dt.date) -> bool:
+    return value.weekday() == 6 or value in note_entry_holidays(value.year)
+
+
 def note_entry_deadline(emissao: dt.datetime) -> dt.datetime:
-    deadline_date = emissao.date() + dt.timedelta(days=2)
+    deadline_date = emissao.date()
+    counted_days = 0
+    while counted_days < 2:
+        deadline_date += dt.timedelta(days=1)
+        if is_note_entry_non_working_day(deadline_date):
+            continue
+        counted_days += 1
     return dt.datetime.combine(deadline_date, dt.time.max).replace(microsecond=0)
 
 
