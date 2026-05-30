@@ -616,6 +616,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
     notes_by_key: dict[report_key, set[str]] = defaultdict(set)
     clients_by_key: dict[report_key, set[str]] = defaultdict(set)
     drivers_by_key: dict[report_key, set[str]] = defaultdict(set)
+    municipalities_by_key: dict[report_key, set[str]] = defaultdict(set)
     capacities: dict[str, int] = {}
     detail_line_count = 0
 
@@ -646,6 +647,9 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             clients_by_key[key].add(client)
         if driver:
             drivers_by_key[key].add(driver)
+        municipality = str(row.get("municipioDestino", "")).strip()
+        if municipality:
+            municipalities_by_key[key].add(municipality)
 
     all_keys = sorted(
         set(orders_by_key) | set(load_by_key),
@@ -682,6 +686,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
                 "notas": len(notes_by_key.get(key, set())),
                 "clientes": len(clients_by_key.get(key, set())),
                 "motorista": " / ".join(sorted(drivers_by_key.get(key, set()))),
+                "municipioDestino": " / ".join(sorted(municipalities_by_key.get(key, set()))),
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"
@@ -796,6 +801,7 @@ def build_data() -> dict[str, object]:
                 "notas": len(notes_by_key.get((date, plate, terminal), set())),
                 "clientes": len(clients_by_key.get((date, plate, terminal), set())),
                 "motorista": "",
+                "municipioDestino": "",
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"

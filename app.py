@@ -3547,7 +3547,6 @@ DAILY_REPORT_HTML = """<!doctype html>
                 <th class="num">Capacidade</th>
                 <th class="num">Volume</th>
                 <th class="num">Notas</th>
-                <th>Produtos</th>
                 <th>Observacao</th>
               </tr>
             </thead>
@@ -3693,7 +3692,12 @@ DAILY_REPORT_HTML = """<!doctype html>
     function filteredRows() {
       const terminal = $("terminalSelect").value;
       const municipio = $("municipioSelect").value;
-      return rows.filter((row) => matchesDateRange(row) && (!terminal || row.terminal === terminal) && (!municipio || row.municipioDestino === municipio));
+      return rows.filter((row) => {
+        const municipios = String(row.municipioDestino || "").split("/").map((name) => name.trim()).filter(Boolean);
+        return matchesDateRange(row)
+          && (!terminal || row.terminal === terminal)
+          && (!municipio || municipios.includes(municipio));
+      });
     }
 
     function groupedRowsByPlate(data) {
@@ -3786,7 +3790,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     function renderTable(data) {
       const detailData = groupedRowsByPlate(data);
       if (!detailData.length) {
-        $("reportRows").innerHTML = `<tr><td colspan="11" class="empty">Sem dados para o filtro.</td></tr>`;
+        $("reportRows").innerHTML = `<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>`;
         return;
       }
       $("reportRows").innerHTML = detailData
@@ -3807,7 +3811,6 @@ DAILY_REPORT_HTML = """<!doctype html>
             <td class="num">${volume(row.capacidade)}</td>
             <td class="num">${volume(row.quantidade)}</td>
             <td class="num">${fmt.format(row.notas)}</td>
-            <td>${escapeHtml(row.mixProdutos)}</td>
             <td class="observation-cell">${
               needsNote
                 ? `<textarea data-observation-key="${escapeAttr(key)}" placeholder="Informe o motivo">${escapeHtml(note)}</textarea>`
@@ -3931,20 +3934,17 @@ DAILY_REPORT_HTML = """<!doctype html>
       canvas.width = 1080;
       let ctx = canvas.getContext("2d");
       ctx.font = "700 17px Arial";
-      const productWidth = 288;
       const observationWidth = 320;
       const rowMetrics = report.detailData.map((row) => {
-        const productLines = wrapText(ctx, row.mixProdutos, productWidth).slice(0, 2);
         const driverLines = wrapText(ctx, row.motorista || "-", 210).slice(0, 2);
-        const note = row.viagens < 2 ? (observations[observationKey(row)] || "Sem observacao informada") : "-";
+        const note = observations[observationKey(row)] || (row.viagens < 2 ? "Sem observacao informada" : "-");
         const noteLines = wrapText(ctx, note, observationWidth).slice(0, 3);
         return {
           row,
-          productLines,
           driverLines,
           note,
           noteLines,
-          height: Math.max(76, 42 + Math.max(productLines.length, driverLines.length, noteLines.length) * 21)
+          height: Math.max(76, 42 + Math.max(driverLines.length, noteLines.length) * 21)
         };
       });
       const detailTop = 720;
@@ -4040,7 +4040,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillText("MOTORISTA", 224, y + 94);
       ctx.fillText("VIAG.", 500, y + 94);
       ctx.fillText("VOL.", 584, y + 94);
-      ctx.fillText("PRODUTOS", 690, y + 94);
+      ctx.fillText("OBSERVACAO", 690, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
       ctx.moveTo(82, y + 112);
@@ -4048,7 +4048,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.stroke();
 
       let tableY = y + 140;
-      rowMetrics.forEach(({ row, productLines, driverLines, noteLines, height }, idx) => {
+      rowMetrics.forEach(({ row, driverLines, noteLines, height }, idx) => {
         if (idx % 2 === 0) {
           ctx.fillStyle = "#f8fafb";
           roundRect(ctx, 78, tableY, 916, height - 8, 8);
@@ -4067,18 +4067,10 @@ DAILY_REPORT_HTML = """<!doctype html>
         ctx.font = "800 16px Arial";
         ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 88, tableY + 52);
         ctx.font = "700 16px Arial";
-        productLines.forEach((line, lineIdx) => {
+        ctx.fillStyle = row.viagens < 2 ? "#92400e" : "#657282";
+        noteLines.forEach((line, lineIdx) => {
           ctx.fillText(line, 690, tableY + 20 + lineIdx * 20);
         });
-        if (row.viagens < 2 || noteLines.some((line) => line !== "-")) {
-          ctx.fillStyle = row.viagens < 2 ? "#92400e" : "#657282";
-          ctx.font = "900 15px Arial";
-          ctx.fillText("OBS:", 224, tableY + 58);
-          ctx.font = "700 16px Arial";
-          noteLines.forEach((line, lineIdx) => {
-            ctx.fillText(line, 270, tableY + 58 + lineIdx * 20);
-          });
-        }
         tableY += height;
       });
 
@@ -4133,7 +4125,7 @@ DAILY_REPORT_HTML = """<!doctype html>
     $("dateSelect").value = dates[0] || "";
     $("dateStart").value = dates.length ? inputDate(dates[dates.length - 1]) : "";
     $("dateEnd").value = dates.length ? inputDate(dates[0]) : "";
-    $("municipioSelect").innerHTML = ['<option value="">Todos</option>', ...[...new Set(rows.map((row) => row.municipioDestino).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`)].join("");
+    $("municipioSelect").innerHTML = ['<option value="">Todos</option>', ...[...new Set(rows.flatMap((row) => String(row.municipioDestino || "").split("/").map((name) => name.trim())).filter((name) => name && name !== "-"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`)].join("");
     ["dateModeSelect", "dateSelect", "dateStart", "dateEnd"].forEach((id) => $(id).addEventListener("change", render));
     $("terminalSelect").addEventListener("change", render);
     $("municipioSelect").addEventListener("change", render);
