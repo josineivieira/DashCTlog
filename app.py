@@ -2816,14 +2816,23 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return date && driver ? `${date}||${driver}` : "";
     }
     function recalculateTrips() {
-      const keys = rows.map(tripKey);
-      const totals = keys.reduce((map, key) => {
-        if (key) map.set(key, (map.get(key) || 0) + 1);
-        return map;
-      }, new Map());
+      const groups = new Map();
+      rows.forEach((row, index) => {
+        const key = tripKey(row);
+        if (!key) return;
+        const group = groups.get(key) || [];
+        group.push({ index, row: cleanRow(row) });
+        groups.set(key, group);
+      });
+      const sequenceByIndex = new Map();
+      groups.forEach((group) => {
+        group
+          .sort((a, b) => arrivalSortValue(a.row) - arrivalSortValue(b.row) || a.index - b.index)
+          .forEach((item, idx) => sequenceByIndex.set(item.index, idx + 1));
+      });
       rows = rows.map((row, index) => {
         const clean = cleanRow(row);
-        clean.viagens = keys[index] ? String(totals.get(keys[index]) || 1) : "";
+        clean.viagens = sequenceByIndex.has(index) ? String(sequenceByIndex.get(index)) : "";
         return clean;
       });
     }
