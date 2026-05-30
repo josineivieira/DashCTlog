@@ -4238,7 +4238,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .chart-wrap svg { width:auto; max-width:none; height:auto; display:block; }
     .detail-trigger { cursor:pointer; }
     .detail-trigger:hover { filter:brightness(.96); outline:2px solid rgba(43,132,203,.28); outline-offset:2px; }
-    .rank-list, .alert-list, .recommendations { display:grid; gap:12px; }
+    .rank-list, .alert-list { display:grid; gap:12px; }
     .rank-row { display:grid; grid-template-columns:minmax(170px,1fr) 120px 70px 58px; gap:12px; align-items:center; font-size:13px; font-weight:850; }
     .rank-track { height:12px; border-radius:999px; background:#edf2f6; overflow:hidden; }
     .rank-fill { height:100%; border-radius:inherit; background:var(--red); }
@@ -4261,12 +4261,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .reason-list { display:grid; gap:10px; font-size:13px; font-weight:850; }
     .reason-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; }
     .reason-dot { width:11px; height:11px; border-radius:3px; background:var(--red); }
-    .executive { display:grid; grid-template-columns:minmax(260px,.8fr) 1fr; gap:20px; padding:18px; }
-    .exec-title { display:flex; align-items:center; gap:12px; margin-bottom:12px; font-size:18px; font-weight:950; }
-    .exec-icon { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; background:#efe7f8; color:var(--purple); }
-    .recommendations { grid-template-columns:repeat(4,minmax(160px,1fr)); }
-    .rec-card { padding:14px; border:1px solid var(--line); border-radius:8px; background:#f8fafb; }
-    .rec-card strong { display:block; margin-bottom:7px; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     .detail-modal { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.44); }
     .detail-modal[hidden] { display:none; }
@@ -4277,7 +4271,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .detail-count { color:var(--muted); font-size:13px; font-weight:900; }
     .detail-table-wrap { overflow:auto; padding:0 18px 18px; }
     .detail-table { min-width:1120px; }
-    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .ops-grid, .lower-grid, .executive { grid-template-columns:1fr; } .recommendations { grid-template-columns:repeat(2,minmax(160px,1fr)); } }
+    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .ops-grid, .lower-grid { grid-template-columns:1fr; } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
     @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
   </style>
@@ -4330,7 +4324,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <section class="panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total de fechamentos por horario; abaixo, quantos ficaram fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
         <section class="panel"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
       </div>
-      <section class="panel executive"><div><div class="exec-title"><span class="exec-icon">OK</span>Resumo Executivo</div><p id="executiveText" class="meta"></p></div><div><div class="exec-title">Recomendacoes</div><div id="recommendations" class="recommendations"></div></div></section>
     </section>
     <section id="data" class="tab-view" hidden>
       <section class="panel import-panel">
@@ -4504,21 +4497,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         showDetails(`Faixa de fechamento: ${label}`, items);
       }));
     }
-    function renderExecutive(data, ok, late){
-      const terminals = grouped(data,"terminal");
-      const branches = grouped(data,"filial");
-      const topTerminal = terminals.filter(([,i])=>i.late>0)[0];
-      const topBranch = branches.filter(([,i])=>i.late>0)[0];
-      const longClosings = data.filter(r=>Number(r.horasFechamento)>48).length;
-      const criticalClosings = data.filter(r=>Number(r.horasFechamento)>96).length;
-      $("executiveText").textContent = data.length ? `No periodo selecionado, ${percent(late,data.length)} dos fechamentos estao fora do prazo. O principal ponto de atencao e ${topTerminal?.[0] || "sem terminal critico"} com ${fmt.format(topTerminal?.[1].late || 0)} atrasos. A filial mais sensivel no filtro e ${topBranch?.[0] || "-"}, com ${percent(topBranch?.[1].ok || 0, topBranch?.[1].total || 0)} no prazo.` : "Sem dados para o filtro selecionado.";
-      $("recommendations").innerHTML = [
-        ["Priorizar terminal critico", `Atuar no terminal ${topTerminal?.[0] || "-"} e acompanhar plano de correcao dos ${fmt.format(topTerminal?.[1].late || 0)} atrasos.`],
-        ["Tratar medicoes acima de 2 dias", `Acompanhar diariamente ${fmt.format(longClosings)} medicoes fora da faixa ideal, com responsavel e previsao de fechamento.`],
-        ["Escalar casos acima de 4 dias", `${fmt.format(criticalClosings)} fechamentos longos exigem justificativa e prioridade maxima ate regularizar.`],
-        ["Monitorar SLA por filial", `Meta: manter 85% das medicoes fechadas em ate 2 dias; foco inicial na filial ${topBranch?.[0] || "-"}.`]
-      ].map(([title,text])=>`<div class="rec-card"><strong>${escapeHtml(title)}</strong><span class="meta">${escapeHtml(text)}</span></div>`).join("");
-    }
     function renderTable(data){ $("rows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>'; }
     function render(){
       updateCustomDateFilter();
@@ -4544,7 +4522,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       renderBranchPerformance(data);
       renderHeatmap(data);
       renderReasons(data);
-      renderExecutive(data, ok, late);
       renderTable(data);
     }
     document.querySelectorAll(".message").forEach((item)=>{ setTimeout(()=>item.classList.add("is-hidden"),4200); setTimeout(()=>item.remove(),4600); });
