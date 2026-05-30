@@ -4218,7 +4218,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .topbar { position:relative; z-index:2; display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
     .brand-title { display:flex; align-items:center; gap:16px; }
     .brand-title img { width:90px; height:auto; filter:drop-shadow(0 10px 18px rgba(0,0,0,.24)); }
-    h1 { margin:0; font-size:clamp(28px,4vw,46px); line-height:1; letter-spacing:0; }
+    h1 { margin:0; font-size:clamp(26px,3.4vw,42px); line-height:1; letter-spacing:0; }
     .subtitle { margin:8px 0 0; color:#d7e4ea; }
     .nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:9px; }
     .top-link, button, .button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border:1px solid rgba(255,255,255,.30); border-radius:8px; background:rgba(255,255,255,.10); color:#fff; font:inherit; font-size:13px; font-weight:900; cursor:pointer; }
@@ -4768,7 +4768,6 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     <div class="topbar">
       <div>
         <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de NF de Armazenagem</h1></div>
-        <p class="subtitle">Acompanhamento da entrada de NF de armazenagem.</p>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
