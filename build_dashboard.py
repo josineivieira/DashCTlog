@@ -617,6 +617,11 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
     clients_by_key: dict[report_key, set[str]] = defaultdict(set)
     drivers_by_key: dict[report_key, set[str]] = defaultdict(set)
     municipalities_by_key: dict[report_key, set[str]] = defaultdict(set)
+    load_by_municipality: dict[report_key, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    products_by_municipality: dict[report_key, dict[str, Counter[str]]] = defaultdict(lambda: defaultdict(Counter))
+    notes_by_municipality: dict[report_key, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    clients_by_municipality: dict[report_key, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    orders_by_municipality: dict[report_key, dict[str, int]] = defaultdict(dict)
     capacities: dict[str, int] = {}
     detail_line_count = 0
 
@@ -631,6 +636,9 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
         trips = int(num(str(row.get("viagens", 0))) or 0)
         if trips > orders_by_key.get(key, 0):
             orders_by_key[key] = trips
+        municipality = str(row.get("municipioDestino", "")).strip()
+        if municipality and trips > orders_by_municipality[key].get(municipality, 0):
+            orders_by_municipality[key][municipality] = trips
         capacity = capacity_liters(row.get("capacidade", 0))
         if capacity > 0 and normalize_plate(plate) not in capacities:
             capacities[plate] = capacity
@@ -639,15 +647,21 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             load_by_key[key] += quantity
             product = clean_product(str(row.get("produto", ""))) or "SEM PRODUTO"
             products_by_key[key][product] += quantity
+            if municipality:
+                load_by_municipality[key][municipality] += quantity
+                products_by_municipality[key][municipality][product] += quantity
             detail_line_count += 1
         client = str(row.get("cliente", "")).strip()
         for note in invoice_numbers(row.get("notaFiscal", "")):
             notes_by_key[key].add(note)
+            if municipality:
+                notes_by_municipality[key][municipality].add(note)
         if client:
             clients_by_key[key].add(client)
+            if municipality:
+                clients_by_municipality[key][municipality].add(client)
         if driver:
             drivers_by_key[key].add(driver)
-        municipality = str(row.get("municipioDestino", "")).strip()
         if municipality:
             municipalities_by_key[key].add(municipality)
 
@@ -672,6 +686,28 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
             {"produto": product, "quantidade": qty}
             for product, qty in products_by_key.get(key, Counter()).most_common()
         ]
+        municipality_details = []
+        for municipality in sorted(municipalities_by_key.get(key, set())):
+            city_loaded = load_by_municipality[key].get(municipality, 0.0)
+            city_order_trips = orders_by_municipality[key].get(municipality, 0)
+            city_load_trips = math.ceil(city_loaded / capacity) if city_loaded else 0
+            city_trips = max(city_order_trips, city_load_trips)
+            city_products = [
+                {"produto": product, "quantidade": qty}
+                for product, qty in products_by_municipality[key].get(municipality, Counter()).most_common()
+            ]
+            municipality_details.append(
+                {
+                    "municipio": municipality,
+                    "viagens": city_trips,
+                    "viagensOrdens": city_order_trips,
+                    "viagensCarga": city_load_trips,
+                    "quantidade": city_loaded,
+                    "notas": len(notes_by_municipality[key].get(municipality, set())),
+                    "clientes": len(clients_by_municipality[key].get(municipality, set())),
+                    "produtos": city_products,
+                }
+            )
         daily_plate_rows.append(
             {
                 "data": date,
@@ -687,6 +723,7 @@ def build_data_from_editable(rows: list[dict[str, object]]) -> dict[str, object]
                 "clientes": len(clients_by_key.get(key, set())),
                 "motorista": " / ".join(sorted(drivers_by_key.get(key, set()))),
                 "municipioDestino": " / ".join(sorted(municipalities_by_key.get(key, set()))),
+                "municipiosDetalhes": municipality_details,
                 "produtos": products,
                 "mixProdutos": ", ".join(
                     f"{item['produto']} ({item['quantidade'] / 1000:.0f}k)"

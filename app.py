@@ -3712,6 +3712,22 @@ DAILY_REPORT_HTML = """<!doctype html>
     }
 
     function rowForMunicipio(row, municipio, municipios) {
+      const detail = (row.municipiosDetalhes || []).find((item) => String(item.municipio || "").trim() === municipio);
+      if (detail) {
+        const products = (detail.produtos || []).map((item) => ({ ...item }));
+        return {
+          ...row,
+          municipioDestino: municipio,
+          viagens: Number(detail.viagens) || 0,
+          viagensOrdens: Number(detail.viagensOrdens) || 0,
+          viagensCarga: Number(detail.viagensCarga) || 0,
+          quantidade: Number(detail.quantidade) || 0,
+          notas: Number(detail.notas) || 0,
+          clientes: Number(detail.clientes) || 0,
+          produtos: products,
+          mixProdutos: products.slice(0, 4).map((item) => `${item.produto} (${fmt.format(Math.round((Number(item.quantidade) || 0) / 1000))}k)`).join(", ") || "Sem produto detalhado",
+        };
+      }
       const uniqueMunicipios = [...new Set(municipios)];
       if (uniqueMunicipios.length <= 1) return { ...row, municipioDestino: municipio };
       const originalTrips = Math.max(1, Number(row.viagens) || 1);
@@ -5599,12 +5615,19 @@ def import_key(row: dict[str, object]) -> tuple[str, ...]:
     )
 
 
-def import_group_key(row: dict[str, object]) -> tuple[str, str, str, str]:
+def import_base_group_key(row: dict[str, object]) -> tuple[str, str, str, str]:
     return (
         str(row.get("data", "")).strip(),
         str(row.get("terminal", "")).strip(),
         str(row.get("placa", "")).strip().upper(),
         str(row.get("motorista1", "")).strip().upper(),
+    )
+
+
+def import_group_key(row: dict[str, object]) -> tuple[str, str, str, str, str]:
+    return (
+        *import_base_group_key(row),
+        str(row.get("municipioDestino", "")).strip().upper(),
     )
 
 
@@ -5624,8 +5647,8 @@ def unique_join(values: list[object]) -> str:
 
 
 def collapse_import_rows(imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
-    grouped: dict[tuple[str, str, str, str], dict[str, object]] = {}
-    grouped_rows: dict[tuple[str, str, str, str], list[dict[str, object]]] = {}
+    grouped: dict[tuple[str, str, str, str, str], dict[str, object]] = {}
+    grouped_rows: dict[tuple[str, str, str, str, str], list[dict[str, object]]] = {}
     for row in imported_rows:
         if is_return_row(row):
             continue
@@ -5654,13 +5677,13 @@ def collapse_import_rows(imported_rows: list[dict[str, object]]) -> list[dict[st
 
 def merge_import_rows(current_rows: list[dict[str, object]], imported_rows: list[dict[str, object]]) -> list[dict[str, object]]:
     collapsed_imports = collapse_import_rows(imported_rows)
-    imported_keys = {import_group_key(row) for row in collapsed_imports}
+    imported_keys = {import_base_group_key(row) for row in collapsed_imports}
     merged: list[dict[str, object]] = []
     index: dict[tuple[str, ...], int] = {}
     for row in current_rows:
         if is_return_row(row):
             continue
-        if import_group_key(row) in imported_keys:
+        if import_base_group_key(row) in imported_keys:
             continue
         key = import_key(row)
         if key in index:
