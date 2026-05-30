@@ -2954,8 +2954,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         const aDone = a.row.status === "Finalizado";
         const bDone = b.row.status === "Finalizado";
         if (aDone !== bDone) return aDone ? 1 : -1;
-        if (aDone && bDone) return a.index - b.index;
-        return arrivalSortValue(b.row) - arrivalSortValue(a.row);
+        return arrivalSortValue(b.row) - arrivalSortValue(a.row) || a.index - b.index;
       });
     }
     function arrivalSortValue(row) {
