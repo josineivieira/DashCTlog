@@ -3700,12 +3700,34 @@ DAILY_REPORT_HTML = """<!doctype html>
     function filteredRows() {
       const terminal = $("terminalSelect").value;
       const municipio = $("municipioSelect").value;
-      return rows.filter((row) => {
+      return rows.flatMap((row) => {
         const municipios = String(row.municipioDestino || "").split("/").map((name) => name.trim()).filter(Boolean);
-        return matchesDateRange(row)
+        const matches = matchesDateRange(row)
           && (!terminal || row.terminal === terminal)
           && (!municipio || municipios.includes(municipio));
+        if (!matches) return [];
+        if (!municipio) return [row];
+        return [rowForMunicipio(row, municipio, municipios)];
       });
+    }
+
+    function rowForMunicipio(row, municipio, municipios) {
+      const uniqueMunicipios = [...new Set(municipios)];
+      if (uniqueMunicipios.length <= 1) return { ...row, municipioDestino: municipio };
+      const originalTrips = Math.max(1, Number(row.viagens) || 1);
+      const trips = originalTrips > 1 ? 1 : originalTrips;
+      const ratio = trips / originalTrips;
+      return {
+        ...row,
+        municipioDestino: municipio,
+        viagens: trips,
+        viagensOrdens: Math.min(trips, Number(row.viagensOrdens) || trips),
+        viagensCarga: Math.min(trips, Number(row.viagensCarga) || trips),
+        quantidade: Math.round((Number(row.quantidade) || 0) * ratio),
+        notas: Math.max(1, Math.round((Number(row.notas) || 0) * ratio)),
+        clientes: Math.max(0, Math.round((Number(row.clientes) || 0) * ratio)),
+        produtos: (row.produtos || []).map((item) => ({ ...item, quantidade: (Number(item.quantidade) || 0) * ratio })),
+      };
     }
 
     function groupedRowsByPlate(data) {
