@@ -4766,6 +4766,19 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       if (!day || !month || !year) return null;
       return new Date(year, month - 1, day);
     }
+    function parseBrDateTime(value) {
+      const [datePart, timePart = "00:00"] = String(value || "").split(" ");
+      const [day, month, year] = datePart.split("/").map(Number);
+      const [hour = 0, minute = 0] = timePart.split(":").map(Number);
+      return day && month && year ? new Date(year, month - 1, day, hour || 0, minute || 0) : null;
+    }
+    function emissionSortValue(row) {
+      const date = parseBrDateTime(row.emissao);
+      return date ? date.getTime() : Number.POSITIVE_INFINITY;
+    }
+    function sortByEmission(items) {
+      return items.slice().sort((a, b) => emissionSortValue(a) - emissionSortValue(b) || String(a.nota).localeCompare(String(b.nota), "pt-BR", { numeric: true }));
+    }
     function isoDate(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -5157,7 +5170,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       const stats = cityStats(data);
       $("cityCards").innerHTML = stats.length ? stats.map((item) => {
         const okDeg = item.total ? item.ok / item.total * 360 : 0;
-        const lateRows = item.lateRows.slice().sort((a, b) => b.horasFora - a.horasFora).slice(0, 5);
+        const lateRows = sortByEmission(item.lateRows).slice(0, 5);
         return `
           <section class="branch-card">
             <h2 class="branch-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path><path d="M16 9h2a2 2 0 0 1 2 2v10"></path><path d="M8 7h4"></path><path d="M8 11h4"></path><path d="M8 15h4"></path><path d="M3 21h18"></path></svg>${escapeHtml(item.city)}</h2>
@@ -5229,7 +5242,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         return;
       }
       const statusLabel = activeDrilldown.status === "late" ? "fora do prazo" : "no prazo";
-      const selected = data.filter((row) => cityName(row) === activeDrilldown.city && row.status === activeDrilldown.status);
+      const selected = sortByEmission(data.filter((row) => cityName(row) === activeDrilldown.city && row.status === activeDrilldown.status));
       if (!selected.length) {
         panel.hidden = true;
         panel.innerHTML = "";
