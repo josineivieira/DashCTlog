@@ -4193,6 +4193,9 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .import-panel { margin-bottom:14px; padding:14px; display:flex; flex-wrap:wrap; gap:12px; align-items:end; justify-content:space-between; }
     .import-panel form { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
     .import-panel button { background:var(--purple); border-color:transparent; color:#fff; }
+    .table-actions { padding:14px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; border-bottom:1px solid var(--line); }
+    .table-actions button { background:var(--purple); border-color:transparent; color:#fff; }
+    .table-actions button.secondary { background:#f3f6f8; border-color:var(--line); color:var(--ink); }
     .meta { color:var(--muted); font-size:13px; font-weight:800; }
     .kpis { display:grid; grid-template-columns:repeat(5,minmax(180px,1fr)); gap:14px; margin-bottom:14px; }
     .kpi { min-height:144px; padding:20px; display:grid; grid-template-columns:64px 1fr; gap:18px; align-items:center; }
@@ -4342,7 +4345,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div><strong>Importar medicoes</strong><div class="meta">Envie a planilha atualizada para renovar o relatorio.</div></div>
         <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medicoes</button></form>
       </section>
-      <div class="panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+      <form class="panel" method="post" action="/controle-medicao" id="measurementDataForm">
+        <input type="hidden" name="rows_json" id="rowsJson">
+        <div class="table-actions"><button type="button" class="secondary" id="deleteMeasurementRows">Excluir selecionados</button><button type="submit">Salvar alteracoes</button></div>
+        <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="selectAllMeasurements" aria-label="Selecionar todas"></th><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div>
+      </form>
     </section>
   </main>
   <div class="detail-modal" id="detailModal" hidden>
@@ -4355,7 +4362,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     </div>
   </div>
   <script>
-    const rows = __ROWS__;
+    let rows = __ROWS__;
     const fmt = new Intl.NumberFormat("pt-BR");
     const $ = (id) => document.getElementById(id);
     function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -4379,6 +4386,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function matchesPeriod(row){ const b=periodBounds(); if(!b)return true; const d=parseBrDate(row.medicao); return d && d>=b[0] && d<=b[1]; }
     function matchesTime(row){ const f=$("timeFilter").value; const h=Number(row.horasFechamento); if(!f)return true; if(f==="same")return h<24; if(f==="one")return h<=24; if(f==="two")return h<=48; return h>48; }
     function branchName(value){ const names = { "171": "MANAUS", "182": "BOA VISTA", "178": "ITACOATIARA" }; return names[String(value || "").trim()] || value || "-"; }
+    function measurementKey(row){ return `${String(row.seq || "").trim()}||${String(row.filial || "").trim()}`; }
     function filteredRows(){ const terminal=$("terminalFilter").value, filial=$("branchFilter").value, usuario=$("userChangeFilter").value, status=$("statusFilter").value; return rows.filter(r=>matchesPeriod(r)&&matchesTime(r)&&(!terminal||r.terminal===terminal)&&(!filial||r.filial===filial)&&(!usuario||r.usuarioAlteracao===usuario)&&(!status||r.status===status)); }
     function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); const users=[...new Set(rows.map(r=>r.usuarioAlteracao).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(branchName(v))}</option>`).join(""); $("userChangeFilter").innerHTML='<option value="">Todos</option>'+users.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
     function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
@@ -4509,7 +4517,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         showDetails(`Faixa de atraso: ${label}`, items);
       }));
     }
-    function renderTable(data){ $("rows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>'; }
+    function tableRowMarkup(r){ return `<tr data-key="${escapeAttr(measurementKey(r))}"><td><input type="checkbox" class="measurement-select" aria-label="Selecionar medicao"></td><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(branchName(r.filial))}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
+    function renderTable(data){ $("rows").innerHTML=data.map(tableRowMarkup).join("")||'<tr><td colspan="11" class="empty">Sem dados para o filtro.</td></tr>'; $("selectAllMeasurements").checked=false; }
     function render(){
       updateCustomDateFilter();
       const data=filteredRows();
@@ -4539,6 +4548,15 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     $("refreshDashboard").addEventListener("click", render);
     let resizeTimer = null;
     window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("dashboard").hidden) renderEvolution(filteredRows()); }, 120); });
+    $("selectAllMeasurements").addEventListener("change", (event) => { document.querySelectorAll(".measurement-select").forEach((input) => input.checked = event.target.checked); });
+    $("deleteMeasurementRows").addEventListener("click", () => {
+      const selected = new Set([...document.querySelectorAll("#rows tr")].filter((tr) => tr.querySelector(".measurement-select")?.checked).map((tr) => tr.dataset.key));
+      if (!selected.size) return;
+      rows = rows.filter((row) => !selected.has(measurementKey(row)));
+      fillFilters();
+      render();
+    });
+    $("measurementDataForm").addEventListener("submit", () => { $("rowsJson").value = JSON.stringify(rows); });
     $("detailClose").addEventListener("click", closeDetails);
     $("detailModal").addEventListener("click", (event)=>{ if(event.target===$("detailModal")) closeDetails(); });
     document.addEventListener("keydown", (event)=>{ if(event.key==="Escape" && !$("detailModal").hidden) closeDetails(); });
@@ -6576,15 +6594,16 @@ def ensure_postgres_measurement_table() -> None:
                 """
             )
             cur.execute("ALTER TABLE controle_medicao ADD COLUMN IF NOT EXISTS usuario_alteracao TEXT NOT NULL DEFAULT ''")
+            cur.execute("DROP INDEX IF EXISTS controle_medicao_seq_idx")
             cur.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS controle_medicao_seq_idx
-                ON controle_medicao (seq_lancamento)
+                CREATE UNIQUE INDEX IF NOT EXISTS controle_medicao_seq_filial_idx
+                ON controle_medicao (seq_lancamento, filial)
                 """
             )
 
 
-def save_measurement_rows(rows: list[dict[str, str]]) -> None:
+def replace_measurement_rows(rows: list[dict[str, str]]) -> None:
     if not build_dashboard.use_postgres():
         raise RuntimeError("Controle Medicao exige banco de dados Postgres configurado.")
     ensure_postgres_measurement_table()
@@ -6601,6 +6620,71 @@ def save_measurement_rows(rows: list[dict[str, str]]) -> None:
                     """,
                     (idx, row["seq"], row["filial"], row["terminal"], row.get("usuario_alteracao", ""), row["medicao_iso"], row["fechamento_iso"]),
                 )
+
+
+def merge_measurement_rows(rows: list[dict[str, str]]) -> tuple[int, int]:
+    if not build_dashboard.use_postgres():
+        raise RuntimeError("Controle Medicao exige banco de dados Postgres configurado.")
+    ensure_postgres_measurement_table()
+    inserted = 0
+    updated = 0
+    with build_dashboard.postgres_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(MAX(row_order), 0) FROM controle_medicao")
+            next_order = int(cur.fetchone()[0] or 0) + 1
+            for row in rows:
+                cur.execute(
+                    """
+                    INSERT INTO controle_medicao (
+                        row_order, seq_lancamento, filial, terminal, usuario_alteracao, medicao_iso, fechamento_iso, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+                    ON CONFLICT (seq_lancamento, filial) DO UPDATE SET
+                        terminal = EXCLUDED.terminal,
+                        usuario_alteracao = EXCLUDED.usuario_alteracao,
+                        medicao_iso = EXCLUDED.medicao_iso,
+                        fechamento_iso = EXCLUDED.fechamento_iso,
+                        updated_at = now()
+                    RETURNING (xmax = 0) AS inserted
+                    """,
+                    (
+                        next_order,
+                        row["seq"],
+                        row["filial"],
+                        row["terminal"],
+                        row.get("usuario_alteracao", ""),
+                        row["medicao_iso"],
+                        row["fechamento_iso"],
+                    ),
+                )
+                was_inserted = bool(cur.fetchone()[0])
+                if was_inserted:
+                    inserted += 1
+                    next_order += 1
+                else:
+                    updated += 1
+    return inserted, updated
+
+
+def clean_measurement_saved_row(row: dict[str, object]) -> dict[str, str] | None:
+    seq = str(row.get("seq", "") or "").strip()
+    filial = str(row.get("filial", "") or "").strip()
+    medicao = parse_note_entry_datetime(row.get("medicao_iso", "") or row.get("medicao", ""))
+    fechamento = parse_note_entry_datetime(row.get("fechamento_iso", "") or row.get("fechamento", ""))
+    if not seq or not filial or not medicao or not fechamento:
+        return None
+    return {
+        "seq": seq,
+        "filial": filial,
+        "terminal": str(row.get("terminal", "") or "").strip(),
+        "usuario_alteracao": str(row.get("usuario_alteracao", row.get("usuarioAlteracao", "")) or "").strip(),
+        "medicao_iso": medicao.isoformat(timespec="minutes"),
+        "fechamento_iso": fechamento.isoformat(timespec="minutes"),
+    }
+
+
+def save_measurement_rows(rows: list[dict[str, str]]) -> None:
+    replace_measurement_rows(rows)
 
 
 def measurement_rows() -> list[dict[str, object]]:
@@ -7446,12 +7530,30 @@ class Handler(BaseHTTPRequestHandler):
                 imported_rows = parse_measurement_file(content)
                 if not imported_rows:
                     raise ValueError("Nenhuma medicao encontrada na planilha")
-                save_measurement_rows(imported_rows)
+                inserted_count, updated_count = merge_measurement_rows(imported_rows)
             except Exception as exc:
                 self.audit("importar_medicao_falha", "controle_medicao", {"erro": str(exc)}, ok=False)
                 self.redirect("/controle-medicao?erro=" + quote(str(exc)))
                 return
-            self.audit("importar_medicao", "controle_medicao", {"arquivo": filename, "medicoes": len(imported_rows)})
+            self.audit("importar_medicao", "controle_medicao", {"arquivo": filename, "medicoes": len(imported_rows), "incluidas": inserted_count, "atualizadas": updated_count})
+            self.redirect("/controle-medicao?ok=1")
+            return
+
+        if parsed.path == "/controle-medicao":
+            if not self.require_permission("controle_medicao"):
+                return
+            try:
+                params = self.body_params()
+                rows = json.loads(params.get("rows_json", ["[]"])[0])
+                if not isinstance(rows, list):
+                    raise ValueError("Dados de medicao invalidos")
+                clean_rows = [item for item in (clean_measurement_saved_row(row) for row in rows if isinstance(row, dict)) if item]
+                replace_measurement_rows(clean_rows)
+            except Exception as exc:
+                self.audit("salvar_medicao_falha", "controle_medicao", {"erro": str(exc)}, ok=False)
+                self.redirect("/controle-medicao?erro=" + quote(str(exc)))
+                return
+            self.audit("salvar_medicao", "controle_medicao", {"linhas": len(clean_rows)})
             self.redirect("/controle-medicao?ok=1")
             return
 
