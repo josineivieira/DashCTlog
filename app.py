@@ -4201,7 +4201,12 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .sla-bar { height:12px; border-radius:999px; background:#e8eef5; overflow:hidden; margin-top:14px; }
     .sla-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#ff8a1c,#ffc22e); }
     .ops-grid { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px; }
-    .lower-grid { display:grid; grid-template-columns:minmax(360px,1fr) minmax(280px,.72fr) minmax(300px,.82fr); gap:14px; margin-bottom:14px; align-items:start; }
+    .lower-grid { display:grid; grid-template-columns:minmax(360px,.82fr) minmax(520px,1.18fr); grid-template-areas:"branch heatmap" "reasons heatmap" "alerts alerts"; gap:14px; margin-bottom:14px; align-items:stretch; }
+    .branch-panel { grid-area:branch; }
+    .heatmap-panel { grid-area:heatmap; }
+    .reasons-panel { grid-area:reasons; }
+    .alerts-panel { grid-area:alerts; }
+    .heatmap-panel .panel-body { height:calc(100% - 44px); display:flex; flex-direction:column; }
     .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; color:var(--ink); }
     .panel.compact h2 { font-size:17px; padding-top:14px; }
     .panel-body { padding:12px 18px 16px; }
@@ -4242,8 +4247,9 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .mini-progress span { display:block; background:var(--red); }
     .mini-progress.ok span { background:var(--green); }
     .heatmap-note { margin-bottom:8px; color:var(--muted); font-size:12px; font-weight:850; }
-    .heatmap { display:grid; grid-template-columns:34px repeat(6,1fr); gap:4px; align-items:center; font-size:11px; }
-    .heat-cell { min-height:34px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
+    .heatmap { flex:1; display:grid; grid-template-columns:42px repeat(6,minmax(54px,1fr)); gap:5px; align-items:stretch; font-size:12px; }
+    .heatmap > strong { display:flex; align-items:center; justify-content:center; }
+    .heat-cell { min-height:48px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
     .heat-cell small { margin-top:3px; font-size:10px; font-weight:950; color:rgba(22,33,45,.78); }
     .reason-layout { display:grid; grid-template-columns:130px 1fr; gap:14px; align-items:center; }
     .reason-donut { width:120px; height:120px; border-radius:50%; background:conic-gradient(var(--green) 0deg, var(--green) var(--reasonA), #fbbf24 var(--reasonA), #fbbf24 var(--reasonB), #fb6b2a var(--reasonB), #fb6b2a var(--reasonC), var(--red) var(--reasonC), var(--red) 360deg); position:relative; display:grid; place-items:center; }
@@ -4262,7 +4268,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .detail-count { color:var(--muted); font-size:13px; font-weight:900; }
     .detail-table-wrap { overflow:auto; padding:0 18px 18px; }
     .detail-table { min-width:1120px; }
-    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .lower-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .lower-grid { grid-template-columns:1fr; grid-template-areas:"branch" "reasons" "heatmap" "alerts"; } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
     @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card, .lower-grid { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
   </style>
@@ -4309,10 +4315,10 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <section class="panel"><h2>Evolucao dos Fechamentos</h2><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
       </div>
       <div class="lower-grid">
-        <section class="panel compact"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
-        <section class="panel compact"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
-        <section class="panel compact"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
-        <section class="panel compact"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
+        <section class="panel compact branch-panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
+        <section class="panel compact reasons-panel"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel compact heatmap-panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
+        <section class="panel compact alerts-panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
     </section>
     <section id="data" class="tab-view" hidden>
