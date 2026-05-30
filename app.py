@@ -4068,9 +4068,10 @@ DAILY_REPORT_HTML = """<!doctype html>
       ctx.fillStyle = "#657282";
       ctx.fillText("PLACA", 82, y + 94);
       ctx.fillText("MOTORISTA", 224, y + 94);
-      ctx.fillText("VIAG.", 500, y + 94);
-      ctx.fillText("VOL.", 584, y + 94);
-      ctx.fillText("OBSERVACAO", 690, y + 94);
+      ctx.fillText("VIAG.", 486, y + 94);
+      ctx.fillText("CAP.", 558, y + 94);
+      ctx.fillText("VOL.", 642, y + 94);
+      ctx.fillText("OBSERVACAO", 724, y + 94);
       ctx.strokeStyle = "#d7e0e8";
       ctx.beginPath();
       ctx.moveTo(82, y + 112);
@@ -4091,15 +4092,16 @@ DAILY_REPORT_HTML = """<!doctype html>
         driverLines.forEach((line, lineIdx) => {
           ctx.fillText(line, 224, tableY + 20 + lineIdx * 20);
         });
-        ctx.fillText(fmt.format(row.viagens), 516, tableY + 28);
-        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 584, tableY + 28);
+        ctx.fillText(fmt.format(row.viagens), 502, tableY + 28);
+        ctx.fillText(volume(row.capacidade).replace(" mil", "k"), 558, tableY + 28);
+        ctx.fillText(volume(row.quantidade).replace(" mil", "k"), 642, tableY + 28);
         ctx.fillStyle = "#657282";
         ctx.font = "800 16px Arial";
         ctx.fillText(row.terminalShort || row.terminalNome.slice(0, 3), 88, tableY + 52);
         ctx.font = "700 16px Arial";
         ctx.fillStyle = row.viagens < 2 ? "#92400e" : "#657282";
         noteLines.forEach((line, lineIdx) => {
-          ctx.fillText(line, 690, tableY + 20 + lineIdx * 20);
+          ctx.fillText(line, 724, tableY + 20 + lineIdx * 20);
         });
         tableY += height;
       });
