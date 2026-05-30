@@ -6249,13 +6249,8 @@ def parse_note_entry_datetime(value: object) -> dt.datetime | None:
 
 
 def note_entry_deadline(emissao: dt.datetime) -> dt.datetime:
-    current = emissao.replace(microsecond=0)
-    remaining = 48
-    while remaining > 0:
-        current += dt.timedelta(hours=1)
-        if current.weekday() != 6:
-            remaining -= 1
-    return current
+    deadline_date = emissao.date() + dt.timedelta(days=2)
+    return dt.datetime.combine(deadline_date, dt.time.max).replace(microsecond=0)
 
 
 def format_note_date(value: dt.datetime) -> str:
@@ -6280,15 +6275,15 @@ def note_entry_view_row(row: dict[str, str]) -> dict[str, object]:
             "horasFora": 0,
         }
     prazo = note_entry_deadline(emissao)
-    late = entrada > prazo
-    horas_entrada = max(0, int((entrada - emissao).total_seconds() // 3600))
-    horas_fora = max(0, int((entrada - prazo).total_seconds() // 3600)) if late else 0
+    late = entrada.date() > prazo.date()
+    horas_entrada = max(0, (entrada.date() - emissao.date()).days * 24)
+    horas_fora = max(0, (entrada.date() - prazo.date()).days * 24) if late else 0
     return {
         "nota": row.get("nota", ""),
         "cidade": row.get("cidade", ""),
         "emissao": format_note_date(emissao),
         "entrada": format_note_datetime(entrada),
-        "prazo": format_note_datetime(prazo),
+        "prazo": format_note_date(prazo),
         "status": "late" if late else "ok",
         "horasEntrada": horas_entrada,
         "horasFora": horas_fora,
