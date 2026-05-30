@@ -4266,14 +4266,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .reason-value { text-align:right; font-weight:950; }
     .reason-percent { color:var(--muted); text-align:right; font-weight:850; }
     .reason-total { display:grid; grid-template-columns:1fr auto; gap:12px; margin-top:4px; padding-top:10px; border-top:1px solid var(--line); font-weight:950; }
-    .share-panel { margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden; }
-    .share-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); }
-    .share-head h2 { margin:0; font-size:18px; color:var(--ink); }
-    .share-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
-    .share-actions button { background:var(--purple); border-color:transparent; color:#fff; }
-    .share-actions button.secondary { background:#f3f6f8; border-color:var(--line); color:var(--ink); }
-    .canvas-wrap { padding:18px; background:linear-gradient(90deg, rgba(52,16,79,.06), rgba(43,132,203,.07)), #f8fafb; overflow:auto; }
-    #measurementShareCanvas { display:block; width:min(100%,760px); height:auto; margin:0 auto; border-radius:8px; box-shadow:0 18px 42px rgba(23,32,51,.18); background:#fff; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     .detail-modal { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.44); }
     .detail-modal[hidden] { display:none; }
@@ -4335,18 +4327,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <section class="panel compact heatmap-panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
         <section class="panel compact alerts-panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
-      <section class="share-panel">
-        <div class="share-head">
-          <h2>Imagem para WhatsApp</h2>
-          <div class="share-actions">
-            <button type="button" id="measurementShareImage">Compartilhar</button>
-            <button type="button" id="measurementDownloadImage" class="secondary">Baixar PNG</button>
-          </div>
-        </div>
-        <div class="canvas-wrap">
-          <canvas id="measurementShareCanvas" width="1080" height="1500"></canvas>
-        </div>
-      </section>
     </section>
     <section id="data" class="tab-view" hidden>
       <section class="panel import-panel">
@@ -4389,10 +4369,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function updateCustomDateFilter(){ $("customDateFilter").classList.toggle("is-visible", $("dateModeFilter").value==="custom"); }
     function matchesPeriod(row){ const b=periodBounds(); if(!b)return true; const d=parseBrDate(row.medicao); return d && d>=b[0] && d<=b[1]; }
     function matchesTime(row){ const f=$("timeFilter").value; const h=Number(row.horasFechamento); if(!f)return true; if(f==="same")return h<24; if(f==="one")return h<=24; if(f==="two")return h<=48; return h>48; }
+    function branchName(value){ const names = { "171": "MANAUS", "182": "BOA VISTA", "178": "ITACOATIARA" }; return names[String(value || "").trim()] || value || "-"; }
     function filteredRows(){ const terminal=$("terminalFilter").value, filial=$("branchFilter").value, usuario=$("userChangeFilter").value, status=$("statusFilter").value; return rows.filter(r=>matchesPeriod(r)&&matchesTime(r)&&(!terminal||r.terminal===terminal)&&(!filial||r.filial===filial)&&(!usuario||r.usuarioAlteracao===usuario)&&(!status||r.status===status)); }
-    function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); const users=[...new Set(rows.map(r=>r.usuarioAlteracao).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("userChangeFilter").innerHTML='<option value="">Todos</option>'+users.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
+    function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); const users=[...new Set(rows.map(r=>r.usuarioAlteracao).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(branchName(v))}</option>`).join(""); $("userChangeFilter").innerHTML='<option value="">Todos</option>'+users.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
     function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
-    function rowMarkup(r){ return `<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(r.filial)}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
+    function rowMarkup(r){ return `<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(branchName(r.filial))}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
     function showDetails(title, data){ $("detailTitle").textContent=title; $("detailCount").textContent=`${fmt.format(data.length)} medicoes`; $("detailRows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para este item.</td></tr>'; $("detailModal").hidden=false; }
     function closeDetails(){ $("detailModal").hidden=true; }
     function renderBars(id, entries){ const max=Math.max(1,...entries.map(([,v])=>v.total)); $(id).innerHTML=entries.length?entries.map(([label,item])=>`<div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill-ok" style="width:${item.ok/max*100}%"></div><div class="fill-late" style="width:${item.late/max*100}%"></div></div><strong>${fmt.format(item.total)}</strong></div>`).join(""):'<div class="empty">Sem dados para o filtro.</div>'; }
@@ -4449,7 +4430,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const lateAfter18 = data.filter((row) => row.status === "late" && Number(row.horasFechamento) > 18).length;
       const alerts = [
         { icon: "!", cls: "", title: `${topTerminal || "Terminal"} acima da meta`, text: `${percent(topTerminalItem.late, topTerminalItem.total)} fora do prazo (${fmt.format(topTerminalItem.late)} atrasos)`, rows: data.filter(r=>r.terminal===topTerminal && r.status==="late") },
-        { icon: "!", cls: "warning", title: `Filial ${topBranch || "-"} com maior atraso`, text: `${fmt.format(topBranchItem.late)} fechamentos fora do prazo no filtro`, rows: data.filter(r=>r.filial===topBranch && r.status==="late") },
+        { icon: "!", cls: "warning", title: `${branchName(topBranch)} com maior atraso`, text: `${fmt.format(topBranchItem.late)} fechamentos fora do prazo no filtro`, rows: data.filter(r=>r.filial===topBranch && r.status==="late") },
         { icon: "!", cls: "warning", title: "Atrasos acima de 18h", text: `${fmt.format(lateAfter18)} fechamentos em atraso com mais de 18h`, rows: data.filter((row) => row.status === "late" && Number(row.horasFechamento) > 18) }
       ];
       $("alertsPanel").innerHTML = alerts.map((item, idx) => `<div class="alert-item detail-trigger ${item.cls}" data-alert-idx="${idx}"><div class="alert-icon">${item.icon}</div><div><strong>${escapeHtml(item.title)}</strong><span class="meta">${escapeHtml(item.text)}</span></div></div>`).join("");
@@ -4462,11 +4443,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       const entries = grouped(data, "filial").slice(0, 8);
       $("branchPerformance").innerHTML = entries.length ? `<table class="branch-table"><thead><tr><th>Filial</th><th>Total</th><th>No prazo</th><th>Fora</th><th>% No prazo</th><th>SLA</th></tr></thead><tbody>${entries.map(([label,item], idx) => {
         const okPct = item.total ? item.ok / item.total * 100 : 0;
-        return `<tr class="detail-trigger" data-branch-idx="${idx}"><td><strong>${escapeHtml(label)}</strong></td><td>${fmt.format(item.total)}</td><td>${fmt.format(item.ok)}</td><td>${fmt.format(item.late)}</td><td>${percent(item.ok,item.total)}</td><td><span class="mini-progress ${okPct>=85?"ok":""}"><span style="width:${okPct}%"></span></span></td></tr>`;
+        return `<tr class="detail-trigger" data-branch-idx="${idx}"><td><strong>${escapeHtml(branchName(label))}</strong></td><td>${fmt.format(item.total)}</td><td>${fmt.format(item.ok)}</td><td>${fmt.format(item.late)}</td><td>${percent(item.ok,item.total)}</td><td><span class="mini-progress ${okPct>=85?"ok":""}"><span style="width:${okPct}%"></span></span></td></tr>`;
       }).join("")}</tbody></table>` : '<div class="empty">Sem filiais no filtro.</div>';
       $("branchPerformance").querySelectorAll("[data-branch-idx]").forEach((node) => node.addEventListener("click", () => {
         const branch = entries[Number(node.dataset.branchIdx)][0];
-        showDetails(`Fechamentos da filial ${branch}`, data.filter(r=>r.filial===branch));
+        showDetails(`Fechamentos de ${branchName(branch)}`, data.filter(r=>r.filial===branch));
       }));
     }
     function renderHeatmap(data){
@@ -4519,276 +4500,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         showDetails(`Faixa de atraso: ${label}`, items);
       }));
     }
-    function brDate(date) { return `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}/${date.getFullYear()}`; }
-    function selectedMeasurementLabel() {
-      const labels = { month:"Mes atual", today:"Hoje", week:"Semana atual", last7:"Ultimos 7 dias", custom:"Periodo", all:"Todas as datas" };
-      const mode = $("dateModeFilter").value;
-      const bounds = periodBounds();
-      const period = bounds ? `${labels[mode]} (${brDate(bounds[0])} a ${brDate(bounds[1])})` : labels[mode];
-      const terminal = $("terminalFilter").value || "Todos os terminais";
-      const filial = $("branchFilter").value || "Todas as filiais";
-      const status = $("statusFilter").selectedOptions[0]?.textContent || "Todos";
-      return `${period} | ${terminal} | ${filial} | ${status}`;
-    }
-    function roundRect(ctx, x, y, width, height, radius) {
-      const r = Math.min(radius, width / 2, height / 2);
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + width, y, x + width, y + height, r);
-      ctx.arcTo(x + width, y + height, x, y + height, r);
-      ctx.arcTo(x, y + height, x, y, r);
-      ctx.arcTo(x, y, x + width, y, r);
-      ctx.closePath();
-    }
-    function drawShareCard(ctx, x, y, width, height, accent = "#6b21a8") {
-      ctx.save();
-      ctx.shadowColor = "rgba(23,32,51,.12)";
-      ctx.shadowBlur = 22;
-      ctx.shadowOffsetY = 10;
-      ctx.fillStyle = "#ffffff";
-      roundRect(ctx, x, y, width, height, 22);
-      ctx.fill();
-      ctx.shadowColor = "transparent";
-      ctx.fillStyle = accent;
-      roundRect(ctx, x, y, width, 9, 22);
-      ctx.fill();
-      ctx.restore();
-    }
-    function drawMeasurementBrand(ctx) {
-      ctx.save();
-      ctx.translate(58, 48);
-      ctx.fillStyle = "#2b84cb";
-      ctx.beginPath();
-      ctx.moveTo(0, 20);
-      ctx.quadraticCurveTo(36, 2, 82, 12);
-      ctx.quadraticCurveTo(78, 64, 34, 84);
-      ctx.quadraticCurveTo(8, 58, 0, 20);
-      ctx.fill();
-      ctx.fillStyle = "#e2263c";
-      ctx.globalAlpha = .82;
-      ctx.beginPath();
-      ctx.moveTo(44, 16);
-      ctx.quadraticCurveTo(88, 28, 76, 58);
-      ctx.quadraticCurveTo(56, 76, 34, 84);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 16px Arial";
-      ctx.fillText("GRUPO", 104, 24);
-      ctx.font = "900 22px Arial";
-      ctx.fillText("DISLUB", 104, 50);
-      ctx.fillText("EQUADOR", 104, 76);
-      ctx.restore();
-    }
-    function fillFittedText(ctx, text, x, y, maxWidth, size, weight = "900", color = "#16212d", minSize = 11) {
-      let fontSize = size;
-      ctx.save();
-      ctx.fillStyle = color;
-      do {
-        ctx.font = `${weight} ${fontSize}px Arial`;
-        if (ctx.measureText(String(text)).width <= maxWidth || fontSize <= minSize) break;
-        fontSize -= 1;
-      } while (fontSize >= minSize);
-      ctx.fillText(String(text), x, y);
-      ctx.restore();
-    }
-    function drawLegendDot(ctx, x, y, color, text) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, 7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#657282";
-      ctx.font = "900 16px Arial";
-      ctx.fillText(text, x + 14, y + 6);
-    }
-    function drawMeasurementShareImage() {
-      const data = filteredRows();
-      const ok = data.filter(r=>r.status==="ok").length;
-      const late = data.length - ok;
-      const avg = data.length ? data.reduce((total,row)=>total+Number(row.horasFechamento||0),0) / data.length : null;
-      const sla = data.length ? ok / data.length * 100 : 0;
-      const canvas = $("measurementShareCanvas");
-      canvas.width = 1080;
-      canvas.height = 1500;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#edf2f7";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 360);
-      gradient.addColorStop(0, "#34104f");
-      gradient.addColorStop(.6, "#4c176d");
-      gradient.addColorStop(1, "#1b255f");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, 360);
-      ctx.globalAlpha = .16;
-      ctx.fillStyle = "#2b84cb";
-      ctx.beginPath();
-      ctx.arc(900, 60, 250, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = .18;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(910, 115, 180, .15, Math.PI * 1.6);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      drawMeasurementBrand(ctx);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 52px Arial";
-      ctx.fillText("Controle Medicao", 58, 188);
-      fillFittedText(ctx, selectedMeasurementLabel(), 58, 236, 940, 23, "800", "#d7e4ea", 16);
-
-      const kpiY = 292;
-      const kpiW = 224;
-      [
-        ["Total", fmt.format(data.length), "#3f48cc"],
-        ["No prazo", fmt.format(ok), "#00856f"],
-        ["Fora do prazo", fmt.format(late), "#e2263c"],
-        ["SLA", `${sla.toFixed(0)}%`, "#1b255f"]
-      ].forEach(([label,value,accent], idx) => {
-        const x = 54 + idx * (kpiW + 18);
-        drawShareCard(ctx, x, kpiY, kpiW, 126, accent);
-        fillFittedText(ctx, label.toUpperCase(), x + 24, kpiY + 45, kpiW - 48, 16, "900", "#657282", 12);
-        fillFittedText(ctx, value, x + 24, kpiY + 91, kpiW - 48, 34, "900", "#16212d", 22);
-      });
-
-      const chartY = 468;
-      drawShareCard(ctx, 54, chartY, 972, 366, "#4c176d");
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 30px Arial";
-      ctx.fillText("Evolucao dos Fechamentos", 82, chartY + 56);
-      drawLegendDot(ctx, 780, chartY + 48, "#00856f", "No prazo");
-      drawLegendDot(ctx, 895, chartY + 48, "#e2263c", "Fora");
-      const stats = dailyStats(data).slice(-18);
-      const plotX = 92, plotY = chartY + 92, plotW = 888, plotH = 210;
-      const maxDay = Math.max(1, ...stats.map(([, item]) => item.total));
-      ctx.strokeStyle = "#d7e0e8";
-      ctx.lineWidth = 2;
-      [0,.25,.5,.75,1].forEach((v) => {
-        const y = plotY + plotH * v;
-        ctx.beginPath();
-        ctx.moveTo(plotX, y);
-        ctx.lineTo(plotX + plotW, y);
-        ctx.stroke();
-      });
-      stats.forEach(([date,item], idx) => {
-        const step = plotW / Math.max(1, stats.length);
-        const barW = Math.min(34, step * .58);
-        const x = plotX + step * idx + step / 2 - barW / 2;
-        const okH = item.ok / maxDay * plotH;
-        const lateH = item.late / maxDay * plotH;
-        const base = plotY + plotH;
-        ctx.fillStyle = "#00856f";
-        roundRect(ctx, x, base - okH, barW, okH, 5);
-        ctx.fill();
-        ctx.fillStyle = "#e2263c";
-        roundRect(ctx, x, base - okH - lateH, barW, lateH, 5);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "900 13px Arial";
-        ctx.textAlign = "center";
-        if (item.ok && okH > 26) ctx.fillText(fmt.format(item.ok), x + barW / 2, base - okH / 2 + 5);
-        if (item.late && lateH > 26) ctx.fillText(fmt.format(item.late), x + barW / 2, base - okH - lateH / 2 + 5);
-        ctx.fillStyle = "#334155";
-        ctx.font = "900 13px Arial";
-        ctx.fillText(date.slice(0,5), x + barW / 2, chartY + 334);
-        ctx.textAlign = "left";
-      });
-
-      const leftY = 884;
-      drawShareCard(ctx, 54, leftY, 472, 410, "#00856f");
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 28px Arial";
-      ctx.fillText("Desempenho por Filial", 82, leftY + 55);
-      const branches = grouped(data, "filial").slice(0, 5);
-      ctx.font = "900 14px Arial";
-      ctx.fillStyle = "#657282";
-      ctx.fillText("FILIAL", 82, leftY + 98);
-      ctx.fillText("TOTAL", 200, leftY + 98);
-      ctx.fillText("NO PRAZO", 286, leftY + 98);
-      ctx.fillText("SLA", 410, leftY + 98);
-      branches.forEach(([label,item], idx) => {
-        const y = leftY + 132 + idx * 48;
-        const itemSla = item.total ? item.ok / item.total * 100 : 0;
-        ctx.fillStyle = "#e3e9ef";
-        ctx.fillRect(82, y + 28, 396, 1);
-        fillFittedText(ctx, label, 82, y, 96, 18, "900", "#16212d", 12);
-        ctx.font = "900 18px Arial";
-        ctx.fillStyle = "#16212d";
-        ctx.fillText(fmt.format(item.total), 200, y);
-        ctx.fillText(fmt.format(item.ok), 300, y);
-        ctx.fillText(`${itemSla.toFixed(0)}%`, 410, y);
-      });
-
-      drawShareCard(ctx, 554, leftY, 472, 410, "#e2263c");
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 28px Arial";
-      ctx.fillText("Faixas de Atraso", 582, leftY + 55);
-      const lateData = data.filter(r=>r.status==="late");
-      const ranges = [
-        ["1 dia", "#4fbf7a", lateData.filter(r=>Number(r.horasFora)<=24)],
-        ["2 dias", "#ffcc3d", lateData.filter(r=>Number(r.horasFora)>24 && Number(r.horasFora)<=48)],
-        ["3 dias", "#ff7a2d", lateData.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=72)],
-        ["4 dias", "#ff453a", lateData.filter(r=>Number(r.horasFora)>72 && Number(r.horasFora)<=96)],
-        ["5+ dias", "#d72630", lateData.filter(r=>Number(r.horasFora)>96)]
-      ];
-      const totalLate = ranges.reduce((sum,[,,items])=>sum+items.length,0);
-      const maxLate = Math.max(1, ...ranges.map(([,,items])=>items.length));
-      ranges.forEach(([label,color,items], idx) => {
-        const y = leftY + 108 + idx * 50;
-        drawLegendDot(ctx, 588, y - 5, color, label);
-        ctx.fillStyle = "#edf2f6";
-        roundRect(ctx, 680, y - 15, 220, 11, 999);
-        ctx.fill();
-        ctx.fillStyle = color;
-        roundRect(ctx, 680, y - 15, items.length / maxLate * 220, 11, 999);
-        ctx.fill();
-        ctx.fillStyle = "#16212d";
-        ctx.font = "900 17px Arial";
-        ctx.textAlign = "right";
-        ctx.fillText(fmt.format(items.length), 936, y - 3);
-        ctx.fillStyle = "#657282";
-        ctx.fillText(percent(items.length,totalLate), 1000, y - 3);
-        ctx.textAlign = "left";
-      });
-      ctx.strokeStyle = "#d7e0e8";
-      ctx.beginPath();
-      ctx.moveTo(582, leftY + 328);
-      ctx.lineTo(998, leftY + 328);
-      ctx.stroke();
-      ctx.fillStyle = "#16212d";
-      ctx.font = "900 18px Arial";
-      ctx.fillText("Total em atraso", 582, leftY + 372);
-      ctx.textAlign = "right";
-      ctx.fillText(fmt.format(totalLate), 998, leftY + 372);
-      ctx.textAlign = "left";
-
-      ctx.fillStyle = "#657282";
-      ctx.font = "800 18px Arial";
-      ctx.fillText(`Tempo medio: ${avg === null ? "-" : durationLabel(avg)}`, 54, 1370);
-      ctx.fillText("Dashboard Log - Grupo Dislub Equador", 54, canvas.height - 34);
-    }
-    function canvasToBlob(canvas) {
-      return new Promise((resolve) => canvas.toBlob(resolve, "image/png", .95));
-    }
-    async function downloadMeasurementImage() {
-      drawMeasurementShareImage();
-      const link = document.createElement("a");
-      link.download = "controle-medicao.png";
-      link.href = $("measurementShareCanvas").toDataURL("image/png");
-      link.click();
-    }
-    async function shareMeasurementImage() {
-      drawMeasurementShareImage();
-      const blob = await canvasToBlob($("measurementShareCanvas"));
-      if (!blob) return downloadMeasurementImage();
-      const file = new File([blob], "controle-medicao.png", { type: "image/png" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Controle Medicao" });
-      } else {
-        await downloadMeasurementImage();
-      }
-    }
     function renderTable(data){ $("rows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>'; }
     function render(){
       updateCustomDateFilter();
@@ -4812,7 +4523,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       renderHeatmap(data);
       renderReasons(data);
       renderTable(data);
-      drawMeasurementShareImage();
     }
     document.querySelectorAll(".message").forEach((item)=>{ setTimeout(()=>item.classList.add("is-hidden"),4200); setTimeout(()=>item.remove(),4600); });
     document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b===btn)); document.querySelectorAll(".tab-view").forEach(view=>view.hidden=view.id!==btn.dataset.tab); }));
@@ -4820,8 +4530,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     $("refreshDashboard").addEventListener("click", render);
     let resizeTimer = null;
     window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("dashboard").hidden) renderEvolution(filteredRows()); }, 120); });
-    $("measurementDownloadImage").addEventListener("click", downloadMeasurementImage);
-    $("measurementShareImage").addEventListener("click", shareMeasurementImage);
     $("detailClose").addEventListener("click", closeDetails);
     $("detailModal").addEventListener("click", (event)=>{ if(event.target===$("detailModal")) closeDetails(); });
     document.addEventListener("keydown", (event)=>{ if(event.key==="Escape" && !$("detailModal").hidden) closeDetails(); });
