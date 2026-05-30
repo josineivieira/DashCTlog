@@ -4208,9 +4208,15 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .alerts-panel { grid-area:alerts; }
     .heatmap-panel .panel-body { height:calc(100% - 44px); display:flex; flex-direction:column; }
     .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; color:var(--ink); }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 18px 0; }
+    .panel .panel-head h2 { padding:0; }
     .panel.compact h2 { font-size:17px; padding-top:14px; }
     .panel-body { padding:12px 18px 16px; }
     .panel.compact .panel-body { padding:10px 18px 14px; }
+    .evolution-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:14px; color:var(--muted); font-size:12px; font-weight:900; }
+    .evolution-legend span { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    .evolution-legend span::before { content:""; width:10px; height:10px; border-radius:50%; background:#00856f; }
+    .evolution-legend .late::before { background:#e2263c; }
     .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
     .donut { position:relative; width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
     .donut::before { content:""; width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
@@ -4233,8 +4239,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .badge { display:inline-flex; min-height:27px; align-items:center; padding:5px 8px; border-radius:999px; font-weight:950; white-space:nowrap; }
     .badge.ok { background:#e7f7ee; color:#166534; }
     .badge.bad { background:#fff1f2; color:#991b1b; }
-    .chart-wrap { overflow-x:auto; overflow-y:hidden; padding-bottom:6px; }
-    .chart-wrap svg { width:auto; max-width:none; height:auto; display:block; }
+    .chart-wrap { overflow:hidden; padding-bottom:6px; }
+    .chart-wrap svg { width:100%; height:auto; display:block; }
     .detail-trigger { cursor:pointer; }
     .detail-trigger:hover { filter:brightness(.96); outline:2px solid rgba(43,132,203,.28); outline-offset:2px; }
     .alert-list { display:grid; gap:8px; }
@@ -4272,7 +4278,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .detail-table { min-width:1120px; }
     @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .lower-grid { grid-template-columns:1fr; grid-template-areas:"branch" "reasons" "heatmap" "alerts"; } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
-    @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card, .lower-grid { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
+    @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card, .lower-grid { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } .panel-head { align-items:flex-start; flex-direction:column; } .evolution-legend { justify-content:flex-start; } }
   </style>
 </head>
 <body>
@@ -4314,7 +4320,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 100% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
       </div>
       <div class="ops-grid">
-        <section class="panel"><h2>Evolucao dos Fechamentos</h2><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
+        <section class="panel"><div class="panel-head"><h2>Evolucao dos Fechamentos</h2><div class="evolution-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div></div><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
       </div>
       <div class="lower-grid">
         <section class="panel compact branch-panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
@@ -4385,22 +4391,28 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function renderEvolution(data){
       const stats = dailyStats(data).slice(-31);
       if (!stats.length) { $("evolutionChart").innerHTML = '<div class="empty">Sem dados para o filtro.</div>'; return; }
-      const width = Math.max(760, stats.length * 48 + 92), height = 330, pad = { left: 50, right: 42, top: 30, bottom: 58 };
+      const containerWidth = $("evolutionChart").clientWidth || 980;
+      const width = Math.max(520, Math.round(containerWidth));
+      const height = Math.max(260, Math.min(330, Math.round(width * .24)));
+      const pad = { left: 42, right: 24, top: 24, bottom: 48 };
       const plotW = width - pad.left - pad.right, plotH = height - pad.top - pad.bottom;
       const max = Math.max(1, ...stats.map(([, item]) => item.total));
       const x = (idx) => pad.left + (stats.length === 1 ? plotW / 2 : idx * (plotW / (stats.length - 1)));
       const barArea = plotW / Math.max(1, stats.length);
+      const labelStep = width < 700 ? Math.ceil(stats.length / 12) : width < 980 ? Math.ceil(stats.length / 18) : 1;
       const bars = stats.map(([date, item], idx) => {
-        const barW = Math.max(18, Math.min(34, barArea * .64));
+        const barW = Math.max(10, Math.min(34, barArea * .62));
         const okH = item.ok / max * plotH;
         const lateH = item.late / max * plotH;
         const bx = x(idx) - barW / 2;
         const base = pad.top + plotH;
-        const okLabel = item.ok && okH >= 24 ? `<text x="${x(idx)}" y="${base-okH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.ok)}</text>` : "";
-        const lateLabel = item.late && lateH >= 24 ? `<text x="${x(idx)}" y="${base-okH-lateH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.late)}</text>` : "";
-        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}<text x="${x(idx)}" y="${height-20}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text></g>`;
+        const fontSize = barW < 17 ? 9 : 11;
+        const okLabel = item.ok && okH >= 22 && barW >= 14 ? `<text x="${x(idx)}" y="${base-okH/2+4}" text-anchor="middle" fill="#fff" font-size="${fontSize}" font-weight="900">${fmt.format(item.ok)}</text>` : "";
+        const lateLabel = item.late && lateH >= 22 && barW >= 14 ? `<text x="${x(idx)}" y="${base-okH-lateH/2+4}" text-anchor="middle" fill="#fff" font-size="${fontSize}" font-weight="900">${fmt.format(item.late)}</text>` : "";
+        const dateLabel = idx % labelStep === 0 || idx === stats.length - 1 ? `<text x="${x(idx)}" y="${height-18}" text-anchor="middle" fill="#334155" font-size="11" font-weight="850">${date.slice(0,5)}</text>` : "";
+        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}${dateLabel}</g>`;
       }).join("");
-      $("evolutionChart").innerHTML = `<svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
+      $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
       </svg>`;
@@ -4516,6 +4528,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     document.querySelectorAll(".tabs button").forEach(btn=>btn.addEventListener("click",()=>{ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b===btn)); document.querySelectorAll(".tab-view").forEach(view=>view.hidden=view.id!==btn.dataset.tab); }));
     ["dateModeFilter","dateStartFilter","dateEndFilter","terminalFilter","branchFilter","userChangeFilter","statusFilter","timeFilter"].forEach(id=>$(id).addEventListener("change",render));
     $("refreshDashboard").addEventListener("click", render);
+    let resizeTimer = null;
+    window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("dashboard").hidden) renderEvolution(filteredRows()); }, 120); });
     $("detailClose").addEventListener("click", closeDetails);
     $("detailModal").addEventListener("click", (event)=>{ if(event.target===$("detailModal")) closeDetails(); });
     document.addEventListener("keydown", (event)=>{ if(event.key==="Escape" && !$("detailModal").hidden) closeDetails(); });
