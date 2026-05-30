@@ -839,7 +839,7 @@ HOME_HTML = """<!doctype html>
             <span>Medicao</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg></div>
             <strong>Controle Medicao</strong>
-            <p>Acompanhe fechamentos de medicao no prazo de 2 dias sem contar domingo.</p>
+            <p>Acompanhe fechamentos de medicao no prazo de 2 dias, sem domingo e feriados.</p>
             <div class="button">Abrir controle</div>
           </a>
           __USER_CARD__
@@ -6622,7 +6622,13 @@ def note_entry_rows() -> list[dict[str, object]]:
 
 
 def measurement_deadline(start: dt.datetime) -> dt.datetime:
-    deadline_date = start.date() + dt.timedelta(days=2)
+    deadline_date = start.date()
+    counted_days = 0
+    while counted_days < 2:
+        deadline_date += dt.timedelta(days=1)
+        if is_note_entry_non_working_day(deadline_date):
+            continue
+        counted_days += 1
     return dt.datetime.combine(deadline_date, dt.time.max).replace(microsecond=0)
 
 
