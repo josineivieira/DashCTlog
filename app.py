@@ -4256,7 +4256,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .reason-label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
     .reason-dot { width:10px; height:10px; border-radius:50%; background:var(--red); flex:0 0 auto; }
     .reason-track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
-    .reason-fill { height:100%; border-radius:inherit; background:var(--red); }
+    .reason-fill { display:block; height:100%; border-radius:inherit; background:var(--red); }
     .reason-value { text-align:right; font-weight:950; }
     .reason-percent { color:var(--muted); text-align:right; font-weight:850; }
     .reason-total { display:grid; grid-template-columns:1fr auto; gap:12px; margin-top:4px; padding-top:10px; border-top:1px solid var(--line); font-weight:950; }
