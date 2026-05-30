@@ -4464,11 +4464,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function renderReasons(data){
       const lateData = data.filter(r=>r.status==="late");
       const ranges = [
-        ["1 dia", "#16b26f", lateData.filter(r=>Number(r.horasFora)<=24)],
-        ["2 dias", "#fbbf24", lateData.filter(r=>Number(r.horasFora)>24 && Number(r.horasFora)<=48)],
-        ["3 dias", "#fb6b2a", lateData.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=72)],
-        ["4 dias", "#ef4444", lateData.filter(r=>Number(r.horasFora)>72 && Number(r.horasFora)<=96)],
-        ["5+ dias", "#dc2626", lateData.filter(r=>Number(r.horasFora)>96)]
+        ["1 dia", "#4fbf7a", lateData.filter(r=>Number(r.horasFora)<=24)],
+        ["2 dias", "#ffcc3d", lateData.filter(r=>Number(r.horasFora)>24 && Number(r.horasFora)<=48)],
+        ["3 dias", "#ff7a2d", lateData.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=72)],
+        ["4 dias", "#ff453a", lateData.filter(r=>Number(r.horasFora)>72 && Number(r.horasFora)<=96)],
+        ["5+ dias", "#d72630", lateData.filter(r=>Number(r.horasFora)>96)]
       ];
       const total = ranges.reduce((sum, [, , items]) => sum + items.length, 0);
       const max = Math.max(1, ...ranges.map(([, , items]) => items.length));
