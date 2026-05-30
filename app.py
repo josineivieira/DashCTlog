@@ -4200,10 +4200,12 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .delta.bad { background:#fff1f2; color:#991b1b; }
     .sla-bar { height:12px; border-radius:999px; background:#e8eef5; overflow:hidden; margin-top:14px; }
     .sla-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#ff8a1c,#ffc22e); }
-    .ops-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(360px,.95fr) minmax(320px,.7fr); gap:14px; margin-bottom:14px; }
-    .lower-grid { display:grid; grid-template-columns:minmax(420px,1fr) minmax(320px,.72fr) minmax(360px,.88fr); gap:14px; margin-bottom:14px; }
-    .panel h2 { margin:0; padding:18px 18px 0; font-size:18px; color:var(--ink); }
-    .panel-body { padding:14px 18px 18px; }
+    .ops-grid { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px; }
+    .lower-grid { display:grid; grid-template-columns:minmax(360px,1fr) minmax(280px,.72fr) minmax(300px,.82fr); gap:14px; margin-bottom:14px; align-items:start; }
+    .panel h2 { margin:0; padding:16px 18px 0; font-size:18px; color:var(--ink); }
+    .panel.compact h2 { font-size:17px; padding-top:14px; }
+    .panel-body { padding:12px 18px 16px; }
+    .panel.compact .panel-body { padding:10px 18px 14px; }
     .status-card { display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center; }
     .donut { position:relative; width:156px; height:156px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--green) 0deg, var(--green) var(--okDeg), var(--red) var(--okDeg), var(--red) 360deg); }
     .donut::before { content:""; width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
@@ -4230,12 +4232,9 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .chart-wrap svg { width:auto; max-width:none; height:auto; display:block; }
     .detail-trigger { cursor:pointer; }
     .detail-trigger:hover { filter:brightness(.96); outline:2px solid rgba(43,132,203,.28); outline-offset:2px; }
-    .rank-list, .alert-list { display:grid; gap:12px; }
-    .rank-row { display:grid; grid-template-columns:minmax(170px,1fr) 120px 70px 58px; gap:12px; align-items:center; font-size:13px; font-weight:850; }
-    .rank-track { height:12px; border-radius:999px; background:#edf2f6; overflow:hidden; }
-    .rank-fill { height:100%; border-radius:inherit; background:var(--red); }
-    .alert-item { display:grid; grid-template-columns:40px 1fr; gap:12px; padding:12px; border-radius:8px; background:#f8fafb; border:1px solid var(--line); }
-    .alert-icon { width:38px; height:38px; border-radius:8px; display:grid; place-items:center; background:rgba(242,56,78,.16); color:#ff6b78; font-weight:950; }
+    .alert-list { display:grid; gap:8px; }
+    .alert-item { display:grid; grid-template-columns:34px 1fr; gap:10px; padding:10px; border-radius:8px; background:#f8fafb; border:1px solid var(--line); }
+    .alert-icon { width:32px; height:32px; border-radius:8px; display:grid; place-items:center; background:rgba(242,56,78,.16); color:#ff6b78; font-weight:950; }
     .alert-item.warning .alert-icon { background:rgba(245,158,11,.16); color:#ffb13b; }
     .alert-item strong { display:block; margin-bottom:4px; }
     .branch-table { width:100%; min-width:0; }
@@ -4243,12 +4242,12 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .mini-progress span { display:block; background:var(--red); }
     .mini-progress.ok span { background:var(--green); }
     .heatmap-note { margin-bottom:8px; color:var(--muted); font-size:12px; font-weight:850; }
-    .heatmap { display:grid; grid-template-columns:42px repeat(6,1fr); gap:5px; align-items:center; font-size:12px; }
-    .heat-cell { min-height:42px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
+    .heatmap { display:grid; grid-template-columns:34px repeat(6,1fr); gap:4px; align-items:center; font-size:11px; }
+    .heat-cell { min-height:34px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
     .heat-cell small { margin-top:3px; font-size:10px; font-weight:950; color:rgba(22,33,45,.78); }
-    .reason-layout { display:grid; grid-template-columns:170px 1fr; gap:18px; align-items:center; }
-    .reason-donut { width:150px; height:150px; border-radius:50%; background:conic-gradient(var(--green) 0deg, var(--green) var(--reasonA), #fbbf24 var(--reasonA), #fbbf24 var(--reasonB), #fb6b2a var(--reasonB), #fb6b2a var(--reasonC), var(--red) var(--reasonC), var(--red) 360deg); position:relative; display:grid; place-items:center; }
-    .reason-donut::before { content:""; width:94px; height:94px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
+    .reason-layout { display:grid; grid-template-columns:130px 1fr; gap:14px; align-items:center; }
+    .reason-donut { width:120px; height:120px; border-radius:50%; background:conic-gradient(var(--green) 0deg, var(--green) var(--reasonA), #fbbf24 var(--reasonA), #fbbf24 var(--reasonB), #fb6b2a var(--reasonB), #fb6b2a var(--reasonC), var(--red) var(--reasonC), var(--red) 360deg); position:relative; display:grid; place-items:center; }
+    .reason-donut::before { content:""; width:74px; height:74px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
     .reason-donut-label { position:absolute; text-align:center; font-weight:950; }
     .reason-list { display:grid; gap:10px; font-size:13px; font-weight:850; }
     .reason-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; }
@@ -4263,9 +4262,9 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .detail-count { color:var(--muted); font-size:13px; font-weight:900; }
     .detail-table-wrap { overflow:auto; padding:0 18px 18px; }
     .detail-table { min-width:1120px; }
-    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .ops-grid, .lower-grid { grid-template-columns:1fr; } }
+    @media (max-width:1280px) { .kpis { grid-template-columns:repeat(3,minmax(170px,1fr)); } .lower-grid { grid-template-columns:1fr 1fr; } }
     @media (max-width:1100px) { .kpis { grid-template-columns:repeat(2,minmax(150px,1fr)); } .grid { grid-template-columns:1fr; } }
-    @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
+    @media (max-width:760px) { .topbar { flex-direction:column; } .nav { justify-content:flex-start; } .kpis, .status-card, .lower-grid { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -4301,20 +4300,19 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     <section id="dashboard" class="tab-view">
       <div class="kpis">
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medicoes</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small><div class="delta" id="kOkDelta">Meta operacional</div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small><div class="delta bad" id="kLateDelta">Acompanhar atrasos</div></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 85% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 100% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
       </div>
       <div class="ops-grid">
         <section class="panel"><h2>Evolucao dos Fechamentos</h2><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
-        <section class="panel"><h2>Top 5 Terminais com mais atraso</h2><div class="panel-body"><div id="terminalRank" class="rank-list"></div></div></section>
-        <section class="panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
       <div class="lower-grid">
-        <section class="panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
-        <section class="panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total de fechamentos por horario; abaixo, quantos ficaram fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
-        <section class="panel"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel compact"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
+        <section class="panel compact"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
+        <section class="panel compact"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel compact"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
     </section>
     <section id="data" class="tab-view" hidden>
@@ -4401,17 +4399,6 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       $("evolutionChart").querySelectorAll("[data-evolution-idx]").forEach((node) => node.addEventListener("click", () => {
         const [date, item] = stats[Number(node.dataset.evolutionIdx)];
         showDetails(`Fechamentos em ${date}`, item.rows);
-      }));
-    }
-    function renderTerminalRank(data){
-      const entries = grouped(data, "terminal").filter(([, item]) => item.late > 0).slice(0, 5);
-      $("terminalRank").innerHTML = entries.length ? entries.map(([label, item], idx) => {
-        const latePct = item.total ? item.late / item.total * 100 : 0;
-        return `<div class="rank-row detail-trigger" data-terminal-idx="${idx}"><strong>${escapeHtml(label)}</strong><div class="rank-track"><div class="rank-fill" style="width:${latePct}%"></div></div><span>${latePct.toFixed(0)}%</span><span>${fmt.format(item.late)}</span></div>`;
-      }).join("") : '<div class="empty">Sem terminais fora do prazo.</div>';
-      $("terminalRank").querySelectorAll("[data-terminal-idx]").forEach((node) => node.addEventListener("click", () => {
-        const terminal = entries[Number(node.dataset.terminalIdx)][0];
-        showDetails(`Atrasos do terminal ${terminal}`, data.filter(r=>r.terminal===terminal && r.status==="late"));
       }));
     }
     function topEntry(entries){ return entries[0] || ["-", { total: 0, ok: 0, late: 0 }]; }
@@ -4504,11 +4491,8 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       $("kAvg").textContent=avg===null?"-":durationLabel(avg);
       $("kSla").textContent=`${sla.toFixed(0)}%`;
       $("kSlaFill").style.width=`${Math.min(100,sla)}%`;
-      $("kOkDelta").textContent = sla >= 85 ? "Dentro da meta" : "Abaixo da meta";
-      $("kOkDelta").classList.toggle("bad", sla < 85);
       $("kLateDelta").textContent = "";
       renderEvolution(data);
-      renderTerminalRank(data);
       renderAlerts(data);
       renderBranchPerformance(data);
       renderHeatmap(data);
