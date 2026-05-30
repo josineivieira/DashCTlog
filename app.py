@@ -4273,7 +4273,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     <div class="topbar">
       <div>
         <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Controle Medicao</h1></div>
-        <p class="subtitle">Acompanhamento dos fechamentos de medicao no prazo de 2 dias, sem contar domingo.</p>
+        <p class="subtitle">Acompanhamento dos fechamentos de medicao no prazo de 2 dias.</p>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
@@ -4303,7 +4303,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medicoes</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small><div class="delta" id="kOkDelta">Meta operacional</div></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small><div class="delta bad" id="kLateDelta">Acompanhar atrasos</div></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small><div class="delta" id="kAvgDelta">Sem domingo</div></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 85% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
       </div>
       <div class="ops-grid">
@@ -4392,12 +4392,11 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         const base = pad.top + plotH;
         const okLabel = item.ok && okH >= 24 ? `<text x="${x(idx)}" y="${base-okH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.ok)}</text>` : "";
         const lateLabel = item.late && lateH >= 24 ? `<text x="${x(idx)}" y="${base-okH-lateH/2+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">${fmt.format(item.late)}</text>` : "";
-        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}<text x="${x(idx)}" y="${height-28}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text><text x="${x(idx)}" y="${height-12}" text-anchor="middle" fill="#657282" font-size="10">clique</text></g>`;
+        return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}<text x="${x(idx)}" y="${height-20}" text-anchor="middle" fill="#334155" font-size="12" font-weight="850">${date.slice(0,5)}</text></g>`;
       }).join("");
       $("evolutionChart").innerHTML = `<svg width="${width}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
-        <text x="${pad.left}" y="16" fill="#657282" font-size="12">Valores dentro da barra: no prazo (verde) e fora do prazo (vermelho)</text>
       </svg>`;
       $("evolutionChart").querySelectorAll("[data-evolution-idx]").forEach((node) => node.addEventListener("click", () => {
         const [date, item] = stats[Number(node.dataset.evolutionIdx)];
@@ -4507,7 +4506,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       $("kSlaFill").style.width=`${Math.min(100,sla)}%`;
       $("kOkDelta").textContent = sla >= 85 ? "Dentro da meta" : "Abaixo da meta";
       $("kOkDelta").classList.toggle("bad", sla < 85);
-      $("kLateDelta").textContent = late ? "Acao necessaria" : "Sem atrasos";
+      $("kLateDelta").textContent = "";
       renderEvolution(data);
       renderTerminalRank(data);
       renderAlerts(data);
@@ -6435,7 +6434,8 @@ def note_entry_rows() -> list[dict[str, object]]:
 
 
 def measurement_deadline(start: dt.datetime) -> dt.datetime:
-    return note_entry_deadline(start)
+    deadline_date = start.date() + dt.timedelta(days=2)
+    return dt.datetime.combine(deadline_date, dt.time.max).replace(microsecond=0)
 
 
 def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
@@ -6455,7 +6455,9 @@ def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
             "horasFora": 0,
         }
     prazo = measurement_deadline(medicao)
-    late = fechamento > prazo
+    late = fechamento.date() > prazo.date()
+    hours_to_close = max(0, (fechamento.date() - medicao.date()).days * 24)
+    hours_late = max(0, (fechamento.date() - prazo.date()).days * 24) if late else 0
     return {
         "seq": row.get("seq", ""),
         "filial": row.get("filial", ""),
@@ -6463,10 +6465,10 @@ def measurement_view_row(row: dict[str, str]) -> dict[str, object]:
         "usuarioAlteracao": row.get("usuario_alteracao", row.get("usuarioAlteracao", "")),
         "medicao": format_note_date(medicao),
         "fechamento": format_note_datetime(fechamento),
-        "prazo": format_note_datetime(prazo),
+        "prazo": format_note_date(prazo),
         "status": "late" if late else "ok",
-        "horasFechamento": max(0, int((fechamento - medicao).total_seconds() // 3600)),
-        "horasFora": max(0, int((fechamento - prazo).total_seconds() // 3600)) if late else 0,
+        "horasFechamento": hours_to_close,
+        "horasFora": hours_late,
     }
 
 
