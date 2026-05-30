@@ -4251,13 +4251,15 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     .heatmap > strong { display:flex; align-items:center; justify-content:center; }
     .heat-cell { min-height:48px; border-radius:4px; background:#e8eef5; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#16212d; font-weight:900; line-height:1.05; }
     .heat-cell small { margin-top:3px; font-size:10px; font-weight:950; color:rgba(22,33,45,.78); }
-    .reason-layout { display:grid; grid-template-columns:130px 1fr; gap:14px; align-items:center; }
-    .reason-donut { width:120px; height:120px; border-radius:50%; background:conic-gradient(var(--green) 0deg, var(--green) var(--reasonA), #fbbf24 var(--reasonA), #fbbf24 var(--reasonB), #fb6b2a var(--reasonB), #fb6b2a var(--reasonC), var(--red) var(--reasonC), var(--red) 360deg); position:relative; display:grid; place-items:center; }
-    .reason-donut::before { content:""; width:74px; height:74px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px var(--line); }
-    .reason-donut-label { position:absolute; text-align:center; font-weight:950; }
     .reason-list { display:grid; gap:10px; font-size:13px; font-weight:850; }
-    .reason-row { display:grid; grid-template-columns:12px 1fr auto; gap:9px; align-items:center; }
-    .reason-dot { width:11px; height:11px; border-radius:3px; background:var(--red); }
+    .reason-row { display:grid; grid-template-columns:78px minmax(120px,1fr) 44px 52px; gap:10px; align-items:center; }
+    .reason-label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+    .reason-dot { width:10px; height:10px; border-radius:50%; background:var(--red); flex:0 0 auto; }
+    .reason-track { height:10px; border-radius:999px; background:#edf2f6; overflow:hidden; }
+    .reason-fill { height:100%; border-radius:inherit; background:var(--red); }
+    .reason-value { text-align:right; font-weight:950; }
+    .reason-percent { color:var(--muted); text-align:right; font-weight:850; }
+    .reason-total { display:grid; grid-template-columns:1fr auto; gap:12px; margin-top:4px; padding-top:10px; border-top:1px solid var(--line); font-weight:950; }
     .empty { padding:26px; color:var(--muted); font-weight:800; text-align:center; }
     .detail-modal { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.44); }
     .detail-modal[hidden] { display:none; }
@@ -4316,7 +4318,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       </div>
       <div class="lower-grid">
         <section class="panel compact branch-panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
-        <section class="panel compact reasons-panel"><h2>Faixas de Fechamento</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
+        <section class="panel compact reasons-panel"><h2>Faixas de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
         <section class="panel compact heatmap-panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
         <section class="panel compact alerts-panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
@@ -4460,25 +4462,30 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
       }));
     }
     function renderReasons(data){
+      const lateData = data.filter(r=>r.status==="late");
       const ranges = [
-        ["Ate 2 dias", "#16b26f", data.filter(r=>Number(r.horasFechamento)<=48)],
-        ["3 a 4 dias", "#fbbf24", data.filter(r=>Number(r.horasFechamento)>48 && Number(r.horasFechamento)<=96)],
-        ["5 a 6 dias", "#fb6b2a", data.filter(r=>Number(r.horasFechamento)>96 && Number(r.horasFechamento)<=144)],
-        ["7+ dias", "#f2384e", data.filter(r=>Number(r.horasFechamento)>144)]
+        ["1 dia", "#16b26f", lateData.filter(r=>Number(r.horasFora)<=24)],
+        ["2 dias", "#fbbf24", lateData.filter(r=>Number(r.horasFora)>24 && Number(r.horasFora)<=48)],
+        ["3 dias", "#fb6b2a", lateData.filter(r=>Number(r.horasFora)>48 && Number(r.horasFora)<=72)],
+        ["4 dias", "#ef4444", lateData.filter(r=>Number(r.horasFora)>72 && Number(r.horasFora)<=96)],
+        ["5+ dias", "#dc2626", lateData.filter(r=>Number(r.horasFora)>96)]
       ];
-      const until2 = ranges[0][2].length;
-      const days3to4 = ranges[1][2].length;
-      const days5to6 = ranges[2][2].length;
-      const total = Math.max(1, data.length);
-      const a = until2 / total * 360;
-      const b = a + days3to4 / total * 360;
-      const c = b + days5to6 / total * 360;
-      $("reasonPanel").innerHTML = `<div class="reason-layout"><div class="reason-donut" style="--reasonA:${a}deg;--reasonB:${b}deg;--reasonC:${c}deg"><div class="reason-donut-label"><strong>${fmt.format(data.length)}</strong><span>Total</span></div></div><div class="reason-list">
-        ${ranges.map(([label,color,items], idx)=>`<div class="reason-row detail-trigger" data-range-idx="${idx}"><span class="reason-dot" style="background:${color}"></span><span>${label}</span><strong>${fmt.format(items.length)}</strong></div>`).join("")}
-      </div></div>`;
+      const total = ranges.reduce((sum, [, , items]) => sum + items.length, 0);
+      const max = Math.max(1, ...ranges.map(([, , items]) => items.length));
+      $("reasonPanel").innerHTML = `<div class="reason-list">
+        ${ranges.map(([label,color,items], idx)=>`
+          <div class="reason-row detail-trigger" data-range-idx="${idx}">
+            <span class="reason-label"><span class="reason-dot" style="background:${color}"></span>${label}</span>
+            <span class="reason-track"><span class="reason-fill" style="width:${items.length / max * 100}%; background:${color}"></span></span>
+            <span class="reason-value">${fmt.format(items.length)}</span>
+            <span class="reason-percent">${percent(items.length,total)}</span>
+          </div>
+        `).join("")}
+        <div class="reason-total"><span>Total em atraso</span><strong>${fmt.format(total)}</strong></div>
+      </div>`;
       $("reasonPanel").querySelectorAll("[data-range-idx]").forEach((node) => node.addEventListener("click", () => {
         const [label,, items] = ranges[Number(node.dataset.rangeIdx)];
-        showDetails(`Faixa de fechamento: ${label}`, items);
+        showDetails(`Faixa de atraso: ${label}`, items);
       }));
     }
     function renderTable(data){ $("rows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para o filtro.</td></tr>'; }
