@@ -38,10 +38,10 @@ PERMISSIONS = [
     ("dashboard", "Dashboard", "Visualizar painel principal"),
     ("editar", "Editar dados", "Importar e editar base operacional"),
     ("capacidades", "Capacidades", "Cadastrar placas, capacidades e motoristas"),
-    ("controle_ct", "Controle de CT", "Acompanhar fila, patio e saidas"),
-    ("relatorio_diario", "Relatorio diario", "Visualizar relatorio operacional diario"),
+    ("controle_ct", "Controle de CT", "Acompanhar fila, pátio e saídas"),
+    ("relatorio_diario", "Relatório diário", "Visualizar relatório operacional diário"),
     ("entrada_notas", "Entrada de notas", "Importar e acompanhar prazo das notas"),
-    ("controle_medicao", "Controle Medicao", "Acompanhar prazo dos fechamentos de medicao"),
+    ("controle_medicao", "Controle Medição", "Acompanhar prazo dos fechamentos de medição"),
     ("exportar_ct", "Exportar CT", "Baixar planilha do Controle de CT"),
 ]
 ALL_PERMISSION_KEYS = {key for key, _, _ in PERMISSIONS}
@@ -99,7 +99,7 @@ def save_user_records(records: list[dict[str, object]]) -> None:
     if build_dashboard.use_postgres():
         save_postgres_user_records(records)
         return
-    raise RuntimeError("Cadastro de usuarios exige banco de dados Postgres configurado.")
+    raise RuntimeError("Cadastro de usuários exige banco de dados Postgres configurado.")
 
 
 def find_user_record(username: str) -> dict[str, object] | None:
@@ -449,10 +449,10 @@ LOGIN_HTML = """<!doctype html>
   <main class="login-shell">
     <section class="welcome">
       <div class="brand-mark"><img src="{favicon_url}" alt=""><span>Dislub<br>Equador</span></div>
-      <h1>Controle logistico em tempo real.</h1>
+      <h1>Controle logístico em tempo real.</h1>
       <p>Entre para acompanhar viagens, placas, produtos carregados e atualizar as planilhas do dashboard.</p>
       <div class="stats">
-        <div class="stat"><span>Area</span><strong>CT LOG</strong></div>
+        <div class="stat"><span>Área</span><strong>CT LOG</strong></div>
         <div class="stat"><span>Acesso</span><strong>Seguro</strong></div>
         <div class="stat"><span>Dados</span><strong>Online</strong></div>
       </div>
@@ -463,7 +463,7 @@ LOGIN_HTML = """<!doctype html>
       <p>Informe suas credenciais para entrar no painel.</p>
       {message}
       <form method="post" action="/login">
-        <label>Usuario
+        <label>Usuário
           <input name="user" autocomplete="username" required>
         </label>
         <label>Senha
@@ -858,7 +858,7 @@ USERS_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Cadastro de usuarios - Dashboard</title>
+  <title>Cadastro de usuários - Dashboard</title>
   <style>
     :root {
       --purple: #64248c;
@@ -936,13 +936,13 @@ USERS_HTML = """<!doctype html>
   <div class="toast-zone" aria-live="polite">{message}</div>
   <header>
     <div class="topbar">
-      <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Cadastro de usuarios</h1><p class="subtitle">Controle quem acessa cada tela e funcao do sistema.</p></div></div>
+      <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Cadastro de usuários</h1><p class="subtitle">Controle quem acessa cada tela e função do sistema.</p></div></div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
-        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-diario">Relatório diário</a>
         <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/capacidades">Capacidades</a>
         <a class="top-link" href="/logout">Sair</a>
@@ -955,7 +955,7 @@ USERS_HTML = """<!doctype html>
         <div class="panel-head"><h2>{form_title}</h2><span class="hint">Somente master</span></div>
         <div class="panel-body form-grid">
           <input type="hidden" name="original_username" value="{original_username}">
-          <label>Usuario
+          <label>Usuário
             <input name="username" type="text" value="{username}" autocomplete="off" required>
           </label>
           <label>Nome
@@ -965,19 +965,19 @@ USERS_HTML = """<!doctype html>
             <input name="password" type="password" autocomplete="new-password" {password_required}>
             <span class="hint">{password_hint}</span>
           </label>
-          <label class="check-line"><input type="checkbox" name="active" value="1" {active_checked}> Usuario ativo</label>
+          <label class="check-line"><input type="checkbox" name="active" value="1" {active_checked}> Usuário ativo</label>
           <div>
-            <label>Permissoes</label>
+            <label>Permissões</label>
             <div class="permissions">{permission_checks}</div>
           </div>
           <div class="actions">
-            <button class="primary" type="submit">Salvar usuario</button>
+            <button class="primary" type="submit">Salvar usuário</button>
             <a class="button secondary" href="/usuarios">Limpar</a>
           </div>
         </div>
       </form>
       <section class="panel">
-        <div class="panel-head"><h2>Usuarios cadastrados</h2><span class="hint">{user_count} usuarios</span></div>
+        <div class="panel-head"><h2>Usuários cadastrados</h2><span class="hint">{user_count} usuários</span></div>
         <div class="panel-body">
           <div class="user-list">{user_rows}</div>
         </div>
@@ -1233,7 +1233,7 @@ EDIT_HTML = """<!doctype html>
       <a class="top-link" href="/home">Home</a>
       <a class="top-link" href="/dashboard">Dashboard</a>
       <a class="top-link" href="/controle-ct">Controle de CT</a>
-      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+      <a class="top-link" href="/relatorio-diario">Relatório diário</a>
       <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
       <a class="top-link" href="/capacidades">Capacidades</a>
       <a class="top-link" href="/logout">Sair</a>
@@ -1243,7 +1243,7 @@ EDIT_HTML = """<!doctype html>
     <section class="panel">
       {message}
       <div class="import-bar">
-        <div class="meta">Importe uma base em CSV ou XLSX. Colunas extras serao ignoradas automaticamente.</div>
+        <div class="meta">Importe uma base em CSV ou XLSX. Colunas extras serão ignoradas automaticamente.</div>
         <form method="post" action="/importar" enctype="multipart/form-data">
           <a class="button" href="/template.csv">Baixar template</a>
           <input type="file" name="base_file" accept=".csv,.xlsx" required>
@@ -1656,7 +1656,7 @@ CAPACITY_HTML = """<!doctype html>
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
-        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-diario">Relatório diário</a>
         <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/logout">Sair</a>
@@ -1704,7 +1704,7 @@ CAPACITY_HTML = """<!doctype html>
               <tbody></tbody>
             </table>
           </div>
-          <div class="hint">Os nomes salvos aqui aparecem em ordem alfabetica no campo Motorista da tela Controle de CT.</div>
+          <div class="hint">Os nomes salvos aqui aparecem em ordem alfabética no campo Motorista da tela Controle de CT.</div>
         </div>
       </form>
     </section>
@@ -1730,7 +1730,7 @@ CAPACITY_HTML = """<!doctype html>
       ["placaCavalo", "Placa cavalo"],
       ["tanques", "Tanques"],
       ["carreta", "Carreta"],
-      ["observacao", "Observacao"]
+      ["observacao", "Observação"]
     ];
     let rows = __ROWS__;
     let conductors = __CONDUCTORS__;
@@ -2038,7 +2038,7 @@ CT_CONTROL_HTML = """<!doctype html>
       <a class="top-link" href="/dashboard">Dashboard</a>
       <a class="top-link" href="/editar">Editar dados</a>
       <a class="top-link" href="/capacidades">Capacidades</a>
-      <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+      <a class="top-link" href="/relatorio-diario">Relatório diário</a>
       <a class="top-link" href="/logout">Sair</a>
     </nav>
   </header>
@@ -2048,14 +2048,14 @@ CT_CONTROL_HTML = """<!doctype html>
       <label>Status <select id="statusFilter"></select></label>
       <label>Tipo de Frete <select id="freightFilter"></select></label>
       <label>Nota Fiscal <select id="invoiceFilter"></select></label>
-      <label>Buscar <input id="searchFilter" type="search" placeholder="Motorista ou observacao"></label>
+      <label>Buscar <input id="searchFilter" type="search" placeholder="Motorista ou observação"></label>
       <button type="button" id="clearFilters">Limpar filtros</button>
     </section>
     <section class="kpis">
       <div class="kpi"><span>Registros</span><strong id="kRecords">0</strong></div>
       <div class="kpi"><span>Viagens</span><strong id="kTrips">0</strong></div>
       <div class="kpi"><span>Finalizados</span><strong id="kDone">0</strong></div>
-      <div class="kpi"><span>Tempo medio total</span><strong id="kAvg">-</strong></div>
+      <div class="kpi"><span>Tempo médio total</span><strong id="kAvg">-</strong></div>
     </section>
     <section class="content-grid">
       <div class="panel">
@@ -2069,7 +2069,7 @@ CT_CONTROL_HTML = """<!doctype html>
             <thead>
               <tr>
                 <th>Data</th><th>Motorista</th><th>Frete</th><th>Status</th><th>Viagens</th>
-                <th>Chegada</th><th>Entrada</th><th>Saida</th><th>Nota</th><th>Carregamento</th><th>Total</th><th>Observacao</th>
+                <th>Chegada</th><th>Entrada</th><th>Saída</th><th>Nota</th><th>Carregamento</th><th>Total</th><th>Observação</th>
               </tr>
             </thead>
             <tbody id="rows"></tbody>
@@ -2591,14 +2591,14 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
   <header>
     <div class="topbar">
       <div>
-        <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Controle de CT</h1><p class="subtitle">Fila de chegada, entrada de atendimento e saida dos motoristas.</p></div></div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><div><h1>Controle de CT</h1><p class="subtitle">Fila de chegada, entrada de atendimento e saída dos motoristas.</p></div></div>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/editar">Editar dados</a>
         <a class="top-link" href="/capacidades">Capacidades</a>
-        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-diario">Relatório diário</a>
         <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <a class="top-link" href="/logout">Sair</a>
       </nav>
@@ -2621,19 +2621,19 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         <div class="counter"><div class="counter-label">Fila</div><div class="counter-value" id="fobFila">0</div></div>
       </div>
       <div class="counter green"><div class="counter-label">Finalizados</div><div class="counter-value" id="finalizados">0</div></div>
-      <div class="counter yellow"><div class="counter-label">Patio</div><div class="counter-value" id="patio">0</div></div>
+      <div class="counter yellow"><div class="counter-label">Pátio</div><div class="counter-value" id="patio">0</div></div>
     </section>
     <form id="ctForm" method="post" action="/controle-ct">
       <input type="hidden" name="rows_json" id="rowsJson">
       <div class="toolbar">
         <div class="actions">
           <button type="button" id="addArrival">Adicionar chegada</button>
-          <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edicao" aria-label="Editar">
+          <button type="button" id="editModeToggle" class="secondary edit-toggle" title="Alternar modo de edição" aria-label="Editar">
             <span class="edit-icon" aria-hidden="true"></span>
             <span class="edit-label">Editar</span>
           </button>
           <button type="button" id="markEntry" class="secondary">Marcar entrada</button>
-          <button type="button" id="markExit" class="secondary">Marcar saida</button>
+          <button type="button" id="markExit" class="secondary">Marcar saída</button>
           <button type="button" id="deleteRows" class="secondary">Excluir</button>
         </div>
         <div class="filters">
@@ -2643,9 +2643,9 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
             <option value="today">Hoje</option>
             <option value="yesterday">Ontem</option>
             <option value="week">Esta semana</option>
-            <option value="last7">Ultimos 7 dias</option>
-            <option value="month">Este mes</option>
-            <option value="custom">Periodo</option>
+            <option value="last7">Últimos 7 dias</option>
+            <option value="month">Este mês</option>
+            <option value="custom">Período</option>
           </select>
           <span class="custom-date-filter" id="customDateFilter">
             <input id="dateFromFilter" type="date" title="Data inicial">
@@ -2680,13 +2680,13 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
             <tr>
               <th><input type="checkbox" id="selectAll" aria-label="Selecionar todos"></th>
               <th>Data</th><th>Motorista</th><th>Tipo de Frete</th><th>Status</th><th>Viagens</th>
-              <th>Chegada</th><th>Entrada</th><th>Saida</th><th>Nota Fiscal</th><th>Observacao</th>
+              <th>Chegada</th><th>Entrada</th><th>Saída</th><th>Nota Fiscal</th><th>Observação</th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <div class="hint">Use Adicionar chegada para colocar o motorista na fila. Depois selecione a linha e marque entrada ou saida; o horario atual sera preenchido automaticamente.</div>
+      <div class="hint">Use Adicionar chegada para colocar o motorista na fila. Depois selecione a linha e marque entrada ou saída; o horário atual será preenchido automaticamente.</div>
     </form>
   </main>
   <script>
@@ -2707,11 +2707,11 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     const statusStepLabels = {
       "Fila de Carregamento": "adicionar chegada",
       "Patio": "marcar entrada",
-      "Finalizado": "marcar saida"
+      "Finalizado": "marcar saída"
     };
     const requiredStepMessages = {
       "Patio": "Para registrar a entrada, primeiro adicione a chegada do motorista na fila.",
-      "Finalizado": "Para registrar a saida, primeiro marque a entrada do motorista no patio."
+      "Finalizado": "Para registrar a saída, primeiro marque a entrada do motorista no pátio."
     };
     const conductorFreights = new Map(conductors.map((item) => {
       const row = typeof item === "string" ? { nome: item, tipoFrete: "" } : item;
@@ -2912,12 +2912,12 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       return currentIndex === targetIndex - 1;
     }
     function blockedStatusMessage(currentStatus, targetStatus) {
-      if (!targetStatus) return "O status nao pode ficar vazio. Siga o fluxo: chegada, entrada e saida.";
+      if (!targetStatus) return "O status não pode ficar vazio. Siga o fluxo: chegada, entrada e saída.";
       if (requiredStepMessages[targetStatus]) return requiredStepMessages[targetStatus];
-      if (statusFlow.includes(targetStatus)) return "Nao e possivel voltar etapas. Siga o fluxo: chegada, entrada e saida.";
+      if (statusFlow.includes(targetStatus)) return "Não é possível voltar etapas. Siga o fluxo: chegada, entrada e saída.";
       const current = statusStepLabels[currentStatus] || "a etapa atual";
-      const target = statusStepLabels[targetStatus] || "a proxima etapa";
-      return `Fluxo de status invalido. Depois de ${current}, use ${target}.`;
+      const target = statusStepLabels[targetStatus] || "a próxima etapa";
+      return `Fluxo de status inválido. Depois de ${current}, use ${target}.`;
     }
     function applyStatusSideEffects(row, targetStatus) {
       if (targetStatus === "Patio") {
@@ -2950,7 +2950,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       const button = $("editModeToggle");
       if (!button) return;
       button.classList.toggle("is-editing", editMode);
-      button.title = editMode ? "Visualizar" : "Alternar modo de edicao";
+      button.title = editMode ? "Visualizar" : "Alternar modo de edição";
       button.setAttribute("aria-label", editMode ? "Visualizar" : "Editar");
       button.querySelector(".edit-icon").innerHTML = editIcon();
       button.querySelector(".edit-label").textContent = editMode ? "Salvar" : "Editar";
@@ -3179,7 +3179,7 @@ DAILY_REPORT_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Relatorio Diario - Dashboard</title>
+  <title>Relatório Diário - Dashboard</title>
   <style>
     :root {
       --bg: #f2f5f8;
@@ -3492,7 +3492,7 @@ DAILY_REPORT_HTML = """<!doctype html>
   <header>
     <div class="topbar">
       <div>
-        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio Diario</h1></div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatório Diário</h1></div>
         <p class="subtitle">Viagens, capacidade e volume carregado por placa e terminal.</p>
       </div>
       <nav class="nav">
@@ -3514,16 +3514,16 @@ DAILY_REPORT_HTML = """<!doctype html>
             <option value="today">Hoje</option>
             <option value="yesterday">Ontem</option>
             <option value="week">Esta semana</option>
-            <option value="last7">Ultimos 7 dias</option>
-            <option value="month">Este mes</option>
-            <option value="custom">Periodo</option>
+            <option value="last7">Últimos 7 dias</option>
+            <option value="month">Este mês</option>
+            <option value="custom">Período</option>
           </select>
         </label>
         <label>Data
           <select id="dateSelect"></select>
         </label>
         <span class="custom-date-filter" id="customDateFilter">
-          <label>Inicio
+          <label>Início
             <input id="dateStart" type="date">
           </label>
           <label>Fim
@@ -3573,7 +3573,7 @@ DAILY_REPORT_HTML = """<!doctype html>
                 <th class="num">Capacidade</th>
                 <th class="num">Volume</th>
                 <th class="num">Notas</th>
-                <th>Observacao</th>
+                <th>Observação</th>
               </tr>
             </thead>
             <tbody id="reportRows"></tbody>
@@ -3709,9 +3709,9 @@ DAILY_REPORT_HTML = """<!doctype html>
       const range = selectedDateRange();
       if (mode === "selected") return $("dateSelect").value ? dateLabel($("dateSelect").value) : "-";
       if (range.start && range.end && formatDate(range.start) === formatDate(range.end)) return dateLabel(formatDate(range.start));
-      if (range.start && range.end) return `${formatDate(range.start)} ate ${formatDate(range.end)}`;
+      if (range.start && range.end) return `${formatDate(range.start)} até ${formatDate(range.end)}`;
       if (range.start) return `A partir de ${formatDate(range.start)}`;
-      if (range.end) return `Ate ${formatDate(range.end)}`;
+      if (range.end) return `Até ${formatDate(range.end)}`;
       return "Todas as datas";
     }
 
@@ -3914,7 +3914,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       clearTimeout(saveObservationTimer);
       saveObservationTimer = window.setTimeout(() => {
         saveObservations().catch(() => {
-          $("observationSaveState").textContent = "Nao foi possivel salvar as observacoes.";
+          $("observationSaveState").textContent = "Não foi possível salvar as observações.";
         });
       }, 650);
     }
@@ -4008,7 +4008,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       const observationWidth = 320;
       const rowMetrics = report.detailData.map((row) => {
         const driverLines = wrapText(ctx, row.motorista || "-", 210).slice(0, 2);
-        const note = observations[observationKey(row)] || (needsObservation(row) ? "Sem observacao informada" : "-");
+        const note = observations[observationKey(row)] || (needsObservation(row) ? "Sem observação informada" : "-");
         const noteLines = wrapText(ctx, note, observationWidth).slice(0, 3);
         return {
           row,
@@ -4044,7 +4044,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       drawBrand(ctx);
       ctx.fillStyle = "#ffffff";
       ctx.font = "900 58px Arial";
-      ctx.fillText("Relatorio Diario", 54, 200);
+      ctx.fillText("Relatório Diário", 54, 200);
       ctx.font = "700 28px Arial";
       ctx.fillStyle = "#d7e4ea";
       ctx.fillText($("reportDate").textContent || "-", 58, 252);
@@ -4171,7 +4171,7 @@ DAILY_REPORT_HTML = """<!doctype html>
       if (!blob) return downloadImage();
       const file = new File([blob], `relatorio-diario-${reportDateLabel().replaceAll("/", "-").replaceAll(" ", "-")}.png`, { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Relatorio diario" });
+        await navigator.share({ files: [file], title: "Relatório diário" });
       } else {
         await downloadImage();
       }
@@ -4225,7 +4225,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Controle Medicao - Dashboard</title>
+  <title>Controle Medição - Dashboard</title>
   <style>
     :root { --bg:#eef2f5; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --panel-soft:#f8fafb; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --amber:#f59e0b; --shadow:0 18px 42px rgba(23,32,51,.10); }
     * { box-sizing:border-box; }
@@ -4361,13 +4361,13 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
   <header>
     <div class="topbar">
       <div>
-        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Controle Medicao</h1></div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Controle Medição</h1></div>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
-        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-diario">Relatório diário</a>
         <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
         <button type="button" id="refreshDashboard">Atualizar</button>
         <a class="top-link" href="/logout">Sair</a>
@@ -4377,42 +4377,42 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
   <main>
     {message}
     <div class="filters">
-      <label>Periodo <select id="dateModeFilter"><option value="month">Mes atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Ultimos 7 dias</option><option value="custom">Periodo</option><option value="all">Todas</option></select></label>
-      <span class="custom-date-filter" id="customDateFilter"><label>Inicio <input id="dateStartFilter" type="date"></label><label>Fim <input id="dateEndFilter" type="date"></label></span>
+      <label>Período <select id="dateModeFilter"><option value="month">Mês atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Últimos 7 dias</option><option value="custom">Período</option><option value="all">Todas</option></select></label>
+      <span class="custom-date-filter" id="customDateFilter"><label>Início <input id="dateStartFilter" type="date"></label><label>Fim <input id="dateEndFilter" type="date"></label></span>
       <label>Terminal <select id="terminalFilter"><option value="">Todos</option></select></label>
       <label>Filial <select id="branchFilter"><option value="">Todas</option></select></label>
-      <label>Usuario <select id="userChangeFilter"><option value="">Todos</option></select></label>
+      <label>Usuário <select id="userChangeFilter"><option value="">Todos</option></select></label>
       <label>Status <select id="statusFilter"><option value="">Todos</option><option value="ok">No prazo</option><option value="late">Fora do prazo</option></select></label>
-      <label>Tempo fechamento <select id="timeFilter"><option value="">Todos</option><option value="same">Mesmo dia</option><option value="one">Ate 1 dia</option><option value="two">Ate 2 dias</option><option value="late">Acima de 2 dias</option></select></label>
+      <label>Tempo fechamento <select id="timeFilter"><option value="">Todos</option><option value="same">Mesmo dia</option><option value="one">Até 1 dia</option><option value="two">Até 2 dias</option><option value="late">Acima de 2 dias</option></select></label>
     </div>
     <div class="tabs"><button type="button" class="active" data-tab="dashboard">Dashboard</button><button type="button" data-tab="data">Dados</button></div>
     <section id="dashboard" class="tab-view">
       <div class="kpis">
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medicoes</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path></svg></div><div><span>Total medições</span><strong id="kTotal">0</strong><small>Fechamentos no filtro</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small><div class="delta bad" id="kLateDelta">Acompanhar atrasos</div></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvg">-</strong><small>Fechamento medio</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo médio</span><strong id="kAvg">-</strong><small>Fechamento médio</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3-2"></path><path d="m8 16 2-2"></path></svg></div><div><span>SLA (Meta)</span><strong id="kSla">0%</strong><small>Meta: 100% no prazo</small><div class="sla-bar"><div id="kSlaFill" class="sla-fill" style="width:0%"></div></div></div></div>
       </div>
       <div class="ops-grid">
-        <section class="panel"><div class="panel-head"><h2>Evolucao dos Fechamentos</h2><div class="evolution-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div></div><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
+        <section class="panel"><div class="panel-head"><h2>Evolução dos Fechamentos</h2><div class="evolution-legend"><span>No prazo</span><span class="late">Fora do prazo</span></div></div><div class="panel-body"><div id="evolutionChart" class="chart-wrap"></div></div></section>
       </div>
       <div class="lower-grid">
         <section class="panel compact branch-panel"><h2>Desempenho por Filial</h2><div class="panel-body"><div id="branchPerformance"></div></div></section>
         <section class="panel compact reasons-panel"><h2>Faixas de Atraso</h2><div class="panel-body"><div id="reasonPanel"></div></div></section>
-        <section class="panel compact heatmap-panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horario; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
+        <section class="panel compact heatmap-panel"><h2>Fechamentos por Dia/Hora</h2><div class="panel-body"><div class="heatmap-note">Total por horário; abaixo, fora do prazo.</div><div id="heatmapPanel" class="heatmap"></div></div></section>
         <section class="panel compact alerts-panel"><h2>Alertas Criticos</h2><div class="panel-body"><div id="alertsPanel" class="alert-list"></div></div></section>
       </div>
     </section>
     <section id="data" class="tab-view" hidden>
       <section class="panel import-panel">
-        <div><strong>Importar medicoes</strong><div class="meta">Envie a planilha atualizada para renovar o relatorio.</div></div>
-        <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medicoes</button></form>
+        <div><strong>Importar medições</strong><div class="meta">Envie a planilha atualizada para renovar o relatório.</div></div>
+        <form method="post" action="/controle-medicao/importar" enctype="multipart/form-data"><input type="file" name="measurement_file" accept=".xlsx" required><button type="submit">Importar medições</button></form>
       </section>
       <form class="panel" method="post" action="/controle-medicao" id="measurementDataForm">
         <input type="hidden" name="rows_json" id="rowsJson">
-        <div class="table-actions"><button type="button" class="secondary" id="deleteMeasurementRows">Excluir selecionados</button><button type="submit">Salvar alteracoes</button></div>
-        <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="selectAllMeasurements" aria-label="Selecionar todas"></th><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div>
+        <div class="table-actions"><button type="button" class="secondary" id="deleteMeasurementRows">Excluir selecionados</button><button type="submit">Salvar alterações</button></div>
+        <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="selectAllMeasurements" aria-label="Selecionar todas"></th><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuário</th><th>Dt. Medição</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="rows"></tbody></table></div>
       </form>
     </section>
   </main>
@@ -4422,7 +4422,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         <div><h3 id="detailTitle">Detalhes</h3><div class="detail-count" id="detailCount"></div></div>
         <button type="button" id="detailClose" aria-label="Fechar">x</button>
       </div>
-      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuario</th><th>Dt. Medicao</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Seq.</th><th>Filial</th><th>Terminal</th><th>Usuário</th><th>Dt. Medição</th><th>Fechamento</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo</th><th class="num">Horas fora</th></tr></thead><tbody id="detailRows"></tbody></table></div>
     </div>
   </div>
   <script>
@@ -4456,7 +4456,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
     function fillFilters(){ const terminals=[...new Set(rows.map(r=>r.terminal).filter(Boolean))].sort(); const branches=[...new Set(rows.map(r=>r.filial).filter(Boolean))].sort(); const users=[...new Set(rows.map(r=>r.usuarioAlteracao).filter(Boolean))].sort(); $("terminalFilter").innerHTML='<option value="">Todos</option>'+terminals.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); $("branchFilter").innerHTML='<option value="">Todas</option>'+branches.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(branchName(v))}</option>`).join(""); $("userChangeFilter").innerHTML='<option value="">Todos</option>'+users.map(v=>`<option>${escapeHtml(v)}</option>`).join(""); }
     function grouped(data,key){ const map=new Map(); data.forEach(r=>{ const label=r[key]||"-"; const item=map.get(label)||{ok:0,late:0,total:0}; item.total++; if(r.status==="ok")item.ok++; else item.late++; map.set(label,item); }); return [...map.entries()].sort((a,b)=>b[1].total-a[1].total); }
     function rowMarkup(r){ return `<tr><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(branchName(r.filial))}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
-    function showDetails(title, data){ $("detailTitle").textContent=title; $("detailCount").textContent=`${fmt.format(data.length)} medicoes`; $("detailRows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para este item.</td></tr>'; $("detailModal").hidden=false; }
+    function showDetails(title, data){ $("detailTitle").textContent=title; $("detailCount").textContent=`${fmt.format(data.length)} medições`; $("detailRows").innerHTML=data.map(rowMarkup).join("")||'<tr><td colspan="10" class="empty">Sem dados para este item.</td></tr>'; $("detailModal").hidden=false; }
     function closeDetails(){ $("detailModal").hidden=true; }
     function renderBars(id, entries){ const max=Math.max(1,...entries.map(([,v])=>v.total)); $(id).innerHTML=entries.length?entries.map(([label,item])=>`<div class="bar-row"><span>${escapeHtml(label)}</span><div class="track"><div class="fill-ok" style="width:${item.ok/max*100}%"></div><div class="fill-late" style="width:${item.late/max*100}%"></div></div><strong>${fmt.format(item.total)}</strong></div>`).join(""):'<div class="empty">Sem dados para o filtro.</div>'; }
     function dailyStats(data){
@@ -4494,7 +4494,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         const dateLabel = idx % labelStep === 0 || idx === stats.length - 1 ? `<text x="${x(idx)}" y="${height-18}" text-anchor="middle" fill="#334155" font-size="11" font-weight="850">${date.slice(0,5)}</text>` : "";
         return `<g class="detail-trigger" data-evolution-idx="${idx}"><rect x="${bx}" y="${base-okH}" width="${barW}" height="${okH}" fill="#00856f" rx="2"></rect><rect x="${bx}" y="${base-okH-lateH}" width="${barW}" height="${lateH}" fill="#e2263c" rx="2"></rect>${okLabel}${lateLabel}${dateLabel}</g>`;
       }).join("");
-      $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolucao dos fechamentos">
+      $("evolutionChart").innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução dos fechamentos">
         <g>${[0,.25,.5,.75,1].map((v)=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${pad.top+plotH*v}" y2="${pad.top+plotH*v}" stroke="#d7e0e8"/>`).join("")}</g>
         ${bars}
       </svg>`;
@@ -4582,7 +4582,7 @@ MEASUREMENT_CONTROL_HTML = """<!doctype html>
         showDetails(`Faixa de atraso: ${label}`, items);
       }));
     }
-    function tableRowMarkup(r){ return `<tr data-key="${escapeAttr(measurementKey(r))}"><td><input type="checkbox" class="measurement-select" aria-label="Selecionar medicao"></td><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(branchName(r.filial))}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
+    function tableRowMarkup(r){ return `<tr data-key="${escapeAttr(measurementKey(r))}"><td><input type="checkbox" class="measurement-select" aria-label="Selecionar medição"></td><td>${escapeHtml(r.seq)}</td><td>${escapeHtml(branchName(r.filial))}</td><td>${escapeHtml(r.terminal)}</td><td>${escapeHtml(r.usuarioAlteracao)}</td><td>${escapeHtml(r.medicao)}</td><td>${escapeHtml(r.fechamento)}</td><td>${escapeHtml(r.prazo)}</td><td><span class="badge ${r.status==="ok"?"ok":"bad"}">${r.status==="ok"?"No prazo":"Fora do prazo"}</span></td><td class="num">${durationLabel(Number(r.horasFechamento))}</td><td class="num">${r.horasFora?durationLabel(Number(r.horasFora)):"-"}</td></tr>`; }
     function renderTable(data){ $("rows").innerHTML=data.map(tableRowMarkup).join("")||'<tr><td colspan="11" class="empty">Sem dados para o filtro.</td></tr>'; $("selectAllMeasurements").checked=false; }
     function render(){
       updateCustomDateFilter();
@@ -4638,7 +4638,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{favicon_url}" type="image/svg+xml">
-  <title>Relatorio de entrada de NF de Armazenagem - Dashboard</title>
+  <title>Relatório de entrada de NF de Armazenagem - Dashboard</title>
   <style>
     :root { --bg:#eef2f5; --top:#34104f; --ink:#16212d; --muted:#657282; --line:#d7e0e8; --panel:#fff; --purple:#64248c; --blue:#2b84cb; --red:#e2263c; --green:#00856f; --shadow:0 18px 42px rgba(23,32,51,.10); }
     * { box-sizing: border-box; }
@@ -4785,13 +4785,13 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <header>
     <div class="topbar">
       <div>
-        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatorio de entrada de NF de Armazenagem</h1></div>
+        <div class="brand-title"><img src="{favicon_url}" alt=""><h1>Relatório de entrada de NF de Armazenagem</h1></div>
       </div>
       <nav class="nav">
         <a class="top-link" href="/home">Home</a>
         <a class="top-link" href="/dashboard">Dashboard</a>
         <a class="top-link" href="/controle-ct">Controle de CT</a>
-        <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+        <a class="top-link" href="/relatorio-diario">Relatório diário</a>
         <a class="top-link" href="/logout">Sair</a>
       </nav>
     </div>
@@ -4799,9 +4799,9 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
   <main>
     {message}
     <div class="filters">
-      <label>Periodo <select id="dateModeFilter"><option value="month">Mes atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Ultimos 7 dias</option><option value="custom">Periodo</option><option value="all">Todas</option></select></label>
+      <label>Período <select id="dateModeFilter"><option value="month">Mês atual</option><option value="today">Hoje</option><option value="week">Semana atual</option><option value="last7">Últimos 7 dias</option><option value="custom">Período</option><option value="all">Todas</option></select></label>
       <span class="custom-date-filter" id="customDateFilter">
-        <label>Inicio <input id="dateStartFilter" type="date"></label>
+        <label>Início <input id="dateStartFilter" type="date"></label>
         <label>Fim <input id="dateEndFilter" type="date"></label>
       </span>
       <label>Cidade <select id="cityFilter"><option value="">Todas</option></select></label>
@@ -4816,7 +4816,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6"></path><path d="M9 2h6v4H9z"></path><path d="M7 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"></path><path d="M8 12h8"></path><path d="M8 16h6"></path></svg></div><div><span>Total de notas</span><strong id="kTotal">0</strong><small id="kTotalHint">Todas as cidades</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></div><div><span>No prazo</span><strong id="kOk">0</strong><small id="kOkHint">0% do total</small></div></div>
         <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg></div><div><span>Fora do prazo</span><strong id="kLate">0</strong><small id="kLateHint">0% do total</small></div></div>
-        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo medio</span><strong id="kAvgEntry">-</strong><small>Tempo medio geral</small></div></div>
+        <div class="kpi"><div class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div><div><span>Tempo médio</span><strong id="kAvgEntry">-</strong><small>Tempo médio geral</small></div></div>
       </div>
       <div class="branch-grid" id="cityCards"></div>
       <div class="panel branch-summary">
@@ -4851,10 +4851,10 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       </section>
       <form class="panel" method="post" action="/relatorio-entrada-notas" id="noteDataForm">
         <input type="hidden" name="rows_json" id="noteRowsJson">
-        <div class="table-actions"><button type="button" class="secondary" id="deleteNoteRows">Excluir selecionados</button><button type="submit">Salvar alteracoes</button></div>
+        <div class="table-actions"><button type="button" class="secondary" id="deleteNoteRows">Excluir selecionados</button><button type="submit">Salvar alterações</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th><input type="checkbox" id="selectAllNotes" aria-label="Selecionar todas"></th><th>Nota fiscal</th><th>Cidade</th><th>Emissao</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
+            <thead><tr><th><input type="checkbox" id="selectAllNotes" aria-label="Selecionar todas"></th><th>Nota fiscal</th><th>Cidade</th><th>Emissão</th><th>Entrada</th><th>Prazo limite</th><th>Status</th><th class="num">Tempo entrada</th><th class="num">Horas fora</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
@@ -4994,11 +4994,11 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     }
     function selectedLabel() {
       const labels = {
-        month: "Mes atual",
+        month: "Mês atual",
         today: "Hoje",
         week: "Semana atual",
-        last7: "Ultimos 7 dias",
-        custom: "Periodo",
+        last7: "Últimos 7 dias",
+        custom: "Período",
         all: "Todas as datas"
       };
       const bounds = periodBounds();
@@ -5121,7 +5121,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
         ["Total de notas", fmt.format(data.length), "#3f48cc", "N"],
         ["No prazo", fmt.format(ok), "#0b66d8", "OK"],
         ["Fora do prazo", fmt.format(late), "#e2263c", "X"],
-        ["Tempo medio", avgEntry === null ? "-" : durationLabel(avgEntry), "#00856f", "T"]
+        ["Tempo médio", avgEntry === null ? "-" : durationLabel(avgEntry), "#00856f", "T"]
       ].forEach(([label, value, accent, icon], idx) => {
         const x = 54 + idx * (kpiW + 18);
         drawNoteCard(ctx, x, kpiY, kpiW, 124, accent);
@@ -5244,7 +5244,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
       if (!blob) return downloadNoteImage();
       const file = new File([blob], "relatorio-entrada-notas.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Relatorio de entrada de NF de Armazenagem" });
+        await navigator.share({ files: [file], title: "Relatório de entrada de NF de Armazenagem" });
       } else {
         await downloadNoteImage();
       }
@@ -5296,7 +5296,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
               <h3>Notas fora do prazo</h3>
               ${lateRows.length ? `
                 <table class="mini-table">
-                  <thead><tr><th>Nota</th><th>Emissao</th><th>Entrada</th></tr></thead>
+                  <thead><tr><th>Nota</th><th>Emissão</th><th>Entrada</th></tr></thead>
                   <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(String(row.emissao).split(" ")[0] || "-")}</td><td>${escapeHtml(String(row.entrada).split(" ")[0] || "-")}</td></tr>`).join("")}</tbody>
                 </table>
                 <button type="button" class="view-late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late">Ver todas (${fmt.format(item.late)})</button>
@@ -5367,7 +5367,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
             <div class="drill-item">
               <strong>${escapeHtml(row.nota)}</strong>
               <span>${escapeHtml(row.cidade || "Sem cidade")}</span>
-              <span>Emissao: ${escapeHtml(row.emissao)}</span>
+              <span>Emissão: ${escapeHtml(row.emissao)}</span>
               <span>Entrada: ${escapeHtml(row.entrada)}</span>
               <span>Tempo: ${durationLabel(Number(row.horasEntrada))}</span>
               <span>${row.status === "late" ? `${fmt.format(row.horasFora)}h fora` : "No prazo"}</span>
@@ -5816,7 +5816,7 @@ def render_permission_checks(selected: set[str]) -> str:
 
 def render_user_rows(records: list[dict[str, object]]) -> str:
     if not records:
-        return '<div class="empty-users">Nenhum usuario cadastrado ainda.</div>'
+        return '<div class="empty-users">Nenhum usuário cadastrado ainda.</div>'
     rows = []
     for record in sorted(records, key=lambda item: str(item.get("username", "")).lower()):
         username = str(record.get("username", ""))
@@ -5849,7 +5849,7 @@ def render_user_rows(records: list[dict[str, object]]) -> str:
                 <input type="hidden" name="username" value="{html.escape(username)}">
                 <button class="secondary" type="submit">{toggle_text}</button>
               </form>
-              <form method="post" action="/usuarios" style="display:inline" onsubmit="return confirm('Excluir este usuario?')">
+              <form method="post" action="/usuarios" style="display:inline" onsubmit="return confirm('Excluir este usuário?')">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="username" value="{html.escape(username)}">
                 <button class="danger" type="submit">Excluir</button>
@@ -6347,7 +6347,7 @@ def daily_report_observations() -> dict[str, str]:
 
 def save_daily_report_observations(observations: dict[str, object]) -> None:
     if not build_dashboard.use_postgres():
-        raise RuntimeError("Banco de dados nao configurado para salvar observacoes.")
+        raise RuntimeError("Banco de dados não configurado para salvar observações.")
     ensure_postgres_daily_observation_table()
     clean = {
         str(key): str(value or "").strip()
@@ -6541,7 +6541,7 @@ def parse_note_entry_file(content: bytes) -> list[dict[str, str]]:
                 if item:
                     imported.append(item)
             return imported
-    raise ValueError("A planilha importada nao possui as colunas necessarias.")
+    raise ValueError("A planilha importada não possui as colunas necessárias.")
 
 
 def ensure_postgres_note_entry_table() -> None:
@@ -6579,7 +6579,7 @@ def ensure_postgres_note_entry_table() -> None:
 
 def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
     if not build_dashboard.use_postgres():
-        raise RuntimeError("Banco de dados nao configurado para salvar entrada de notas.")
+        raise RuntimeError("Banco de dados não configurado para salvar entrada de notas.")
     ensure_postgres_note_entry_table()
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
@@ -6601,7 +6601,7 @@ def save_note_entry_rows(rows: list[dict[str, str]]) -> None:
 
 def replace_note_entry_rows(rows: list[dict[str, str]]) -> None:
     if not build_dashboard.use_postgres():
-        raise RuntimeError("Banco de dados nao configurado para salvar entrada de notas.")
+        raise RuntimeError("Banco de dados não configurado para salvar entrada de notas.")
     ensure_postgres_note_entry_table()
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
@@ -6757,7 +6757,7 @@ def parse_measurement_file(content: bytes) -> list[dict[str, str]]:
                 if item:
                     imported.append(item)
             return imported
-    raise ValueError("A planilha importada nao possui as colunas necessarias.")
+    raise ValueError("A planilha importada não possui as colunas necessárias.")
 
 
 def ensure_postgres_measurement_table() -> None:
@@ -6790,7 +6790,7 @@ def ensure_postgres_measurement_table() -> None:
 
 def replace_measurement_rows(rows: list[dict[str, str]]) -> None:
     if not build_dashboard.use_postgres():
-        raise RuntimeError("Controle Medicao exige banco de dados Postgres configurado.")
+        raise RuntimeError("Controle Medição exige banco de dados Postgres configurado.")
     ensure_postgres_measurement_table()
     with build_dashboard.postgres_connection() as conn:
         with conn.cursor() as cur:
@@ -6809,7 +6809,7 @@ def replace_measurement_rows(rows: list[dict[str, str]]) -> None:
 
 def merge_measurement_rows(rows: list[dict[str, str]]) -> tuple[int, int]:
     if not build_dashboard.use_postgres():
-        raise RuntimeError("Controle Medicao exige banco de dados Postgres configurado.")
+        raise RuntimeError("Controle Medição exige banco de dados Postgres configurado.")
     ensure_postgres_measurement_table()
     inserted = 0
     updated = 0
@@ -6907,9 +6907,9 @@ CT_CONTROL_EXPORT_COLUMNS = [
     ("viagens", "Viagens"),
     ("chegada", "Chegada"),
     ("entrada", "Entrada"),
-    ("saida", "Saida"),
+    ("saida", "Saída"),
     ("notaFiscal", "Nota Fiscal"),
-    ("observacao", "Observacao"),
+    ("observacao", "Observação"),
 ]
 
 
@@ -7234,7 +7234,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         if permission in user_permissions(self.current_user()):
             return True
-        self.send_error(HTTPStatus.FORBIDDEN, "Acesso nao autorizado")
+        self.send_error(HTTPStatus.FORBIDDEN, "Acesso não autorizado")
         return False
 
     def require_master(self) -> bool:
@@ -7242,7 +7242,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         if is_master_user(self.current_user()):
             return True
-        self.send_error(HTTPStatus.FORBIDDEN, "Apenas o usuario master pode acessar esta tela")
+        self.send_error(HTTPStatus.FORBIDDEN, "Apenas o usuário master pode acessar esta tela")
         return False
 
     def set_session_cookie(self, user: str) -> None:
@@ -7269,7 +7269,7 @@ class Handler(BaseHTTPRequestHandler):
         user_record = find_user_record(username)
         display_name = str(user_record.get("name", "")).strip() if user_record else ""
         if not display_name:
-            display_name = username or "usuario"
+            display_name = username or "usuário"
         display_name = display_user_name(display_name)
         user_link = ""
         user_card = ""
@@ -7299,11 +7299,11 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(self.path).query)
         message = ""
         if not build_dashboard.use_postgres():
-            message = '<div class="message error auto-dismiss">Cadastro de usuarios exige banco de dados Postgres configurado. Nenhum usuario sera salvo localmente.</div>'
+            message = '<div class="message error auto-dismiss">Cadastro de usuários exige banco de dados Postgres configurado. Nenhum usuário será salvo localmente.</div>'
         if "ok" in params:
-            message = '<div class="message auto-dismiss">Usuario salvo com sucesso.</div>'
+            message = '<div class="message auto-dismiss">Usuário salvo com sucesso.</div>'
         if "removido" in params:
-            message = '<div class="message auto-dismiss">Usuario removido com sucesso.</div>'
+            message = '<div class="message auto-dismiss">Usuário removido com sucesso.</div>'
         if "erro" in params:
             message = '<div class="message error auto-dismiss">' + html.escape(params["erro"][0]) + "</div>"
         records = load_user_records()
@@ -7313,9 +7313,9 @@ class Handler(BaseHTTPRequestHandler):
         username = ""
         name = ""
         active_checked = "checked"
-        form_title = "Novo usuario"
+        form_title = "Novo usuário"
         password_required = "required"
-        password_hint = "Informe a senha inicial do usuario."
+        password_hint = "Informe a senha inicial do usuário."
         original_username = ""
         if edit_record:
             username = str(edit_record.get("username", ""))
@@ -7324,7 +7324,7 @@ class Handler(BaseHTTPRequestHandler):
             permissions = edit_record.get("permissions", [])
             if isinstance(permissions, list):
                 selected = {str(key) for key in permissions}
-            form_title = "Editar usuario"
+            form_title = "Editar usuário"
             password_required = ""
             password_hint = "Deixe em branco para manter a senha atual."
             original_username = username
@@ -7353,14 +7353,14 @@ class Handler(BaseHTTPRequestHandler):
     <a class="top-link" href="/home">Home</a>
     <a class="top-link" href="/editar">Editar dados</a>
     <a class="top-link" href="/controle-ct">Controle de CT</a>
-    <a class="top-link" href="/relatorio-diario">Relatorio diario</a>
+    <a class="top-link" href="/relatorio-diario">Relatório diário</a>
     <a class="top-link" href="/relatorio-entrada-notas">Entrada de notas</a>
-    <a class="top-link" href="/controle-medicao">Controle Medicao</a>
+    <a class="top-link" href="/controle-medicao">Controle Medição</a>
     <a class="top-link" href="/capacidades">Capacidades</a>
     __USER_LINK__
     <a class="top-link" href="/logout">Sair</a>
   </nav>"""
-        nav = nav.replace("__USER_LINK__", '<a class="top-link" href="/usuarios">Usuarios</a>' if is_master_user(self.current_user()) else "")
+        nav = nav.replace("__USER_LINK__", '<a class="top-link" href="/usuarios">Usuários</a>' if is_master_user(self.current_user()) else "")
         page = page.replace('<a class="top-link" href="/editar">Atualizar dados</a>', nav)
         self.send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
@@ -7429,7 +7429,7 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(self.path).query)
         message = ""
         if not build_dashboard.use_postgres():
-            message = '<div class="message error">Controle Medicao exige banco de dados Postgres configurado.</div>'
+            message = '<div class="message error">Controle Medição exige banco de dados Postgres configurado.</div>'
         if "ok" in params:
             message = '<div class="message">Planilha importada com sucesso.</div>'
         if "erro" in params:
@@ -7447,7 +7447,7 @@ class Handler(BaseHTTPRequestHandler):
         if "ok" in params:
             message = '<div class="message auto-dismiss">Controle de CT salvo com sucesso.</div>'
         if "erro" in params:
-            message = '<div class="message error auto-dismiss">Nao foi possivel salvar o Controle de CT: ' + html.escape(params["erro"][0]) + "</div>"
+            message = '<div class="message error auto-dismiss">Não foi possível salvar o Controle de CT: ' + html.escape(params["erro"][0]) + "</div>"
         rows = ct_control_rows()
         conductors = conductor_rows()
         page = (
@@ -7600,7 +7600,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             self.audit("login_falha", "auth", {"usuario": clean_username(user)}, ok=False, username=clean_username(user))
-            self.send_login('<div class="error">Usuario ou senha invalidos.</div>')
+            self.send_login('<div class="error">Usuário ou senha inválidos.</div>')
             return
 
         if parsed.path == "/importar":
@@ -7636,9 +7636,9 @@ class Handler(BaseHTTPRequestHandler):
                 rows = json.loads(params.get("rows_json", ["[]"])[0])
                 conductors = json.loads(params.get("conductors_json", ["[]"])[0])
                 if not isinstance(rows, list):
-                    raise ValueError("Cadastro invalido")
+                    raise ValueError("Cadastro inválido")
                 if not isinstance(conductors, list):
-                    raise ValueError("Cadastro de condutores invalido")
+                    raise ValueError("Cadastro de condutores inválido")
                 save_capacity_rows(rows)
                 save_conductor_rows(conductors)
                 rebuild_dashboard()
@@ -7680,7 +7680,7 @@ class Handler(BaseHTTPRequestHandler):
                 payload = params.get("rows_json", ["[]"])[0]
                 raw_rows = json.loads(payload or "[]")
                 if not isinstance(raw_rows, list):
-                    raise ValueError("Dados de notas invalidos")
+                    raise ValueError("Dados de notas inválidos")
                 cleaned_rows = [
                     item
                     for item in (clean_note_entry_saved_row(row) for row in raw_rows if isinstance(row, dict))
@@ -7737,7 +7737,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("Importe apenas arquivo XLSX")
                 imported_rows = parse_measurement_file(content)
                 if not imported_rows:
-                    raise ValueError("Nenhuma medicao encontrada na planilha")
+                    raise ValueError("Nenhuma medição encontrada na planilha")
                 inserted_count, updated_count = merge_measurement_rows(imported_rows)
             except Exception as exc:
                 self.audit("importar_medicao_falha", "controle_medicao", {"erro": str(exc)}, ok=False)
@@ -7754,7 +7754,7 @@ class Handler(BaseHTTPRequestHandler):
                 params = self.body_params()
                 rows = json.loads(params.get("rows_json", ["[]"])[0])
                 if not isinstance(rows, list):
-                    raise ValueError("Dados de medicao invalidos")
+                    raise ValueError("Dados de medição inválidos")
                 clean_rows = [item for item in (clean_measurement_saved_row(row) for row in rows if isinstance(row, dict)) if item]
                 replace_measurement_rows(clean_rows)
             except Exception as exc:
@@ -7772,7 +7772,7 @@ class Handler(BaseHTTPRequestHandler):
                 params = self.body_params()
                 rows = json.loads(params.get("rows_json", ["[]"])[0])
                 if not isinstance(rows, list):
-                    raise ValueError("Controle invalido")
+                    raise ValueError("Controle inválido")
                 save_ct_control_rows(rows)
             except Exception as exc:
                 self.audit("salvar_controle_ct_falha", "controle_ct", {"erro": str(exc)}, ok=False)
@@ -7808,25 +7808,25 @@ class Handler(BaseHTTPRequestHandler):
                             new_active = bool(item["active"])
                             changed = True
                     if not changed:
-                        raise ValueError("Usuario nao encontrado")
+                        raise ValueError("Usuário não encontrado")
                     save_user_records(records)
                     self.audit("alterar_status_usuario", "usuarios", {"usuario_alvo": username, "ativo": new_active})
                     self.redirect("/usuarios?ok=1")
                     return
                 original_username = clean_username(params.get("original_username", [""])[0])
                 if not username:
-                    raise ValueError("Informe o usuario")
+                    raise ValueError("Informe o usuário")
                 if username == clean_username(app_user()):
-                    raise ValueError("O usuario master principal e controlado pelas variaveis do sistema")
+                    raise ValueError("O usuário master principal é controlado pelas variáveis do sistema")
                 permissions = sorted({key for key in params.get("permissions", []) if key in ALL_PERMISSION_KEYS})
                 password = params.get("password", [""])[0]
                 existing = next((item for item in records if item.get("username") == original_username), None)
                 if not existing and any(item.get("username") == username for item in records):
-                    raise ValueError("Ja existe um usuario com esse login")
+                    raise ValueError("Já existe um usuário com esse login")
                 if existing and username != original_username and any(item.get("username") == username for item in records):
-                    raise ValueError("Ja existe um usuario com esse login")
+                    raise ValueError("Já existe um usuário com esse login")
                 if not existing and not password:
-                    raise ValueError("Informe a senha do usuario")
+                    raise ValueError("Informe a senha do usuário")
                 user_record = {
                     "username": username,
                     "name": params.get("name", [""])[0].strip(),
