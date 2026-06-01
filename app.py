@@ -4893,6 +4893,19 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
     function brDate(date) {
       return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
     }
+    function weekdayLabel(value) {
+      const date = parseBrDateTime(value);
+      if (!date) return "";
+      return ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"][date.getDay()] || "";
+    }
+    function dateWithWeekday(value, includeTime = false) {
+      const text = String(value || "").trim();
+      if (!text) return "-";
+      const day = weekdayLabel(text);
+      const datePart = text.split(" ")[0] || text;
+      const display = includeTime ? text : datePart;
+      return day ? `${display} (${day})` : display;
+    }
     function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
     function endOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999); }
     function periodBounds() {
@@ -5294,7 +5307,7 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
               ${lateRows.length ? `
                 <table class="mini-table">
                   <thead><tr><th>Nota</th><th>Emissão</th><th>Entrada</th></tr></thead>
-                  <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(String(row.emissao).split(" ")[0] || "-")}</td><td>${escapeHtml(String(row.entrada).split(" ")[0] || "-")}</td></tr>`).join("")}</tbody>
+                  <tbody>${lateRows.map((row) => `<tr><td>${escapeHtml(row.nota)}</td><td>${escapeHtml(dateWithWeekday(row.emissao))}</td><td>${escapeHtml(dateWithWeekday(row.entrada))}</td></tr>`).join("")}</tbody>
                 </table>
                 <button type="button" class="view-late" data-drill-city="${escapeHtml(item.city)}" data-drill-status="late">Ver todas (${fmt.format(item.late)})</button>
               ` : '<div class="empty">Sem notas fora do prazo.</div>'}
@@ -5364,8 +5377,8 @@ NOTE_ENTRY_REPORT_HTML = """<!doctype html>
             <div class="drill-item">
               <strong>${escapeHtml(row.nota)}</strong>
               <span>${escapeHtml(row.cidade || "Sem cidade")}</span>
-              <span>Emissão: ${escapeHtml(row.emissao)}</span>
-              <span>Entrada: ${escapeHtml(row.entrada)}</span>
+              <span>Emissão: ${escapeHtml(dateWithWeekday(row.emissao))}</span>
+              <span>Entrada: ${escapeHtml(dateWithWeekday(row.entrada, true))}</span>
               <span>Tempo: ${durationLabel(Number(row.horasEntrada))}</span>
               <span>${row.status === "late" ? `${fmt.format(row.horasFora)}h fora` : "No prazo"}</span>
             </div>
