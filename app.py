@@ -2967,9 +2967,6 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
           && (!freight || row.tipoFrete === freight)
           && matchesDateRange(row);
       }).sort((a, b) => {
-        const aDone = a.row.status === "Finalizado";
-        const bDone = b.row.status === "Finalizado";
-        if (aDone !== bDone) return aDone ? 1 : -1;
         return arrivalSortValue(b.row) - arrivalSortValue(a.row) || a.index - b.index;
       });
     }
