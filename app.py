@@ -762,41 +762,41 @@ HOME_HTML = """<!doctype html>
     <aside class="sidebar">
       <div class="brand">
         <img src="{favicon_url}" alt="">
-        <div><strong>Dislub Equador</strong><span>Operacao</span></div>
+        <div><strong>Dislub Equador</strong><span>Operação</span></div>
       </div>
-      <div class="nav-title">Modulos</div>
+      <div class="nav-title">Módulos</div>
       <nav class="side-nav">
-        <a class="side-link active" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg>Visao Geral</a>
+        <a class="side-link active" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg>Visão Geral</a>
         <a class="side-link" href="/editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg>Central de Dados</a>
-        <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Configuracao de Frota</a>
-        <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Resumo Diario</a>
+        <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Configuração de Frota</a>
+        <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Resumo Diário</a>
         <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Controle de Entrada de NF</a>
-        <a class="side-link" href="/controle-medicao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg>Indicadores de Medicao</a>
+        <a class="side-link" href="/controle-medicao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg>Indicadores de Medição</a>
         <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
         __USER_LINK__
       </nav>
-      <div class="sidebar-footer">Dislub Equador<br>Ambiente de acompanhamento logistico.</div>
+      <div class="sidebar-footer">Dislub Equador<br>Ambiente de acompanhamento logístico.</div>
     </aside>
     <div class="content">
       <header class="topbar">
         <div>
           <h1>__HOME_GREETING__, __HOME_USER__</h1>
-          <p class="subtitle">Bom te ver por aqui. Escolha um modulo para acompanhar a operacao.</p>
+          <p class="subtitle">Bom te ver por aqui. Escolha um módulo para acompanhar a operação.</p>
         </div>
         <a class="logout" href="/logout">Sair</a>
       </header>
       <main>
         <section class="summary">
-          <div class="metric"><span>Modulos ativos</span><strong>__MODULE_COUNT__</strong></div>
+          <div class="metric"><span>Módulos ativos</span><strong>__MODULE_COUNT__</strong></div>
           <div class="metric"><span>Base operacional</span><strong>CT</strong></div>
           <div class="metric"><span>Terminais</span><strong>2</strong></div>
           <div class="metric"><span>Status</span><strong>Online</strong></div>
         </section>
         <section class="menu">
           <a class="card" href="/dashboard">
-            <span>Visualizacao</span>
+            <span>Visualização</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg></div>
-            <strong>Visao Geral</strong>
+            <strong>Visão Geral</strong>
             <p>Acompanhe viagens, placas, produtos e terminais.</p>
             <div class="button">Abrir dashboard</div>
           </a>
@@ -810,22 +810,22 @@ HOME_HTML = """<!doctype html>
           <a class="card" href="/capacidades">
             <span>Cadastro</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>
-            <strong>Configuracao de Frota</strong>
-            <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
+            <strong>Configuração de Frota</strong>
+            <p>Cadastre carretas, caminhões, tanques e capacidades por placa.</p>
             <div class="button">Editar capacidades</div>
           </a>
           <a class="card" href="/relatorio-diario">
-            <span>Relatorio</span>
+            <span>Relatório</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg></div>
-            <strong>Resumo Diario</strong>
+            <strong>Resumo Diário</strong>
             <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
-            <div class="button">Abrir relatorio</div>
+            <div class="button">Abrir relatório</div>
           </a>
           <a class="card" href="/controle-ct">
-            <span>Operacao</span>
+            <span>Operação</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg></div>
             <strong>Controle de CT</strong>
-            <p>Acompanhe chegada, patio, fila, saida e notas fiscais.</p>
+            <p>Acompanhe chegada, pátio, fila, saída e notas fiscais.</p>
             <div class="button">Abrir controle</div>
           </a>
           <a class="card" href="/relatorio-entrada-notas">
@@ -833,13 +833,13 @@ HOME_HTML = """<!doctype html>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg></div>
             <strong>Controle de Entrada de NF</strong>
             <p>Confira se as notas fiscais foram dadas entrada no prazo de 2 dias, sem domingo e feriados.</p>
-            <div class="button">Abrir relatorio</div>
+            <div class="button">Abrir relatório</div>
           </a>
           <a class="card" href="/controle-medicao">
-            <span>Medicao</span>
+            <span>Medição</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg></div>
-            <strong>Indicadores de Medicao</strong>
-            <p>Acompanhe fechamentos de medicao no prazo de 2 dias, sem domingo e feriados.</p>
+            <strong>Indicadores de Medição</strong>
+            <p>Acompanhe fechamentos de medição no prazo de 2 dias, sem domingo e feriados.</p>
             <div class="button">Abrir controle</div>
           </a>
           __USER_CARD__
@@ -7276,13 +7276,13 @@ class Handler(BaseHTTPRequestHandler):
         module_count = str(sum(1 for key in visible_modules if key in allowed))
         if is_master:
             module_count = str(int(module_count) + 1)
-            user_link = '<a class="side-link" href="/usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg>Administracao de Usuarios</a>'
+            user_link = '<a class="side-link" href="/usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg>Administração de Usuários</a>'
             user_card = """
           <a class="card" href="/usuarios">
             <span>Acesso</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg></div>
-            <strong>Administracao de Usuarios</strong>
-            <p>Cadastre usuarios e defina quais telas e funcoes cada um pode acessar.</p>
+            <strong>Administração de Usuários</strong>
+            <p>Cadastre usuários e defina quais telas e funções cada um pode acessar.</p>
             <div class="button">Gerenciar acessos</div>
           </a>"""
         page = (
