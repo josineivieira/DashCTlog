@@ -766,12 +766,12 @@ HOME_HTML = """<!doctype html>
       </div>
       <div class="nav-title">Modulos</div>
       <nav class="side-nav">
-        <a class="side-link active" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg>Dashboard</a>
-        <a class="side-link" href="/editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg>Editar dados</a>
-        <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Capacidades</a>
-        <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Relatorio diario</a>
-        <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Entrada de notas</a>
-        <a class="side-link" href="/controle-medicao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg>Controle Medicao</a>
+        <a class="side-link active" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg>Visao Geral</a>
+        <a class="side-link" href="/editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg>Central de Dados</a>
+        <a class="side-link" href="/capacidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Configuracao de Frota</a>
+        <a class="side-link" href="/relatorio-diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg>Resumo Diario</a>
+        <a class="side-link" href="/relatorio-entrada-notas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg>Controle de Entrada de NF</a>
+        <a class="side-link" href="/controle-medicao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg>Indicadores de Medicao</a>
         <a class="side-link" href="/controle-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M17 15l2 2 4-4"></path></svg>Controle de CT</a>
         __USER_LINK__
       </nav>
@@ -796,28 +796,28 @@ HOME_HTML = """<!doctype html>
           <a class="card" href="/dashboard">
             <span>Visualizacao</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4z"></path><path d="M14 20h6V4h-6z"></path><path d="M4 20h6v-3H4z"></path></svg></div>
-            <strong>Dashboard</strong>
+            <strong>Visao Geral</strong>
             <p>Acompanhe viagens, placas, produtos e terminais.</p>
             <div class="button">Abrir dashboard</div>
           </a>
           <a class="card" href="/editar">
             <span>Dados</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><path d="m15 18 5-5 2 2-5 5-3 1z"></path></svg></div>
-            <strong>Editar dados</strong>
+            <strong>Central de Dados</strong>
             <p>Envie novas planilhas e atualize os indicadores.</p>
             <div class="button">Atualizar planilhas</div>
           </a>
           <a class="card" href="/capacidades">
             <span>Cadastro</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 16V8h11v8"></path><path d="M14 11h4l3 3v2h-7"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>
-            <strong>Capacidades</strong>
+            <strong>Configuracao de Frota</strong>
             <p>Cadastre carretas, caminhoes, tanques e capacidades por placa.</p>
             <div class="button">Editar capacidades</div>
           </a>
           <a class="card" href="/relatorio-diario">
             <span>Relatorio</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h4"></path></svg></div>
-            <strong>Diario</strong>
+            <strong>Resumo Diario</strong>
             <p>Resumo das viagens por dia, placa, terminal e volume carregado.</p>
             <div class="button">Abrir relatorio</div>
           </a>
@@ -831,14 +831,14 @@ HOME_HTML = """<!doctype html>
           <a class="card" href="/relatorio-entrada-notas">
             <span>Notas</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h7"></path><path d="M9 16h4"></path></svg></div>
-            <strong>Entrada de notas</strong>
+            <strong>Controle de Entrada de NF</strong>
             <p>Confira se as notas fiscais foram dadas entrada no prazo de 2 dias, sem domingo e feriados.</p>
             <div class="button">Abrir relatorio</div>
           </a>
           <a class="card" href="/controle-medicao">
             <span>Medicao</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-4"></path></svg></div>
-            <strong>Controle Medicao</strong>
+            <strong>Indicadores de Medicao</strong>
             <p>Acompanhe fechamentos de medicao no prazo de 2 dias, sem domingo e feriados.</p>
             <div class="button">Abrir controle</div>
           </a>
@@ -7276,12 +7276,12 @@ class Handler(BaseHTTPRequestHandler):
         module_count = str(sum(1 for key in visible_modules if key in allowed))
         if is_master:
             module_count = str(int(module_count) + 1)
-            user_link = '<a class="side-link" href="/usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg>Usuarios</a>'
+            user_link = '<a class="side-link" href="/usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg>Administracao de Usuarios</a>'
             user_card = """
           <a class="card" href="/usuarios">
             <span>Acesso</span>
             <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M16 11h6"></path></svg></div>
-            <strong>Usuarios</strong>
+            <strong>Administracao de Usuarios</strong>
             <p>Cadastre usuarios e defina quais telas e funcoes cada um pode acessar.</p>
             <div class="button">Gerenciar acessos</div>
           </a>"""
