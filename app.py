@@ -2794,13 +2794,18 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (time) return `${new Date().toISOString().slice(0, 10)}T${time[1]}:${time[2]}`;
       return "";
     }
+    function statusFromDates(row, fallbackStatus = "") {
+      if (String(row.saida || "").trim()) return "Finalizado";
+      if (String(row.entrada || "").trim()) return "Patio";
+      return fallbackStatus;
+    }
     function cleanRow(row = {}) {
-      const status = row.status === "Aguardando Entrada" ? "Fila de Carregamento" : (row.status || "");
-      return {
+      const originalStatus = row.status === "Aguardando Entrada" ? "Fila de Carregamento" : (row.status || "");
+      const clean = {
         data: row.data || "",
         motorista: row.motorista || "",
         tipoFrete: row.tipoFrete || "",
-        status,
+        status: originalStatus,
         viagens: row.viagens || "",
         chegada: row.chegada || "",
         entrada: row.entrada || "",
@@ -2808,6 +2813,8 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         notaFiscal: row.notaFiscal || "",
         observacao: row.observacao || ""
       };
+      clean.status = statusFromDates(clean, originalStatus);
+      return clean;
     }
     function tripKey(row) {
       const clean = cleanRow(row);
@@ -2875,6 +2882,15 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
       if (normalized.includes("fila")) return "status-fila";
       if (normalized.includes("patio")) return "status-patio";
       return "";
+    }
+    function refreshRowStatusSelect(tr) {
+      if (!tr) return;
+      const index = Number(tr.dataset.index);
+      const statusSelect = tr.querySelector('[data-key="status"]');
+      if (!statusSelect || !rows[index]) return;
+      const status = cleanRow(rows[index]).status;
+      statusSelect.value = status;
+      statusSelect.className = `cell ${statusClass(status)}`.trim();
     }
     function showCtNotice(message, type = "warning") {
       const notice = $("ctNotice");
@@ -3106,6 +3122,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
     });
     $("rows").addEventListener("input", () => {
       syncFromTableIfReady();
+      document.querySelectorAll("#rows tr").forEach(refreshRowStatusSelect);
       recalculateTrips();
       updateVisibleTrips();
       renderCounters();
@@ -3133,6 +3150,7 @@ CT_CONTROL_OPERATION_HTML = """<!doctype html>
         }
       }
       syncFromTableIfReady();
+      document.querySelectorAll("#rows tr").forEach(refreshRowStatusSelect);
       recalculateTrips();
       updateVisibleTrips();
       renderCounters();
@@ -6173,8 +6191,19 @@ CT_CONTROL_COLUMNS = [
 ]
 
 
+def ct_status_from_dates(row: dict[str, str]) -> str:
+    if row.get("saida", "").strip():
+        return "Finalizado"
+    if row.get("entrada", "").strip():
+        return "Patio"
+    return row.get("status", "").strip()
+
+
 def clean_ct_control_row(row: dict[str, object]) -> dict[str, str]:
     clean = {key: str(row.get(key, "") or "").strip() for key in CT_CONTROL_COLUMNS}
+    if clean["status"] == "Aguardando Entrada":
+        clean["status"] = "Fila de Carregamento"
+    clean["status"] = ct_status_from_dates(clean)
     return clean
 
 
